@@ -1,0 +1,33 @@
+name: Extract website
+
+on:
+  push:
+    paths:
+      - "manjunath-resume-website.zip"
+
+permissions:
+  contents: write
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract website
+        run: |
+          unzip -o manjunath-resume-website.zip
+          cp -r manjunath-resume-website/* .
+          cp -r manjunath-resume-website/.[!.]* . 2>/dev/null || true
+          rm -rf manjunath-resume-website
+          rm -f manjunath-resume-website.zip
+
+      - name: Commit website files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "Extract website project files" || exit 0
+          git push
