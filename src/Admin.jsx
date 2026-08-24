@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+
 import {
   LogIn,
   LogOut,
@@ -51,6 +52,47 @@ const emptyContent = {
   },
 };
 
+function mergeContent(saved) {
+  if (!saved) {
+    return emptyContent;
+  }
+
+  return {
+    ...emptyContent,
+    ...saved,
+
+    personal: {
+      ...emptyContent.personal,
+      ...(saved.personal || {}),
+    },
+
+    contact: {
+      ...emptyContent.contact,
+      ...(saved.contact || {}),
+    },
+
+    experience:
+      Array.isArray(saved.experience) &&
+      saved.experience.length > 0
+        ? saved.experience
+        : emptyContent.experience,
+
+    skills: Array.isArray(saved.skills)
+      ? saved.skills
+      : [],
+
+    projects: Array.isArray(saved.projects)
+      ? saved.projects
+      : [],
+
+    achievements: Array.isArray(
+      saved.achievements
+    )
+      ? saved.achievements
+      : [],
+  };
+}
+
 export default function Admin() {
   const [session, setSession] = useState(null);
 
@@ -83,23 +125,26 @@ export default function Admin() {
 
     async function checkSession() {
       try {
-        const {
-          data,
-          error,
-        } = await supabase.auth.getSession();
+        const { data, error } =
+          await supabase.auth.getSession();
 
         if (error) {
           throw error;
         }
 
-        if (!mounted) return;
+        if (!mounted) {
+          return;
+        }
 
         if (data?.session) {
           setSession(data.session);
           await loadContent();
         }
       } catch (err) {
-        console.error(err);
+        console.error(
+          "Session error:",
+          err
+        );
 
         if (mounted) {
           setError(
@@ -121,7 +166,9 @@ export default function Admin() {
     } =
       supabase.auth.onAuthStateChange(
         async (_event, newSession) => {
-          if (!mounted) return;
+          if (!mounted) {
+            return;
+          }
 
           setSession(newSession);
 
@@ -133,6 +180,7 @@ export default function Admin() {
 
     return () => {
       mounted = false;
+
       listener?.subscription?.unsubscribe();
     };
   }, []);
@@ -142,51 +190,27 @@ export default function Admin() {
       setLoadingContent(true);
       setError("");
 
-      const {
-        data,
-        error,
-      } = await supabase
-        .from("site_content")
-        .select("content")
-        .eq("id", "main")
-        .maybeSingle();
+      const { data, error } =
+        await supabase
+          .from("site_content")
+          .select("content")
+          .eq("id", "main")
+          .maybeSingle();
 
       if (error) {
         throw error;
       }
 
       if (data?.content) {
-        const saved = data.content;
-
-        setContent({
-          ...emptyContent,
-          ...saved,
-
-          personal: {
-            ...emptyContent.personal,
-            ...(saved.personal || {}),
-          },
-
-          contact: {
-            ...emptyContent.contact,
-            ...(saved.contact || {}),
-          },
-
-          experience:
-            saved.experience?.length
-              ? saved.experience
-              : emptyContent.experience,
-
-          skills: saved.skills || [],
-
-          projects: saved.projects || [],
-
-          achievements:
-            saved.achievements || [],
-        });
+        setContent(
+          mergeContent(data.content)
+        );
       }
     } catch (err) {
-      console.error(err);
+      console.error(
+        "Load content error:",
+        err
+      );
 
       setError(
         err?.message ||
@@ -197,8 +221,8 @@ export default function Admin() {
     }
   }
 
-  async function handleLogin(e) {
-    e.preventDefault();
+  async function handleLogin(event) {
+    event.preventDefault();
 
     setError("");
     setMessage("");
@@ -211,14 +235,13 @@ export default function Admin() {
         );
       }
 
-      const {
-        data,
-        error,
-      } =
-        await supabase.auth.signInWithPassword({
-          email: email.trim(),
-          password,
-        });
+      const { data, error } =
+        await supabase.auth.signInWithPassword(
+          {
+            email: email.trim(),
+            password,
+          }
+        );
 
       if (error) {
         throw error;
@@ -234,7 +257,10 @@ export default function Admin() {
 
       await loadContent();
     } catch (err) {
-      console.error(err);
+      console.error(
+        "Login error:",
+        err
+      );
 
       setError(
         err?.message ||
@@ -357,31 +383,69 @@ export default function Admin() {
   }
 
   async function saveChanges() {
+    if (!session) {
+      setError(
+        "You are not logged in. Please login again."
+      );
+      return;
+    }
+
     try {
       setSaving(true);
       setError("");
       setMessage("");
 
       const {
-        error,
-      } = await supabase
-        .from("site_content")
-        .update({
-          content,
-          updated_at:
-            new Date().toISOString(),
-        })
-        .eq("id", "main");
+        data: currentSession,
+        error: sessionError,
+      } =
+        await supabase.auth.getSession();
+
+      if (sessionError) {
+        throw sessionError;
+      }
+
+      if (!currentSession?.session) {
+        throw new Error(
+          "Your login session has expired. Please login again."
+        );
+      }
+
+      const updatedContent =
+        mergeContent(content);
+
+      const { error } =
+        await supabase
+          .from("site_content")
+          .update({
+            content: updatedContent,
+            updated_at:
+              new Date().toISOString(),
+          })
+          .eq("id", "main");
 
       if (error) {
-        throw error;
+        console.error(
+          "Supabase save error:",
+          error
+        );
+
+        throw new Error(
+          error.message ||
+            "Supabase could not save the changes."
+        );
       }
+
+      setContent(updatedContent);
 
       setMessage(
         "Changes saved successfully! 🎉"
       );
     } catch (err) {
-      console.error(err);
+      console.error(
+        "Save error:",
+        err
+      );
 
       setError(
         err?.message ||
@@ -417,7 +481,6 @@ export default function Admin() {
     return (
       <div className="admin-page">
         <div className="admin-login-card">
-
           <div className="admin-logo">
             MB
           </div>
@@ -447,8 +510,10 @@ export default function Admin() {
               type="email"
               placeholder="Enter admin email"
               value={email}
-              onChange={(e) =>
-                setEmail(e.target.value)
+              onChange={(event) =>
+                setEmail(
+                  event.target.value
+                )
               }
               autoComplete="email"
             />
@@ -461,8 +526,10 @@ export default function Admin() {
               type="password"
               placeholder="Enter password"
               value={password}
-              onChange={(e) =>
-                setPassword(e.target.value)
+              onChange={(event) =>
+                setPassword(
+                  event.target.value
+                )
               }
               autoComplete="current-password"
             />
@@ -501,9 +568,7 @@ export default function Admin() {
 
   return (
     <div className="editor-page">
-
       <header className="editor-header">
-
         <div>
           <div className="editor-label">
             ADMIN PANEL
@@ -525,11 +590,9 @@ export default function Admin() {
           <LogOut size={18} />
           Logout
         </button>
-
       </header>
 
       <main className="editor-container">
-
         {loadingContent && (
           <div className="admin-info">
             Loading your website content...
@@ -551,7 +614,6 @@ export default function Admin() {
         {/* PROFILE */}
 
         <section className="editor-card">
-
           <div className="editor-card-title">
             <User size={20} />
 
@@ -561,7 +623,6 @@ export default function Admin() {
           </div>
 
           <div className="profile-preview">
-
             {content.photo ? (
               <img
                 src={content.photo}
@@ -572,7 +633,6 @@ export default function Admin() {
                 MB
               </div>
             )}
-
           </div>
 
           <label>
@@ -584,18 +644,16 @@ export default function Admin() {
             type="url"
             placeholder="Paste your profile photo URL"
             value={content.photo}
-            onChange={(e) =>
+            onChange={(event) =>
               updateField(
                 "photo",
-                e.target.value
+                event.target.value
               )
             }
           />
 
           <p className="field-help">
             Paste a public image URL.
-            The image will appear on your
-            public website.
           </p>
 
           <label>
@@ -604,10 +662,10 @@ export default function Admin() {
 
           <input
             value={content.name}
-            onChange={(e) =>
+            onChange={(event) =>
               updateField(
                 "name",
-                e.target.value
+                event.target.value
               )
             }
           />
@@ -618,10 +676,10 @@ export default function Admin() {
 
           <input
             value={content.title}
-            onChange={(e) =>
+            onChange={(event) =>
               updateField(
                 "title",
-                e.target.value
+                event.target.value
               )
             }
           />
@@ -633,20 +691,18 @@ export default function Admin() {
           <textarea
             rows="7"
             value={content.about}
-            onChange={(e) =>
+            onChange={(event) =>
               updateField(
                 "about",
-                e.target.value
+                event.target.value
               )
             }
           />
-
         </section>
 
         {/* PERSONAL INFORMATION */}
 
         <section className="editor-card">
-
           <div className="editor-card-title">
             <User size={20} />
 
@@ -665,10 +721,10 @@ export default function Admin() {
             value={
               content.personal.location
             }
-            onChange={(e) =>
+            onChange={(event) =>
               updatePersonal(
                 "location",
-                e.target.value
+                event.target.value
               )
             }
           />
@@ -683,20 +739,18 @@ export default function Admin() {
             value={
               content.personal.education
             }
-            onChange={(e) =>
+            onChange={(event) =>
               updatePersonal(
                 "education",
-                e.target.value
+                event.target.value
               )
             }
           />
-
         </section>
 
         {/* CONTACT */}
 
         <section className="editor-card">
-
           <div className="editor-card-title">
             <Mail size={20} />
 
@@ -716,10 +770,10 @@ export default function Admin() {
             value={
               content.contact.email
             }
-            onChange={(e) =>
+            onChange={(event) =>
               updateContact(
                 "email",
-                e.target.value
+                event.target.value
               )
             }
           />
@@ -735,10 +789,10 @@ export default function Admin() {
             value={
               content.contact.phone
             }
-            onChange={(e) =>
+            onChange={(event) =>
               updateContact(
                 "phone",
-                e.target.value
+                event.target.value
               )
             }
           />
@@ -754,20 +808,18 @@ export default function Admin() {
             value={
               content.contact.linkedin
             }
-            onChange={(e) =>
+            onChange={(event) =>
               updateContact(
                 "linkedin",
-                e.target.value
+                event.target.value
               )
             }
           />
-
         </section>
 
         {/* EXPERIENCE */}
 
         <section className="editor-card">
-
           <div className="editor-card-title">
             <Briefcase size={20} />
 
@@ -785,10 +837,10 @@ export default function Admin() {
               content.experience?.[0]
                 ?.role || ""
             }
-            onChange={(e) =>
+            onChange={(event) =>
               updateExperience(
                 "role",
-                e.target.value
+                event.target.value
               )
             }
           />
@@ -802,10 +854,10 @@ export default function Admin() {
               content.experience?.[0]
                 ?.company || ""
             }
-            onChange={(e) =>
+            onChange={(event) =>
               updateExperience(
                 "company",
-                e.target.value
+                event.target.value
               )
             }
           />
@@ -820,10 +872,10 @@ export default function Admin() {
               content.experience?.[0]
                 ?.period || ""
             }
-            onChange={(e) =>
+            onChange={(event) =>
               updateExperience(
                 "period",
-                e.target.value
+                event.target.value
               )
             }
           />
@@ -838,20 +890,18 @@ export default function Admin() {
               content.experience?.[0]
                 ?.description || ""
             }
-            onChange={(e) =>
+            onChange={(event) =>
               updateExperience(
                 "description",
-                e.target.value
+                event.target.value
               )
             }
           />
-
         </section>
 
         {/* SKILLS */}
 
         <section className="editor-card">
-
           <div className="editor-card-title">
             <Code size={20} />
 
@@ -868,22 +918,21 @@ export default function Admin() {
             rows="5"
             placeholder="Data Annotation, QA, Team Management, Segmentation..."
             value={
-              (content.skills || [])
-                .join(", ")
+              (content.skills || []).join(
+                ", "
+              )
             }
-            onChange={(e) =>
+            onChange={(event) =>
               updateSkills(
-                e.target.value
+                event.target.value
               )
             }
           />
-
         </section>
 
         {/* PROJECTS */}
 
         <section className="editor-card">
-
           <div className="editor-card-title">
             <FolderKanban size={20} />
 
@@ -898,8 +947,8 @@ export default function Admin() {
 
           <p className="field-help">
             One project per line.
-            Format:
-            Project Name: Description
+            Format: Project Name:
+            Description
           </p>
 
           <textarea
@@ -915,19 +964,17 @@ export default function Admin() {
                 )
                 .join("\n")
             }
-            onChange={(e) =>
+            onChange={(event) =>
               updateProjects(
-                e.target.value
+                event.target.value
               )
             }
           />
-
         </section>
 
         {/* ACHIEVEMENTS */}
 
         <section className="editor-card">
-
           <div className="editor-card-title">
             <Award size={20} />
 
@@ -947,22 +994,21 @@ export default function Admin() {
           <textarea
             rows="7"
             value={
-              (content.achievements || [])
-                .join("\n")
+              (content.achievements || []).join(
+                "\n"
+              )
             }
-            onChange={(e) =>
+            onChange={(event) =>
               updateAchievements(
-                e.target.value
+                event.target.value
               )
             }
           />
-
         </section>
 
         {/* SAVE */}
 
         <div className="save-area">
-
           <button
             className="save-btn"
             onClick={saveChanges}
@@ -977,10 +1023,8 @@ export default function Admin() {
               ? "Saving..."
               : "Save Changes"}
           </button>
-
         </div>
-
       </main>
     </div>
   );
-            }
+}
