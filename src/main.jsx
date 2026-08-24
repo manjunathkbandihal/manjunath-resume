@@ -108,7 +108,9 @@ const defaultContent = {
 };
 
 function mergeContent(saved) {
-  if (!saved) return defaultContent;
+  if (!saved) {
+    return defaultContent;
+  }
 
   return {
     ...defaultContent,
@@ -125,22 +127,26 @@ function mergeContent(saved) {
     },
 
     experience:
-      saved.experience?.length
+      saved.experience &&
+      saved.experience.length
         ? saved.experience
         : defaultContent.experience,
 
     skills:
-      saved.skills?.length
+      saved.skills &&
+      saved.skills.length
         ? saved.skills
         : defaultContent.skills,
 
     projects:
-      saved.projects?.length
+      saved.projects &&
+      saved.projects.length
         ? saved.projects
         : defaultContent.projects,
 
     achievements:
-      saved.achievements?.length
+      saved.achievements &&
+      saved.achievements.length
         ? saved.achievements
         : defaultContent.achievements,
   };
@@ -175,11 +181,12 @@ function App() {
             "Supabase viewer error:",
             error
           );
-
           return;
         }
 
-        if (!mounted) return;
+        if (!mounted) {
+          return;
+        }
 
         setContent(
           mergeContent(data?.content)
@@ -206,11 +213,14 @@ function App() {
   const go = (id) => {
     setMenuOpen(false);
 
-    document
-      .getElementById(id)
-      ?.scrollIntoView({
+    const element =
+      document.getElementById(id);
+
+    if (element) {
+      element.scrollIntoView({
         behavior: "smooth",
       });
+    }
   };
 
   if (loading) {
@@ -241,7 +251,10 @@ function App() {
   }
 
   const firstExperience =
-    content.experience?.[0] || {};
+    content.experience &&
+    content.experience.length
+      ? content.experience[0]
+      : {};
 
   return (
     <div className="site">
@@ -249,7 +262,6 @@ function App() {
       {/* HEADER */}
 
       <header className="header">
-
         <div className="nav container">
 
           <button
@@ -258,12 +270,17 @@ function App() {
           >
             <span>
               {content.name
-                ?.split(" ")[0] || "Manjunath"}
+                ? content.name
+                    .split(" ")[0]
+                : "Manjunath"}
             </span>{" "}
+
             {content.name
-              ?.split(" ")
-              .slice(1)
-              .join(" ") || "Bandihal"}
+              ? content.name
+                  .split(" ")
+                  .slice(1)
+                  .join(" ")
+              : "Bandihal"}
           </button>
 
           <nav
@@ -300,7 +317,6 @@ function App() {
           </button>
 
         </div>
-
       </header>
 
       <main>
@@ -322,17 +338,21 @@ function App() {
 
               <h1>
                 {content.name
-                  ?.split(" ")
-                  .slice(0, 1)
-                  .join(" ")
-                  .toUpperCase()}
+                  ? content.name
+                      .split(" ")
+                      .slice(0, 1)
+                      .join(" ")
+                      .toUpperCase()
+                  : "MANJUNATH"}
 
                 <span>
                   {content.name
-                    ?.split(" ")
-                    .slice(1)
-                    .join(" ")
-                    .toUpperCase()}
+                    ? content.name
+                        .split(" ")
+                        .slice(1)
+                        .join(" ")
+                        .toUpperCase()
+                    : "BANDIHAL"}
                 </span>
               </h1>
 
@@ -352,44 +372,48 @@ function App() {
                   Download Resume
                 </a>
 
-                {content.contact.linkedin && (
-                  <a
-                    className="btn secondary"
-                    href={
-                      content.contact.linkedin
-                    }
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    <Linkedin size={18} />
-                    LinkedIn Profile
-                  </a>
-                )}
+                {content.contact &&
+                  content.contact.linkedin && (
+                    <a
+                      className="btn secondary"
+                      href={
+                        content.contact.linkedin
+                      }
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <Linkedin size={18} />
+                      LinkedIn Profile
+                    </a>
+                  )}
 
               </div>
 
               <div className="contact-chips">
 
-                {content.contact.email && (
-                  <span>
-                    <Mail size={15} />
-                    {content.contact.email}
-                  </span>
-                )}
+                {content.contact &&
+                  content.contact.email && (
+                    <span>
+                      <Mail size={15} />
+                      {content.contact.email}
+                    </span>
+                  )}
 
-                {content.contact.phone && (
-                  <span>
-                    <Phone size={15} />
-                    {content.contact.phone}
-                  </span>
-                )}
+                {content.contact &&
+                  content.contact.phone && (
+                    <span>
+                      <Phone size={15} />
+                      {content.contact.phone}
+                    </span>
+                  )}
 
-                {content.personal.location && (
-                  <span>
-                    <MapPin size={15} />
-                    {content.personal.location}
-                  </span>
-                )}
+                {content.personal &&
+                  content.personal.location && (
+                    <span>
+                      <MapPin size={15} />
+                      {content.personal.location}
+                    </span>
+                  )}
 
               </div>
 
@@ -426,14 +450,16 @@ function App() {
 
                   <div className="portrait-icon">
                     {content.name
-                      ?.split(" ")
-                      .map(
-                        (word) =>
-                          word[0]
-                      )
-                      .join("")
-                      .slice(0, 2)
-                      .toUpperCase()}
+                      ? content.name
+                          .split(" ")
+                          .map(
+                            (word) =>
+                              word[0]
+                          )
+                          .join("")
+                          .slice(0, 2)
+                          .toUpperCase()
+                      : "MB"}
                   </div>
 
                   <p>
@@ -483,9 +509,10 @@ function App() {
                     }
                     title="Education"
                     value={
-                      content.personal
-                        .education ||
-                      "Education"
+                      content.personal &&
+                      content.personal.education
+                        ? content.personal.education
+                        : "Education"
                     }
                   />
 
@@ -520,7 +547,8 @@ function App() {
                   icon={<Users />}
                   label="Name"
                   value={
-                    content.name
+                    content.name ||
+                    "Not provided"
                   }
                 />
 
@@ -528,9 +556,10 @@ function App() {
                   icon={<Mail />}
                   label="Email"
                   value={
-                    content.contact
-                      .email ||
-                    "Not provided"
+                    content.contact &&
+                    content.contact.email
+                      ? content.contact.email
+                      : "Not provided"
                   }
                 />
 
@@ -538,9 +567,10 @@ function App() {
                   icon={<Phone />}
                   label="Phone"
                   value={
-                    content.contact
-                      .phone ||
-                    "Not provided"
+                    content.contact &&
+                    content.contact.phone
+                      ? content.contact.phone
+                      : "Not provided"
                   }
                 />
 
@@ -548,9 +578,10 @@ function App() {
                   icon={<MapPin />}
                   label="Location"
                   value={
-                    content.personal
-                      .location ||
-                    "India"
+                    content.personal &&
+                    content.personal.location
+                      ? content.personal.location
+                      : "India"
                   }
                 />
 
@@ -558,9 +589,10 @@ function App() {
                   icon={<Linkedin />}
                   label="LinkedIn"
                   value={
-                    content.contact
-                      .linkedin ||
-                    "Not provided"
+                    content.contact &&
+                    content.contact.linkedin
+                      ? content.contact.linkedin
+                      : "Not provided"
                   }
                 />
 
@@ -613,7 +645,7 @@ function App() {
 
                   <span className="pill">
                     {firstExperience.period ||
-                      "Team Lead"}
+                      "Present"}
                   </span>
 
                 </div>
@@ -817,59 +849,4 @@ function App() {
                         "";
 
                   return (
-                    <article
-                      className="achievement"
-                      key={
-                        title ||
-                        index
-                      }
-                    >
-
-                      <div className="round-icon">
-                        <Award size={20} />
-                      </div>
-
-                      <div>
-
-                        <h3>
-                          {title}
-                        </h3>
-
-                        {text && (
-                          <p>
-                            {text}
-                          </p>
-                        )}
-
-                      </div>
-
-                    </article>
-                  );
-                }
-              )}
-
-            </div>
-
-          </div>
-        </section>
-
-        {/* CONTACT */}
-
-        <section
-          id="contact"
-          className="contact-section"
-        >
-          <div className="container contact-grid">
-
-            <div>
-
-              <div className="eyebrow">
-                LET'S CONNECT
-              </div>
-
-              <h2>
-                Get In Touch
-              </h2>
-
-              <p>
-                Open to di
+               
