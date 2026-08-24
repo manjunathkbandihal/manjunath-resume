@@ -401,3 +401,32 @@ button,a,input,textarea{font:inherit}button{cursor:pointer}a{text-decoration:non
     width: 100%;
   }
 }
+.profile-preview {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.profile-preview img,
+.profile-placeholder {
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #37c878;
+}
+
+.profile-placeholder {
+  display: grid;
+  place-items: center;
+  background: radial-gradient(
+    circle,
+    #153d34,
+    #091a1d 60%,
+    #06101b
+  );
+  color: #37c878;
+  font-size: 28px;
+  font-weight: 800;
+}
