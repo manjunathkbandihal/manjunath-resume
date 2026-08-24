@@ -1,9 +1,19 @@
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const SUPABASE_URL =
+  "https://gisjyrhkxljikrsoqfof.supabase.co";
+
+const SUPABASE_KEY =
+  "PASTE_YOUR_PUBLISHABLE_KEY_HERE";
 
 export const supabase = createClient(
-  supabaseUrl,
-  supabaseAnonKey
+  SUPABASE_URL,
+  SUPABASE_KEY,
+  {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+    },
+  }
 );
