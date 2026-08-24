@@ -1,8 +1,16 @@
 import React, { useEffect, useState } from "react";
-import { LogOut, Save, User, Briefcase, Code, FolderKanban, Award } from "lucide-react";
+import {
+  LogOut,
+  Save,
+  User,
+  Briefcase,
+  Code,
+  FolderKanban,
+  Award,
+} from "lucide-react";
 import { supabase } from "./supabase";
 
-const defaultContent = {
+const emptyContent = {
   name: "",
   title: "",
   about: "",
@@ -14,104 +22,111 @@ const defaultContent = {
   contact: {
     email: "",
     phone: "",
-    linkedin: ""
-  }
+    linkedin: "",
+  },
 };
 
 export default function Admin() {
   const [user, setUser] = useState(null);
-  const [content, setContent] = useState(defaultContent);
+  const [content, setContent] = useState(emptyContent);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    checkUser();
+    loadAdmin();
   }, []);
 
-  async function checkUser() {
-    const {
-      data: { session }
-    } = await supabase.auth.getSession();
+  async function loadAdmin() {
+    try {
+      setLoading(true);
+      setError("");
 
-    if (!session) {
-      window.location.href = "/admin";
-      return;
-    }
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
 
-    setUser(session.user);
-    await loadContent();
-    setLoading(false);
-  }
-
-  async function loadContent() {
-    const { data, error } = await supabase
-      .from("site_content")
-      .select("content")
-      .eq("id", "main")
-      .single();
-
-    if (error) {
-      setMessage(error.message);
-      return;
-    }
-
-    setContent({
-      ...defaultContent,
-      ...data.content,
-      contact: {
-        ...defaultContent.contact,
-        ...(data.content.contact || {})
+      if (sessionError) {
+        throw sessionError;
       }
-    });
+
+      if (!session) {
+        window.location.href = "/admin";
+        return;
+      }
+
+      setUser(session.user);
+
+      const { data, error: contentError } = await supabase
+        .from("site_content")
+        .select("content")
+        .eq("id", "main")
+        .maybeSingle();
+
+      if (contentError) {
+        throw contentError;
+      }
+
+      if (data?.content) {
+        setContent({
+          ...emptyContent,
+          ...data.content,
+          contact: {
+            ...emptyContent.contact,
+            ...(data.content.contact || {}),
+          },
+        });
+      }
+    } catch (err) {
+      console.error(err);
+      setError(err.message || "Unable to load website data.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   function updateField(field, value) {
-    setContent((old) => ({
-      ...old,
-      [field]: value
+    setContent((current) => ({
+      ...current,
+      [field]: value,
     }));
   }
 
   function updateContact(field, value) {
-    setContent((old) => ({
-      ...old,
+    setContent((current) => ({
+      ...current,
       contact: {
-        ...old.contact,
-        [field]: value
-      }
+        ...current.contact,
+        [field]: value,
+      },
     }));
   }
 
-  function updateSkills(value) {
-    const skills = value
-      .split(",")
-      .map((item) => item.trim())
-      .filter(Boolean);
-
-    updateField("skills", skills);
-  }
-
   async function saveChanges() {
-    setSaving(true);
-    setMessage("");
+    try {
+      setSaving(true);
+      setError("");
 
-    const { error } = await supabase
-      .from("site_content")
-      .update({
-        content: content,
-        updated_at: new Date().toISOString()
-      })
-      .eq("id", "main");
+      const { error: updateError } = await supabase
+        .from("site_content")
+        .update({
+          content,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", "main");
 
-    setSaving(false);
+      if (updateError) {
+        throw updateError;
+      }
 
-    if (error) {
-      setMessage("Error: " + error.message);
-      return;
+      alert("Changes saved successfully! 🎉");
+    } catch (err) {
+      console.error(err);
+      setError(err.message || "Unable to save changes.");
+    } finally {
+      setSaving(false);
     }
-
-    setMessage("Changes saved successfully! 🎉");
   }
 
   async function logout() {
@@ -123,7 +138,36 @@ export default function Admin() {
     return (
       <div className="admin-page">
         <div className="admin-card">
-          <h2>Loading...</h2>
+          <h2>Checking your account...</h2>
+          <p>Please wait.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="admin-page">
+        <div className="admin-card">
+          <h2>Something went wrong</h2>
+
+          <p className="admin-error">
+            {error}
+          </p>
+
+          <button
+            className="admin-login-btn"
+            onClick={loadAdmin}
+          >
+            Try Again
+          </button>
+
+          <button
+            className="back-home"
+            onClick={logout}
+          >
+            Logout
+          </button>
         </div>
       </div>
     );
@@ -131,15 +175,23 @@ export default function Admin() {
 
   return (
     <div className="editor-page">
-
       <header className="editor-header">
         <div>
-          <div className="editor-label">ADMIN PANEL</div>
+          <div className="editor-label">
+            ADMIN PANEL
+          </div>
+
           <h1>Edit My Website</h1>
-          <p>Update your resume website from your phone.</p>
+
+          <p>
+            Logged in as {user?.email}
+          </p>
         </div>
 
-        <button className="logout-btn" onClick={logout}>
+        <button
+          className="logout-btn"
+          onClick={logout}
+        >
           <LogOut size={18} />
           Logout
         </button>
@@ -154,31 +206,31 @@ export default function Admin() {
           </div>
 
           <label>Name</label>
+
           <input
             value={content.name}
             onChange={(e) =>
               updateField("name", e.target.value)
             }
-            placeholder="Your name"
           />
 
           <label>Professional Title</label>
+
           <input
             value={content.title}
             onChange={(e) =>
               updateField("title", e.target.value)
             }
-            placeholder="Your professional title"
           />
 
           <label>About Me</label>
+
           <textarea
             rows="6"
             value={content.about}
             onChange={(e) =>
               updateField("about", e.target.value)
             }
-            placeholder="Write about yourself..."
           />
         </section>
 
@@ -189,58 +241,74 @@ export default function Admin() {
           </div>
 
           <label>Job Role</label>
+
           <input
-            value={content.experience?.[0]?.role || ""}
+            value={
+              content.experience?.[0]?.role || ""
+            }
             onChange={(e) => {
               const experience = [
-                ...(content.experience || [])
+                ...(content.experience || []),
               ];
 
               experience[0] = {
                 ...(experience[0] || {}),
-                role: e.target.value
+                role: e.target.value,
               };
 
-              updateField("experience", experience);
+              updateField(
+                "experience",
+                experience
+              );
             }}
-            placeholder="Data Annotation Team Lead"
           />
 
           <label>Company</label>
+
           <input
-            value={content.experience?.[0]?.company || ""}
+            value={
+              content.experience?.[0]?.company || ""
+            }
             onChange={(e) => {
               const experience = [
-                ...(content.experience || [])
+                ...(content.experience || []),
               ];
 
               experience[0] = {
                 ...(experience[0] || {}),
-                company: e.target.value
+                company: e.target.value,
               };
 
-              updateField("experience", experience);
+              updateField(
+                "experience",
+                experience
+              );
             }}
-            placeholder="Company name"
           />
 
           <label>Description</label>
+
           <textarea
             rows="6"
-            value={content.experience?.[0]?.description || ""}
+            value={
+              content.experience?.[0]?.description ||
+              ""
+            }
             onChange={(e) => {
               const experience = [
-                ...(content.experience || [])
+                ...(content.experience || []),
               ];
 
               experience[0] = {
                 ...(experience[0] || {}),
-                description: e.target.value
+                description: e.target.value,
               };
 
-              updateField("experience", experience);
+              updateField(
+                "experience",
+                experience
+              );
             }}
-            placeholder="Describe your experience..."
           />
         </section>
 
@@ -250,20 +318,25 @@ export default function Admin() {
             <h2>Skills</h2>
           </div>
 
-          <label>Skills</label>
+          <label>
+            Skills — separate with commas
+          </label>
 
           <textarea
             rows="5"
-            value={(content.skills || []).join(", ")}
+            value={(content.skills || []).join(
+              ", "
+            )}
             onChange={(e) =>
-              updateSkills(e.target.value)
+              updateField(
+                "skills",
+                e.target.value
+                  .split(",")
+                  .map((x) => x.trim())
+                  .filter(Boolean)
+              )
             }
-            placeholder="Data Annotation, Team Management, Excel..."
           />
-
-          <small>
-            Separate each skill with a comma.
-          </small>
         </section>
 
         <section className="editor-card">
@@ -272,38 +345,54 @@ export default function Admin() {
             <h2>Projects</h2>
           </div>
 
-          <label>Projects</label>
+          <label>
+            Projects — one project per line
+          </label>
 
           <textarea
             rows="8"
             value={(content.projects || [])
               .map(
-                (project) =>
-                  `${project.title || ""}: ${project.description || project.text || ""}`
+                (p) =>
+                  `${p.title || ""}: ${
+                    p.description ||
+                    p.text ||
+                    ""
+                  }`
               )
-              .join("\n\n")}
+              .join("\n")}
             onChange={(e) => {
               const projects = e.target.value
-                .split("\n\n")
+                .split("\n")
                 .filter(Boolean)
-                .map((item) => {
-                  const parts = item.split(":");
+                .map((line) => {
+                  const index =
+                    line.indexOf(":");
+
+                  if (index === -1) {
+                    return {
+                      title: line.trim(),
+                      description: "",
+                    };
+                  }
 
                   return {
-                    title: parts[0]?.trim() || "",
-                    description:
-                      parts.slice(1).join(":").trim() || ""
+                    title: line
+                      .slice(0, index)
+                      .trim(),
+
+                    description: line
+                      .slice(index + 1)
+                      .trim(),
                   };
                 });
 
-              updateField("projects", projects);
+              updateField(
+                "projects",
+                projects
+              );
             }}
-            placeholder="Project name: Project description"
           />
-
-          <small>
-            Separate projects with a blank line.
-          </small>
         </section>
 
         <section className="editor-card">
@@ -312,61 +401,74 @@ export default function Admin() {
             <h2>Achievements</h2>
           </div>
 
-          <label>Achievements</label>
+          <label>
+            Achievements — separate with commas
+          </label>
 
           <textarea
-            rows="6"
-            value={(content.achievements || []).join(", ")}
-            onChange={(e) => {
-              const achievements = e.target.value
-                .split(",")
-                .map((item) => item.trim())
-                .filter(Boolean);
-
-              updateField("achievements", achievements);
-            }}
-            placeholder="Best Performer, Quality Improvement..."
+            rows="5"
+            value={(content.achievements || []).join(
+              ", "
+            )}
+            onChange={(e) =>
+              updateField(
+                "achievements",
+                e.target.value
+                  .split(",")
+                  .map((x) => x.trim())
+                  .filter(Boolean)
+              )
+            }
           />
         </section>
 
         <section className="editor-card">
           <div className="editor-card-title">
             <User size={20} />
-            <h2>Contact Information</h2>
+            <h2>Contact</h2>
           </div>
 
           <label>Email</label>
+
           <input
             value={content.contact.email}
             onChange={(e) =>
-              updateContact("email", e.target.value)
+              updateContact(
+                "email",
+                e.target.value
+              )
             }
-            placeholder="your@email.com"
           />
 
           <label>Phone</label>
+
           <input
             value={content.contact.phone}
             onChange={(e) =>
-              updateContact("phone", e.target.value)
+              updateContact(
+                "phone",
+                e.target.value
+              )
             }
-            placeholder="Your phone number"
           />
 
           <label>LinkedIn</label>
+
           <input
             value={content.contact.linkedin}
             onChange={(e) =>
-              updateContact("linkedin", e.target.value)
+              updateContact(
+                "linkedin",
+                e.target.value
+              )
             }
-            placeholder="https://linkedin.com/in/..."
           />
         </section>
 
-        <div className="save-area">
-          {message && (
-            <div className="save-message">
-              {message}
+        <section className="save-area">
+          {error && (
+            <div className="admin-error">
+              {error}
             </div>
           )}
 
@@ -376,11 +478,14 @@ export default function Admin() {
             disabled={saving}
           >
             <Save size={20} />
-            {saving ? "Saving..." : "Save Changes"}
+
+            {saving
+              ? "Saving..."
+              : "Save Changes"}
           </button>
-        </div>
+        </section>
 
       </main>
     </div>
   );
-          }
+}
