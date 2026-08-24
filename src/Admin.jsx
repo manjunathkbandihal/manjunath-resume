@@ -465,14 +465,13 @@ export default function Admin() {
    */
 
   async function saveChanges() {
-  try {
-    setSaving(true);
-    setError("");
-    setMessage("");
+  setSaving(true);
+  setError("");
+  setMessage("");
 
+  try {
     console.log("=== SAVE START ===");
 
-    // Make sure the user is still logged in
     const {
       data: sessionData,
       error: sessionError,
@@ -492,11 +491,10 @@ export default function Admin() {
     }
 
     console.log(
-      "Authenticated user:",
+      "Logged in as:",
       sessionData.session.user?.email
     );
 
-    // Save through PostgreSQL RPC
     const {
       data,
       error,
@@ -507,12 +505,12 @@ export default function Admin() {
       }
     );
 
-    console.log("RPC response:", data);
+    console.log("RPC data:", data);
     console.log("RPC error:", error);
 
     if (error) {
       throw new Error(
-        "Supabase RPC save failed: " +
+        "Supabase save failed: " +
           error.message +
           (error.details
             ? " | Details: " +
@@ -537,7 +535,6 @@ export default function Admin() {
       "Changes saved successfully! 🎉"
     );
 
-    // Reload the saved content from Supabase
     await loadContent();
 
   } catch (err) {
@@ -555,7 +552,6 @@ export default function Admin() {
     setSaving(false);
   }
 }
-
       /*
        * Make a clean copy of the content.
        */
