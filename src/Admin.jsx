@@ -55,7 +55,15 @@ const emptyContent = {
 
 function mergeContent(saved) {
   if (!saved) {
-    return emptyContent;
+    return {
+      ...emptyContent,
+      personal: { ...emptyContent.personal },
+      contact: { ...emptyContent.contact },
+      experience: [...emptyContent.experience],
+      skills: [],
+      projects: [],
+      achievements: [],
+    };
   }
 
   return {
@@ -73,9 +81,10 @@ function mergeContent(saved) {
     },
 
     experience:
-      saved.experience && saved.experience.length
+      Array.isArray(saved.experience) &&
+      saved.experience.length
         ? saved.experience
-        : emptyContent.experience,
+        : [...emptyContent.experience],
 
     skills: Array.isArray(saved.skills)
       ? saved.skills
@@ -97,16 +106,30 @@ export default function Admin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const [content, setContent] = useState(emptyContent);
+  const [content, setContent] = useState(
+    mergeContent(null)
+  );
 
-  const [checkingSession, setCheckingSession] = useState(true);
-  const [loadingContent, setLoadingContent] = useState(false);
-  const [loggingIn, setLoggingIn] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [checkingSession, setCheckingSession] =
+    useState(true);
 
-  const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
+  const [loadingContent, setLoadingContent] =
+    useState(false);
+
+  const [loggingIn, setLoggingIn] =
+    useState(false);
+
+  const [saving, setSaving] =
+    useState(false);
+
+  const [uploadingPhoto, setUploadingPhoto] =
+    useState(false);
+
+  const [error, setError] =
+    useState("");
+
+  const [message, setMessage] =
+    useState("");
 
   useEffect(() => {
     let mounted = true;
@@ -115,7 +138,8 @@ export default function Admin() {
       try {
         setError("");
 
-        const result = await supabase.auth.getSession();
+        const result =
+          await supabase.auth.getSession();
 
         if (result.error) {
           throw result.error;
@@ -125,7 +149,8 @@ export default function Admin() {
           return;
         }
 
-        const currentSession = result.data?.session || null;
+        const currentSession =
+          result.data?.session || null;
 
         setSession(currentSession);
 
@@ -133,7 +158,10 @@ export default function Admin() {
           await loadContent();
         }
       } catch (err) {
-        console.error("Session check failed:", err);
+        console.error(
+          "Session check failed:",
+          err
+        );
 
         if (mounted) {
           setError(
@@ -197,11 +225,15 @@ export default function Admin() {
         );
       }
     } catch (err) {
-      console.error("Load content failed:", err);
+      console.error(
+        "Load content failed:",
+        err
+      );
 
       setError(
         "Unable to load website content: " +
-          (err?.message || "Unknown error")
+          (err?.message ||
+            "Unknown error")
       );
     } finally {
       setLoadingContent(false);
@@ -242,7 +274,10 @@ export default function Admin() {
 
       await loadContent();
     } catch (err) {
-      console.error("Login failed:", err);
+      console.error(
+        "Login failed:",
+        err
+      );
 
       setError(
         err?.message ||
@@ -268,7 +303,10 @@ export default function Admin() {
       setSession(null);
       setPassword("");
     } catch (err) {
-      console.error("Logout failed:", err);
+      console.error(
+        "Logout failed:",
+        err
+      );
 
       setError(
         err?.message ||
@@ -351,7 +389,8 @@ export default function Admin() {
       .map((line) => line.trim())
       .filter(Boolean)
       .map((line) => {
-        const separator = line.indexOf(":");
+        const separator =
+          line.indexOf(":");
 
         if (separator === -1) {
           return {
@@ -371,9 +410,20 @@ export default function Admin() {
         };
       });
 
-    updateField("projects", projects);
+    updateField(
+      "projects",
+      projects
+    );
   }
 
+  /*
+   * PROFILE PHOTO UPLOAD
+   *
+   * Important:
+   * We upload the actual image to Supabase Storage.
+   * Only the resulting public URL is saved inside
+   * site_content.content.photo.
+   */
   async function handlePhotoUpload(event) {
     const file =
       event.target.files?.[0];
@@ -386,6 +436,12 @@ export default function Admin() {
       setError("");
       setMessage("");
       setUploadingPhoto(true);
+
+      if (!session) {
+        throw new Error(
+          "You are not logged in. Please login again."
+        );
+      }
 
       if (!file.type.startsWith("image/")) {
         throw new Error(
@@ -402,17 +458,15 @@ export default function Admin() {
         );
       }
 
-      const originalName =
-        file.name || "profile.jpg";
-
-      const parts =
-        originalName.split(".");
+      const extensionMap = {
+        "image/jpeg": "jpg",
+        "image/png": "png",
+        "image/webp": "webp",
+        "image/gif": "gif",
+      };
 
       const extension =
-        parts.length > 1
-          ? parts[parts.length - 1]
-              .toLowerCase()
-          : "jpg";
+        extensionMap[file.type] || "jpg";
 
       const fileName =
         "profile-" +
@@ -420,13 +474,14 @@ export default function Admin() {
         "." +
         extension;
 
-      const filePath = fileName;
-
+      /*
+       * Upload image to Supabase Storage.
+       */
       const uploadResult =
         await supabase.storage
           .from(PHOTO_BUCKET)
           .upload(
-            filePath,
+            fileName,
             file,
             {
               cacheControl: "3600",
@@ -436,30 +491,41 @@ export default function Admin() {
           );
 
       if (uploadResult.error) {
-        throw uploadResult.error;
+        throw new Error(
+          "Storage upload failed: " +
+            uploadResult.error.message
+        );
       }
 
+      /*
+       * Get public URL.
+       */
       const publicUrlResult =
         supabase.storage
           .from(PHOTO_BUCKET)
-          .getPublicUrl(filePath);
+          .getPublicUrl(fileName);
 
       const publicUrl =
         publicUrlResult?.data?.publicUrl;
 
       if (!publicUrl) {
         throw new Error(
-          "Photo uploaded, but public URL could not be created."
+          "Photo uploaded, but Supabase did not return a public URL."
         );
       }
 
+      /*
+       * IMPORTANT:
+       * Save ONLY the URL in React state.
+       * Never save the File object or Base64 data.
+       */
       setContent((current) => ({
         ...current,
-        photo: publicUrl,
+        photo: String(publicUrl),
       }));
 
       setMessage(
-        "Photo uploaded successfully. Click Save Changes to publish it."
+        "Photo uploaded successfully. Now click Save Changes."
       );
     } catch (err) {
       console.error(
@@ -475,7 +541,9 @@ export default function Admin() {
     } finally {
       setUploadingPhoto(false);
 
-      event.target.value = "";
+      if (event.target) {
+        event.target.value = "";
+      }
     }
   }
 
@@ -486,10 +554,19 @@ export default function Admin() {
     }));
 
     setMessage(
-      "Photo removed from the profile. Click Save Changes to publish the change."
+      "Photo removed. Click Save Changes to publish the change."
     );
   }
 
+  /*
+   * SAVE CHANGES
+   *
+   * Before sending the database request, we create
+   * a clean JSON-safe copy of the content.
+   *
+   * This prevents File objects, Blob objects or
+   * other non-JSON values from being sent to Supabase.
+   */
   async function saveChanges() {
     try {
       setSaving(true);
@@ -502,10 +579,192 @@ export default function Admin() {
         );
       }
 
+      if (uploadingPhoto) {
+        throw new Error(
+          "Please wait until the photo upload finishes."
+        );
+      }
+
+      /*
+       * Create a JSON-safe copy.
+       */
+      const cleanContent =
+        JSON.parse(
+          JSON.stringify({
+            name:
+              typeof content.name === "string"
+                ? content.name
+                : "",
+
+            title:
+              typeof content.title === "string"
+                ? content.title
+                : "",
+
+            photo:
+              typeof content.photo === "string"
+                ? content.photo
+                : "",
+
+            about:
+              typeof content.about === "string"
+                ? content.about
+                : "",
+
+            personal: {
+              location:
+                typeof content.personal
+                  ?.location === "string"
+                  ? content.personal.location
+                  : "",
+
+              education:
+                typeof content.personal
+                  ?.education === "string"
+                  ? content.personal.education
+                  : "",
+            },
+
+            experience:
+              Array.isArray(
+                content.experience
+              )
+                ? content.experience.map(
+                    (item) => ({
+                      role:
+                        typeof item?.role ===
+                        "string"
+                          ? item.role
+                          : "",
+
+                      company:
+                        typeof item?.company ===
+                        "string"
+                          ? item.company
+                          : "",
+
+                      period:
+                        typeof item?.period ===
+                        "string"
+                          ? item.period
+                          : "",
+
+                      description:
+                        typeof item?.description ===
+                        "string"
+                          ? item.description
+                          : "",
+                    })
+                  )
+                : [],
+
+            skills:
+              Array.isArray(content.skills)
+                ? content.skills.filter(
+                    (item) =>
+                      typeof item ===
+                      "string"
+                  )
+                : [],
+
+            projects:
+              Array.isArray(content.projects)
+                ? content.projects.map(
+                    (project) => ({
+                      title:
+                        typeof project?.title ===
+                        "string"
+                          ? project.title
+                          : "",
+
+                      description:
+                        typeof project?.description ===
+                        "string"
+                          ? project.description
+                          : "",
+
+                      tag:
+                        typeof project?.tag ===
+                        "string"
+                          ? project.tag
+                          : "",
+                    })
+                  )
+                : [],
+
+            achievements:
+              Array.isArray(
+                content.achievements
+              )
+                ? content.achievements
+                    .map((item) => {
+                      if (
+                        typeof item ===
+                        "string"
+                      ) {
+                        return item;
+                      }
+
+                      return {
+                        title:
+                          typeof item?.title ===
+                          "string"
+                            ? item.title
+                            : "",
+
+                        description:
+                          typeof item?.description ===
+                          "string"
+                            ? item.description
+                            : "",
+                      };
+                    })
+                    .filter(Boolean)
+                : [],
+
+            contact: {
+              email:
+                typeof content.contact
+                  ?.email === "string"
+                  ? content.contact.email
+                  : "",
+
+              phone:
+                typeof content.contact
+                  ?.phone === "string"
+                  ? content.contact.phone
+                  : "",
+
+              linkedin:
+                typeof content.contact
+                  ?.linkedin === "string"
+                  ? content.contact.linkedin
+                  : "",
+            },
+          })
+        );
+
+      /*
+       * Extra photo validation.
+       */
+      if (
+        cleanContent.photo &&
+        !cleanContent.photo.startsWith(
+          "http"
+        )
+      ) {
+        throw new Error(
+          "The profile photo URL is invalid."
+        );
+      }
+
+      /*
+       * Send the clean JSON object to Supabase.
+       */
       const result = await supabase
         .from("site_content")
         .update({
-          content: content,
+          content: cleanContent,
           updated_at:
             new Date().toISOString(),
         })
@@ -517,6 +776,41 @@ export default function Admin() {
             result.error.message
         );
       }
+
+      /*
+       * Verify that the row can be read after saving.
+       */
+      const verify =
+        await supabase
+          .from("site_content")
+          .select("content, updated_at")
+          .eq("id", "main")
+          .maybeSingle();
+
+      if (verify.error) {
+        console.warn(
+          "Save succeeded but verification failed:",
+          verify.error
+        );
+
+        setMessage(
+          "Changes saved successfully! 🎉"
+        );
+
+        return;
+      }
+
+      if (!verify.data) {
+        throw new Error(
+          "Save request completed, but the website content could not be verified."
+        );
+      }
+
+      setContent(
+        mergeContent(
+          verify.data.content
+        )
+      );
 
       setMessage(
         "Changes saved successfully! 🎉"
@@ -541,6 +835,7 @@ export default function Admin() {
     return (
       <div className="admin-page">
         <div className="admin-card">
+
           <div className="admin-spinner">
             Loading...
           </div>
@@ -553,6 +848,7 @@ export default function Admin() {
             Please wait while we connect
             to your account.
           </p>
+
         </div>
       </div>
     );
@@ -561,6 +857,7 @@ export default function Admin() {
   if (!session) {
     return (
       <div className="admin-page">
+
         <div className="admin-login-card">
 
           <div className="admin-logo">
@@ -584,6 +881,7 @@ export default function Admin() {
             onSubmit={handleLogin}
             className="admin-login-form"
           >
+
             <label>
               Email
             </label>
@@ -633,6 +931,7 @@ export default function Admin() {
                 ? "Logging in..."
                 : "Login"}
             </button>
+
           </form>
 
           <button
@@ -643,6 +942,7 @@ export default function Admin() {
           >
             ← Back to Website
           </button>
+
         </div>
       </div>
     );
@@ -657,6 +957,7 @@ export default function Admin() {
       <header className="editor-header">
 
         <div>
+
           <div className="editor-label">
             ADMIN PANEL
           </div>
@@ -668,6 +969,7 @@ export default function Admin() {
           <p>
             {session.user?.email}
           </p>
+
         </div>
 
         <button
@@ -736,12 +1038,15 @@ export default function Admin() {
             type="file"
             accept="image/jpeg,image/png,image/webp,image/gif"
             onChange={handlePhotoUpload}
-            disabled={uploadingPhoto}
+            disabled={
+              uploadingPhoto ||
+              saving
+            }
           />
 
           {uploadingPhoto && (
             <p className="field-help">
-              Uploading photo...
+              Uploading photo to Supabase Storage...
             </p>
           )}
 
@@ -750,7 +1055,10 @@ export default function Admin() {
               type="button"
               className="back-home"
               onClick={removePhoto}
-              disabled={uploadingPhoto}
+              disabled={
+                uploadingPhoto ||
+                saving
+              }
             >
               Remove Photo
             </button>
@@ -766,7 +1074,7 @@ export default function Admin() {
           </label>
 
           <input
-            value={content.name}
+            value={content.name || ""}
             onChange={(event) =>
               updateField(
                 "name",
@@ -780,7 +1088,7 @@ export default function Admin() {
           </label>
 
           <input
-            value={content.title}
+            value={content.title || ""}
             onChange={(event) =>
               updateField(
                 "title",
@@ -795,7 +1103,7 @@ export default function Admin() {
 
           <textarea
             rows="7"
-            value={content.about}
+            value={content.about || ""}
             onChange={(event) =>
               updateField(
                 "about",
@@ -949,7 +1257,9 @@ export default function Admin() {
           </label>
 
           <input
-            value={experience.role || ""}
+            value={
+              experience.role || ""
+            }
             onChange={(event) =>
               updateExperience(
                 "role",
@@ -1161,3 +1471,4 @@ export default function Admin() {
     </div>
   );
 }
+
