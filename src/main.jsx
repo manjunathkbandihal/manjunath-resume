@@ -1,5 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
+
 import {
   Menu,
   X,
@@ -20,6 +21,7 @@ import {
 } from "lucide-react";
 
 import Admin from "./Admin";
+import { supabase } from "./supabase";
 import "./styles.css";
 
 const navItems = [
@@ -31,79 +33,237 @@ const navItems = [
   "Contact",
 ];
 
-const skills = [
-  "Data Annotation",
-  "Segmentation Annotation",
-  "Quality Control / QA",
-  "Team Management",
-  "Project Management",
-  "Calibration & Training",
-  "Excel / Data Management",
-  "Communication",
-];
+const defaultContent = {
+  name: "Manjunath Bandihal",
+  title: "Data Annotation Team Lead",
+  photo: "",
+  about:
+    "Dedicated and result-driven professional with experience in data annotation, segmentation annotation, quality control, team coordination and project management.",
 
-const projects = [
-  {
-    title: "PCI_Annotations",
-    text: "Segmentation annotation for pavement, light poles, fencing, chimneys, electrical wires and other objects.",
-    tag: "Segmentation",
+  personal: {
+    location: "India",
+    education: "Diploma in Civil Engineering",
   },
-  {
-    title: "hase2_july_data_1",
-    text: "Checked model predictions, corrected wrong labels and added missing annotations where required.",
-    tag: "QA & Correction",
-  },
-  {
-    title: "Object Annotation Projects",
-    text: "Worked on umbrellas, tents, electrical units and other street-level objects from frames.",
-    tag: "Object Annotation",
-  },
-  {
-    title: "Multiple Concurrent Projects",
-    text: "Managed and delivered multiple projects simultaneously with focus on quality and deadlines.",
-    tag: "Team Management",
-  },
-];
 
-const achievements = [
-  [
+  experience: [
+    {
+      role: "Data Annotation Team Lead",
+      company: "Annotation / Data Operations",
+      period: "Present",
+      description:
+        "Led annotation teams across multiple projects.\nManaged daily targets, deadlines and overall performance.\nEnsured high-quality annotations through reviews and quality checks.\nConducted calibration sessions and training for team members.\nCoordinated with QA teams to improve quality and reduce escalations.",
+    },
+  ],
+
+  skills: [
+    "Data Annotation",
+    "Segmentation Annotation",
+    "Quality Control / QA",
+    "Team Management",
+    "Project Management",
+    "Calibration & Training",
+    "Excel / Data Management",
+    "Communication",
+  ],
+
+  projects: [
+    {
+      title: "PCI_Annotations",
+      description:
+        "Segmentation annotation for pavement, light poles, fencing, chimneys, electrical wires and other objects.",
+      tag: "Segmentation",
+    },
+    {
+      title: "hase2_july_data_1",
+      description:
+        "Checked model predictions, corrected wrong labels and added missing annotations where required.",
+      tag: "QA & Correction",
+    },
+    {
+      title: "Object Annotation Projects",
+      description:
+        "Worked on umbrellas, tents, electrical units and other street-level objects from frames.",
+      tag: "Object Annotation",
+    },
+    {
+      title: "Multiple Concurrent Projects",
+      description:
+        "Managed and delivered multiple projects simultaneously with focus on quality and deadlines.",
+      tag: "Team Management",
+    },
+  ],
+
+  achievements: [
     "Best Performer",
-    "Recognized for strong performance and dedication.",
-  ],
-  [
     "Quality Improvement",
-    "Maintained high annotation quality and reduced errors.",
-  ],
-  [
     "Team Leadership",
-    "Supported team productivity, training and daily targets.",
-  ],
-  [
     "Process Improvement",
-    "Helped improve workflows and reduce escalations.",
   ],
-];
+
+  contact: {
+    email: "",
+    phone: "",
+    linkedin: "",
+  },
+};
+
+function mergeContent(saved) {
+  if (!saved) return defaultContent;
+
+  return {
+    ...defaultContent,
+    ...saved,
+
+    personal: {
+      ...defaultContent.personal,
+      ...(saved.personal || {}),
+    },
+
+    contact: {
+      ...defaultContent.contact,
+      ...(saved.contact || {}),
+    },
+
+    experience:
+      saved.experience?.length
+        ? saved.experience
+        : defaultContent.experience,
+
+    skills:
+      saved.skills?.length
+        ? saved.skills
+        : defaultContent.skills,
+
+    projects:
+      saved.projects?.length
+        ? saved.projects
+        : defaultContent.projects,
+
+    achievements:
+      saved.achievements?.length
+        ? saved.achievements
+        : defaultContent.achievements,
+  };
+}
 
 function App() {
-  const [menuOpen, setMenuOpen] = React.useState(false);
+  const [menuOpen, setMenuOpen] =
+    React.useState(false);
+
+  const [content, setContent] =
+    React.useState(defaultContent);
+
+  const [loading, setLoading] =
+    React.useState(true);
+
+  React.useEffect(() => {
+    let mounted = true;
+
+    async function loadWebsiteContent() {
+      try {
+        const {
+          data,
+          error,
+        } = await supabase
+          .from("site_content")
+          .select("content")
+          .eq("id", "main")
+          .maybeSingle();
+
+        if (error) {
+          console.error(
+            "Supabase viewer error:",
+            error
+          );
+
+          return;
+        }
+
+        if (!mounted) return;
+
+        setContent(
+          mergeContent(data?.content)
+        );
+      } catch (error) {
+        console.error(
+          "Unable to load website content:",
+          error
+        );
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadWebsiteContent();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const go = (id) => {
     setMenuOpen(false);
 
     document
       .getElementById(id)
-      ?.scrollIntoView({ behavior: "smooth" });
+      ?.scrollIntoView({
+        behavior: "smooth",
+      });
   };
+
+  if (loading) {
+    return (
+      <div className="site">
+        <section className="hero">
+          <div
+            className="container"
+            style={{
+              textAlign: "center",
+            }}
+          >
+            <div className="eyebrow">
+              LOADING PROFILE
+            </div>
+
+            <h1>
+              {defaultContent.name}
+            </h1>
+
+            <p className="hero-text">
+              Loading website...
+            </p>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
+  const firstExperience =
+    content.experience?.[0] || {};
 
   return (
     <div className="site">
+
+      {/* HEADER */}
+
       <header className="header">
+
         <div className="nav container">
+
           <button
             className="brand"
             onClick={() => go("home")}
           >
-            <span>Manjunath</span> Bandihal
+            <span>
+              {content.name
+                ?.split(" ")[0] || "Manjunath"}
+            </span>{" "}
+            {content.name
+              ?.split(" ")
+              .slice(1)
+              .join(" ") || "Bandihal"}
           </button>
 
           <nav
@@ -138,29 +298,51 @@ function App() {
               <Menu size={24} />
             )}
           </button>
+
         </div>
+
       </header>
 
       <main>
-        <section id="home" className="hero">
+
+        {/* HERO */}
+
+        <section
+          id="home"
+          className="hero"
+        >
           <div className="container hero-grid">
+
             <div className="hero-copy">
+
               <div className="eyebrow">
-                DATA ANNOTATION TEAM LEAD
+                {content.title ||
+                  "DATA ANNOTATION TEAM LEAD"}
               </div>
 
               <h1>
-                MANJUNATH <span>BANDIHAL</span>
+                {content.name
+                  ?.split(" ")
+                  .slice(0, 1)
+                  .join(" ")
+                  .toUpperCase()}
+
+                <span>
+                  {content.name
+                    ?.split(" ")
+                    .slice(1)
+                    .join(" ")
+                    .toUpperCase()}
+                </span>
               </h1>
 
               <p className="hero-text">
-                Dedicated and result-driven professional
-                with experience in data annotation,
-                segmentation annotation, quality control,
-                team coordination and project management.
+                {content.about ||
+                  "Dedicated and result-driven professional."}
               </p>
 
               <div className="hero-actions">
+
                 <a
                   className="btn primary"
                   href="/Manjunath-Bandihal-Resume.pdf"
@@ -170,53 +352,114 @@ function App() {
                   Download Resume
                 </a>
 
-                <a
-                  className="btn secondary"
-                  href="https://www.linkedin.com/"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  <Linkedin size={18} />
-                  LinkedIn Profile
-                </a>
+                {content.contact.linkedin && (
+                  <a
+                    className="btn secondary"
+                    href={
+                      content.contact.linkedin
+                    }
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    <Linkedin size={18} />
+                    LinkedIn Profile
+                  </a>
+                )}
+
               </div>
 
               <div className="contact-chips">
-                <span>
-                  <Mail size={15} />
-                  Email
-                </span>
 
-                <span>
-                  <Phone size={15} />
-                  Phone
-                </span>
+                {content.contact.email && (
+                  <span>
+                    <Mail size={15} />
+                    {content.contact.email}
+                  </span>
+                )}
 
-                <span>
-                  <MapPin size={15} />
-                  India
-                </span>
+                {content.contact.phone && (
+                  <span>
+                    <Phone size={15} />
+                    {content.contact.phone}
+                  </span>
+                )}
+
+                {content.personal.location && (
+                  <span>
+                    <MapPin size={15} />
+                    {content.personal.location}
+                  </span>
+                )}
+
               </div>
+
             </div>
+
+            {/* PROFILE PHOTO */}
 
             <div className="portrait-wrap">
-              <div className="portrait-placeholder">
-                <div className="portrait-icon">
-                  MB
+
+              {content.photo ? (
+                <div
+                  className="portrait-placeholder"
+                  style={{
+                    position: "relative",
+                    overflow: "hidden",
+                  }}
+                >
+                  <img
+                    src={content.photo}
+                    alt={content.name}
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                      borderRadius:
+                        "inherit",
+                    }}
+                  />
                 </div>
+              ) : (
+                <div className="portrait-placeholder">
 
-                <p>Your professional photo</p>
+                  <div className="portrait-icon">
+                    {content.name
+                      ?.split(" ")
+                      .map(
+                        (word) =>
+                          word[0]
+                      )
+                      .join("")
+                      .slice(0, 2)
+                      .toUpperCase()}
+                  </div>
 
-                <small>
-                  Add your photo here
-                </small>
-              </div>
+                  <p>
+                    Your professional photo
+                  </p>
+
+                  <small>
+                    Add your photo here
+                  </small>
+
+                </div>
+              )}
+
             </div>
+
           </div>
         </section>
 
-        <section id="about" className="section">
+        {/* ABOUT */}
+
+        <section
+          id="about"
+          className="section"
+        >
           <div className="container">
+
             <SectionTitle
               icon={<Users size={18} />}
               label="ABOUT ME"
@@ -224,26 +467,26 @@ function App() {
             />
 
             <div className="about-grid">
+
               <div>
-                <p>
-                  I am a Data Annotation Team Lead
-                  with experience managing annotation
-                  teams, maintaining quality standards
-                  and delivering projects within deadlines.
-                </p>
 
                 <p>
-                  I have hands-on experience with
-                  segmentation annotation, quality checks,
-                  calibration sessions, team coordination
-                  and process improvement.
+                  {content.about ||
+                    "About me information will appear here."}
                 </p>
 
                 <div className="mini-cards">
+
                   <Mini
-                    icon={<GraduationCap />}
+                    icon={
+                      <GraduationCap />
+                    }
                     title="Education"
-                    value="Diploma in Civil Engineering"
+                    value={
+                      content.personal
+                        .education ||
+                      "Education"
+                    }
                   />
 
                   <Mini
@@ -253,14 +496,22 @@ function App() {
                   />
 
                   <Mini
-                    icon={<BriefcaseBusiness />}
+                    icon={
+                      <BriefcaseBusiness />
+                    }
                     title="Experience"
-                    value="Team Lead in Annotation"
+                    value={
+                      content.title ||
+                      "Professional"
+                    }
                   />
+
                 </div>
+
               </div>
 
               <div className="info-card">
+
                 <h3>
                   Personal Information
                 </h3>
@@ -268,105 +519,134 @@ function App() {
                 <InfoRow
                   icon={<Users />}
                   label="Name"
-                  value="Manjunath Bandihal"
+                  value={
+                    content.name
+                  }
                 />
 
                 <InfoRow
                   icon={<Mail />}
                   label="Email"
-                  value="Your email"
+                  value={
+                    content.contact
+                      .email ||
+                    "Not provided"
+                  }
                 />
 
                 <InfoRow
                   icon={<Phone />}
                   label="Phone"
-                  value="Your phone"
+                  value={
+                    content.contact
+                      .phone ||
+                    "Not provided"
+                  }
                 />
 
                 <InfoRow
                   icon={<MapPin />}
                   label="Location"
-                  value="India"
+                  value={
+                    content.personal
+                      .location ||
+                    "India"
+                  }
                 />
 
                 <InfoRow
                   icon={<Linkedin />}
                   label="LinkedIn"
-                  value="Your LinkedIn profile"
+                  value={
+                    content.contact
+                      .linkedin ||
+                    "Not provided"
+                  }
                 />
+
               </div>
+
             </div>
+
           </div>
         </section>
+
+        {/* EXPERIENCE */}
 
         <section
           id="experience"
           className="section alt"
         >
           <div className="container">
+
             <SectionTitle
-              icon={<BriefcaseBusiness size={18} />}
+              icon={
+                <BriefcaseBusiness
+                  size={18}
+                />
+              }
               label="EXPERIENCE"
               title="Work Experience"
             />
 
             <div className="experience-grid">
+
               <div className="timeline-card">
+
                 <div className="timeline-dot" />
 
                 <div className="role-head">
+
                   <div>
+
                     <h3>
-                      Data Annotation Team Lead
+                      {firstExperience.role ||
+                        content.title}
                     </h3>
 
                     <p>
-                      Annotation / Data Operations
+                      {firstExperience.company ||
+                        "Annotation / Data Operations"}
                     </p>
+
                   </div>
 
                   <span className="pill">
-                    Team Lead
+                    {firstExperience.period ||
+                      "Team Lead"}
                   </span>
+
                 </div>
 
                 <ul>
-                  <li>
-                    Led annotation teams across
-                    multiple projects.
-                  </li>
 
-                  <li>
-                    Managed daily targets, deadlines
-                    and overall performance.
-                  </li>
+                  {(
+                    firstExperience.description ||
+                    ""
+                  )
+                    .split("\n")
+                    .filter(Boolean)
+                    .map(
+                      (
+                        item,
+                        index
+                      ) => (
+                        <li key={index}>
+                          {item}
+                        </li>
+                      )
+                    )}
 
-                  <li>
-                    Ensured high-quality annotations
-                    through reviews and quality checks.
-                  </li>
-
-                  <li>
-                    Conducted calibration sessions
-                    and training for team members.
-                  </li>
-
-                  <li>
-                    Coordinated with QA teams to
-                    improve quality and reduce
-                    escalations.
-                  </li>
-
-                  <li>
-                    Supported delivery across
-                    concurrent annotation projects.
-                  </li>
                 </ul>
+
               </div>
 
               <div className="stats-grid">
+
                 <Stat
-                  icon={<FolderKanban />}
+                  icon={
+                    <FolderKanban />
+                  }
                   value="18+"
                   label="Projects handled concurrently"
                 />
@@ -378,7 +658,9 @@ function App() {
                 />
 
                 <Stat
-                  icon={<BarChart3 />}
+                  icon={
+                    <BarChart3 />
+                  }
                   value="100%"
                   label="Focus on on-time delivery"
                 />
@@ -388,269 +670,206 @@ function App() {
                   value="10+"
                   label="Team members supported"
                 />
+
               </div>
+
             </div>
+
           </div>
         </section>
 
-        <section id="skills" className="section">
+        {/* SKILLS */}
+
+        <section
+          id="skills"
+          className="section"
+        >
           <div className="container">
+
             <SectionTitle
-              icon={<CheckCircle2 size={18} />}
+              icon={
+                <CheckCircle2
+                  size={18}
+                />
+              }
               label="SKILLS"
               title="My Skills"
             />
 
             <div className="skill-list">
-              {skills.map((skill) => (
+
+              {(
+                content.skills || []
+              ).map((skill) => (
                 <span key={skill}>
-                  <CheckCircle2 size={16} />
+                  <CheckCircle2
+                    size={16}
+                  />
                   {skill}
                 </span>
               ))}
+
             </div>
+
           </div>
         </section>
+
+        {/* PROJECTS */}
 
         <section
           id="projects"
           className="section alt"
         >
           <div className="container">
+
             <SectionTitle
-              icon={<FolderKanban size={18} />}
+              icon={
+                <FolderKanban
+                  size={18}
+                />
+              }
               label="PROJECTS"
               title="Projects Worked On"
             />
 
             <div className="projects-grid">
-              {projects.map((project) => (
-                <article
-                  className="project-card"
-                  key={project.title}
-                >
-                  <div className="project-icon">
-                    <FolderKanban size={20} />
-                  </div>
 
-                  <h3>{project.title}</h3>
+              {(
+                content.projects || []
+              ).map(
+                (project, index) => (
+                  <article
+                    className="project-card"
+                    key={
+                      project.title ||
+                      index
+                    }
+                  >
 
-                  <p>{project.text}</p>
+                    <div className="project-icon">
+                      <FolderKanban
+                        size={20}
+                      />
+                    </div>
 
-                  <span className="tag">
-                    {project.tag}
-                  </span>
-                </article>
-              ))}
+                    <h3>
+                      {project.title}
+                    </h3>
+
+                    <p>
+                      {project.description ||
+                        project.text ||
+                        ""}
+                    </p>
+
+                    <span className="tag">
+                      {project.tag ||
+                        "Project"}
+                    </span>
+
+                  </article>
+                )
+              )}
+
             </div>
+
           </div>
         </section>
+
+        {/* ACHIEVEMENTS */}
 
         <section
           id="achievements"
           className="section"
         >
           <div className="container">
+
             <SectionTitle
-              icon={<Award size={18} />}
+              icon={
+                <Award size={18} />
+              }
               label="ACHIEVEMENTS"
               title="Key Achievements"
             />
 
             <div className="achievement-grid">
-              {achievements.map(
-                ([title, text]) => (
-                  <article
-                    className="achievement"
-                    key={title}
-                  >
-                    <div className="round-icon">
-                      <Award size={20} />
-                    </div>
 
-                    <div>
-                      <h3>{title}</h3>
-                      <p>{text}</p>
-                    </div>
-                  </article>
-                )
+              {(
+                content.achievements ||
+                []
+              ).map(
+                (
+                  achievement,
+                  index
+                ) => {
+
+                  const title =
+                    typeof achievement ===
+                    "string"
+                      ? achievement
+                      : achievement.title;
+
+                  const text =
+                    typeof achievement ===
+                    "string"
+                      ? ""
+                      : achievement.description ||
+                        "";
+
+                  return (
+                    <article
+                      className="achievement"
+                      key={
+                        title ||
+                        index
+                      }
+                    >
+
+                      <div className="round-icon">
+                        <Award size={20} />
+                      </div>
+
+                      <div>
+
+                        <h3>
+                          {title}
+                        </h3>
+
+                        {text && (
+                          <p>
+                            {text}
+                          </p>
+                        )}
+
+                      </div>
+
+                    </article>
+                  );
+                }
               )}
+
             </div>
+
           </div>
         </section>
+
+        {/* CONTACT */}
 
         <section
           id="contact"
           className="contact-section"
         >
           <div className="container contact-grid">
+
             <div>
+
               <div className="eyebrow">
                 LET'S CONNECT
               </div>
 
-              <h2>Get In Touch</h2>
+              <h2>
+                Get In Touch
+              </h2>
 
               <p>
-                Open to discussing new opportunities,
-                collaborations and professional
-                conversations around annotation
-                and leadership.
-              </p>
-            </div>
-
-            <div className="contact-details">
-              <div>
-                <Mail size={20} />
-                <span>Your email</span>
-              </div>
-
-              <div>
-                <Phone size={20} />
-                <span>Your phone</span>
-              </div>
-
-              <div>
-                <MapPin size={20} />
-                <span>India</span>
-              </div>
-            </div>
-
-            <form
-              className="message-form"
-              onSubmit={(e) =>
-                e.preventDefault()
-              }
-            >
-              <h3>Send a Message</h3>
-
-              <div className="form-row">
-                <input
-                  placeholder="Your Name"
-                />
-
-                <input
-                  type="email"
-                  placeholder="Your Email"
-                />
-              </div>
-
-              <textarea
-                placeholder="Your Message"
-                rows="5"
-              />
-
-              <button
-                className="btn primary"
-                type="submit"
-              >
-                <MessageCircle size={18} />
-                Send Message
-              </button>
-            </form>
-          </div>
-        </section>
-      </main>
-
-      <footer className="footer">
-        <div className="container">
-          <span>
-            © 2026 Manjunath Bandihal.
-            All Rights Reserved.
-          </span>
-
-          <span>
-            Built with purpose & passion.
-          </span>
-        </div>
-      </footer>
-    </div>
-  );
-}
-
-function SectionTitle({
-  icon,
-  label,
-  title,
-}) {
-  return (
-    <div className="section-title">
-      <div className="section-label">
-        {icon}
-        {label}
-      </div>
-
-      <h2>{title}</h2>
-    </div>
-  );
-}
-
-function Mini({
-  icon,
-  title,
-  value,
-}) {
-  return (
-    <div className="mini-card">
-      <span>{icon}</span>
-
-      <div>
-        <strong>{title}</strong>
-        <small>{value}</small>
-      </div>
-    </div>
-  );
-}
-
-function InfoRow({
-  icon,
-  label,
-  value,
-}) {
-  return (
-    <div className="info-row">
-      <span>{icon}</span>
-      <strong>{label}</strong>
-      <em>{value}</em>
-    </div>
-  );
-}
-
-function Stat({
-  icon,
-  value,
-  label,
-}) {
-  return (
-    <div className="stat">
-      <span>{icon}</span>
-      <strong>{value}</strong>
-      <p>{label}</p>
-    </div>
-  );
-}
-
-function Root() {
-  const isAdmin =
-    window.location.pathname === "/admin";
-
-  if (isAdmin) {
-    return (
-      <Admin
-        onLogin={(user) =>
-          console.log("Logged in:", user)
-        }
-      />
-    );
-  }
-
-  return <App />;
-}
-
-ReactDOM.createRoot(
-  document.getElementById("root")
-).render(
-  <React.StrictMode>
-    <Root />
-  </React.StrictMode>
-);
+                Open to di
