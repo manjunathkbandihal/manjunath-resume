@@ -1,14 +1,24 @@
 import { createClient } from "@supabase/supabase-js";
 
-const SUPABASE_URL =
-  "https://gisjyrhkxljikrsoqfof.supabase.co";
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabasePublishableKey =
+  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-const SUPABASE_KEY =
-  "PASTE_YOUR_PUBLISHABLE_KEY_HERE";
+if (!supabaseUrl) {
+  throw new Error(
+    "Missing VITE_SUPABASE_URL environment variable."
+  );
+}
+
+if (!supabasePublishableKey) {
+  throw new Error(
+    "Missing VITE_SUPABASE_PUBLISHABLE_KEY environment variable."
+  );
+}
 
 export const supabase = createClient(
-  SUPABASE_URL,
-  SUPABASE_KEY,
+  supabaseUrl,
+  supabasePublishableKey,
   {
     auth: {
       persistSession: true,
