@@ -21,6 +21,8 @@ import {
 
 import { supabase } from "./supabase";
 
+const PHOTO_BUCKET = "profile-photos";
+
 const emptyContent = {
   name: "Manjunath Bandihal",
   title: "Data Annotation Team Lead",
@@ -54,106 +56,43 @@ const emptyContent = {
   },
 };
 
-const PHOTO_BUCKET = "profile-photos";
-
-function mergeContent(saved) {
-  if (!saved) {
-    return emptyContent;
-  }
-
-  return {
-    ...emptyContent,
-    ...saved,
-
-    personal: {
-      ...emptyContent.personal,
-      ...(saved.personal || {}),
-    },
-
-    contact: {
-      ...emptyContent.contact,
-      ...(saved.contact || {}),
-    },
-
-    experience:
-      saved.experience && saved.experience.length
-        ? saved.experience
-        : emptyContent.experience,
-
-    skills: Array.isArray(saved.skills)
-      ? saved.skills
-      : [],
-
-    projects: Array.isArray(saved.projects)
-      ? saved.projects
-      : [],
-
-    achievements: Array.isArray(saved.achievements)
-      ? saved.achievements
-      : [],
-  };
-}
-
 export default function Admin() {
   const [session, setSession] = useState(null);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const [content, setContent] =
-    useState(emptyContent);
+  const [content, setContent] = useState(emptyContent);
 
-  const [checkingSession, setCheckingSession] =
-    useState(true);
+  const [checkingSession, setCheckingSession] = useState(true);
+  const [loadingContent, setLoadingContent] = useState(false);
+  const [loggingIn, setLoggingIn] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
-  const [loadingContent, setLoadingContent] =
-    useState(false);
-
-  const [loggingIn, setLoggingIn] =
-    useState(false);
-
-  const [saving, setSaving] =
-    useState(false);
-
-  const [uploadingPhoto, setUploadingPhoto] =
-    useState(false);
-
-  const [removingPhoto, setRemovingPhoto] =
-    useState(false);
-
-  const [error, setError] =
-    useState("");
-
-  const [message, setMessage] =
-    useState("");
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
     let mounted = true;
 
     async function checkSession() {
       try {
-        const {
-          data,
-          error,
-        } = await supabase.auth.getSession();
+        const { data, error } =
+          await supabase.auth.getSession();
 
         if (error) {
           throw error;
         }
 
-        if (!mounted) {
-          return;
-        }
+        if (!mounted) return;
 
         if (data?.session) {
           setSession(data.session);
           await loadContent();
         }
       } catch (err) {
-        console.error(
-          "Session check error:",
-          err
-        );
+        console.error("Session error:", err);
 
         if (mounted) {
           setError(
@@ -172,23 +111,21 @@ export default function Admin() {
 
     const {
       data: listener,
-    } =
-      supabase.auth.onAuthStateChange(
-        async (_event, newSession) => {
-          if (!mounted) {
-            return;
-          }
+    } = supabase.auth.onAuthStateChange(
+      async (_event, newSession) => {
+        if (!mounted) return;
 
-          setSession(newSession);
+        setSession(newSession);
 
-          if (newSession) {
-            await loadContent();
-          }
+        if (newSession) {
+          await loadContent();
         }
-      );
+      }
+    );
 
     return () => {
       mounted = false;
+
       listener?.subscription?.unsubscribe();
     };
   }, []);
@@ -212,15 +149,37 @@ export default function Admin() {
       }
 
       if (data?.content) {
-        setContent(
-          mergeContent(data.content)
-        );
+        const saved = data.content;
+
+        setContent({
+          ...emptyContent,
+          ...saved,
+
+          personal: {
+            ...emptyContent.personal,
+            ...(saved.personal || {}),
+          },
+
+          contact: {
+            ...emptyContent.contact,
+            ...(saved.contact || {}),
+          },
+
+          experience:
+            saved.experience?.length
+              ? saved.experience
+              : emptyContent.experience,
+
+          skills: saved.skills || [],
+
+          projects: saved.projects || [],
+
+          achievements:
+            saved.achievements || [],
+        });
       }
     } catch (err) {
-      console.error(
-        "Load content error:",
-        err
-      );
+      console.error("Load content error:", err);
 
       setError(
         err?.message ||
@@ -268,10 +227,7 @@ export default function Admin() {
 
       await loadContent();
     } catch (err) {
-      console.error(
-        "Login error:",
-        err
-      );
+      console.error("Login error:", err);
 
       setError(
         err?.message ||
@@ -289,10 +245,7 @@ export default function Admin() {
     try {
       await supabase.auth.signOut();
     } catch (err) {
-      console.error(
-        "Logout error:",
-        err
-      );
+      console.error("Logout error:", err);
     }
 
     setSession(null);
@@ -400,64 +353,9 @@ export default function Admin() {
     );
   }
 
-  function getStoragePathFromPublicUrl(url) {
-    if (!url) {
-      return null;
-    }
-
-    const marker =
-      `/storage/v1/object/public/${PHOTO_BUCKET}/`;
-
-    const markerIndex =
-      url.indexOf(marker);
-
-    if (markerIndex === -1) {
-      return null;
-    }
-
-    return decodeURIComponent(
-      url.slice(
-        markerIndex + marker.length
-      )
-    );
-  }
-
-  async function deleteOldPhoto(oldPhotoUrl) {
-    const oldPath =
-      getStoragePathFromPublicUrl(
-        oldPhotoUrl
-      );
-
-    if (!oldPath) {
-      return;
-    }
-
-    try {
-      const {
-        error,
-      } = await supabase.storage
-        .from(PHOTO_BUCKET)
-        .remove([oldPath]);
-
-      if (error) {
-        console.warn(
-          "Old photo could not be deleted:",
-          error
-        );
-      }
-    } catch (err) {
-      console.warn(
-        "Old photo deletion error:",
-        err
-      );
-    }
-  }
-
-  async function handlePhotoUpload(e) {
+  async function handlePhotoUpload(event) {
     const file =
-      e.target.files?.[0];
-
-    e.target.value = "";
+      event.target.files?.[0];
 
     if (!file) {
       return;
@@ -466,35 +364,29 @@ export default function Admin() {
     setError("");
     setMessage("");
 
-    if (!session) {
-      setError(
-        "Please login before uploading a photo."
-      );
-      return;
-    }
-
-    if (!file.type.startsWith("image/")) {
-      setError(
-        "Please select an image file."
-      );
-      return;
-    }
-
-    const maxSize =
-      5 * 1024 * 1024;
-
-    if (file.size > maxSize) {
-      setError(
-        "Photo must be smaller than 5 MB."
-      );
-      return;
-    }
-
     try {
-      setUploadingPhoto(true);
+      if (!session) {
+        throw new Error(
+          "Please login before uploading a photo."
+        );
+      }
 
-      const oldPhoto =
-        content.photo || "";
+      if (!file.type.startsWith("image/")) {
+        throw new Error(
+          "Please select an image file."
+        );
+      }
+
+      const maxSize =
+        5 * 1024 * 1024;
+
+      if (file.size > maxSize) {
+        throw new Error(
+          "Photo must be smaller than 5 MB."
+        );
+      }
+
+      setUploadingPhoto(true);
 
       const extension =
         file.name.includes(".")
@@ -504,12 +396,11 @@ export default function Admin() {
               .toLowerCase()
           : "jpg";
 
-      const userId =
-        session.user?.id ||
-        "admin";
+      const fileName =
+        `profile-${Date.now()}.${extension}`;
 
       const filePath =
-        `${userId}/profile-${Date.now()}.${extension}`;
+        `${fileName}`;
 
       const {
         error: uploadError,
@@ -521,8 +412,7 @@ export default function Admin() {
           {
             cacheControl: "3600",
             upsert: false,
-            contentType:
-              file.type,
+            contentType: file.type,
           }
         );
 
@@ -542,43 +432,17 @@ export default function Admin() {
 
       if (!publicUrl) {
         throw new Error(
-          "Photo uploaded, but the public photo URL could not be created."
+          "Photo uploaded, but the public URL could not be created."
         );
       }
 
-      const newContent = {
-        ...content,
-        photo: publicUrl,
-      };
-
-      const {
-        error: updateError,
-      } = await supabase
-        .from("site_content")
-        .update({
-          content: newContent,
-          updated_at:
-            new Date().toISOString(),
-        })
-        .eq("id", "main");
-
-      if (updateError) {
-        throw updateError;
-      }
-
-      setContent(newContent);
-
-      if (
-        oldPhoto &&
-        oldPhoto !== publicUrl
-      ) {
-        await deleteOldPhoto(
-          oldPhoto
-        );
-      }
+      updateField(
+        "photo",
+        publicUrl
+      );
 
       setMessage(
-        "Profile photo uploaded and saved successfully! 🎉"
+        "Photo uploaded successfully. Click Save Changes to publish it."
       );
     } catch (err) {
       console.error(
@@ -588,77 +452,21 @@ export default function Admin() {
 
       setError(
         err?.message ||
-          "Unable to upload profile photo."
+          "Unable to upload photo."
       );
     } finally {
       setUploadingPhoto(false);
+
+      event.target.value = "";
     }
   }
 
-  async function handleRemovePhoto() {
-    if (!content.photo) {
-      return;
-    }
+  function removePhoto() {
+    updateField("photo", "");
 
-    const confirmed =
-      window.confirm(
-        "Are you sure you want to remove your profile photo?"
-      );
-
-    if (!confirmed) {
-      return;
-    }
-
-    setError("");
-    setMessage("");
-    setRemovingPhoto(true);
-
-    try {
-      const oldPhoto =
-        content.photo;
-
-      const newContent = {
-        ...content,
-        photo: "",
-      };
-
-      const {
-        error: updateError,
-      } = await supabase
-        .from("site_content")
-        .update({
-          content: newContent,
-          updated_at:
-            new Date().toISOString(),
-        })
-        .eq("id", "main");
-
-      if (updateError) {
-        throw updateError;
-      }
-
-      setContent(newContent);
-
-      await deleteOldPhoto(
-        oldPhoto
-      );
-
-      setMessage(
-        "Profile photo removed successfully."
-      );
-    } catch (err) {
-      console.error(
-        "Remove photo error:",
-        err
-      );
-
-      setError(
-        err?.message ||
-          "Unable to remove profile photo."
-      );
-    } finally {
-      setRemovingPhoto(false);
-    }
+    setMessage(
+      "Photo removed from the profile. Click Save Changes to apply it."
+    );
   }
 
   async function saveChanges() {
@@ -667,12 +475,18 @@ export default function Admin() {
       setError("");
       setMessage("");
 
+      if (!session) {
+        throw new Error(
+          "Your session has expired. Please login again."
+        );
+      }
+
       const {
         error,
       } = await supabase
         .from("site_content")
         .update({
-          content,
+          content: content,
           updated_at:
             new Date().toISOString(),
         })
@@ -802,6 +616,7 @@ export default function Admin() {
           >
             ← Back to Website
           </button>
+
         </div>
       </div>
     );
@@ -868,41 +683,17 @@ export default function Admin() {
             </h2>
           </div>
 
-          <div
-            className="profile-preview"
-            style={{
-              width: "180px",
-              height: "180px",
-              marginBottom: "18px",
-              borderRadius: "50%",
-              overflow: "hidden",
-              border: "3px solid #37c878",
-              background: "#e9f8f0",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
+          {/* PHOTO PREVIEW */}
+
+          <div className="profile-preview">
 
             {content.photo ? (
               <img
                 src={content.photo}
                 alt="Profile"
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "cover",
-                }}
               />
             ) : (
-              <div
-                className="profile-placeholder"
-                style={{
-                  fontSize: "42px",
-                  fontWeight: "800",
-                  color: "#159154",
-                }}
-              >
+              <div className="profile-placeholder">
                 {content.name
                   ? content.name
                       .split(" ")
@@ -919,6 +710,8 @@ export default function Admin() {
 
           </div>
 
+          {/* PHOTO UPLOAD */}
+
           <label>
             <Camera size={14} />
             Profile Photo
@@ -929,7 +722,6 @@ export default function Admin() {
               display: "flex",
               gap: "10px",
               flexWrap: "wrap",
-              marginTop: "8px",
               marginBottom: "10px",
             }}
           >
@@ -945,33 +737,26 @@ export default function Admin() {
                 cursor: uploadingPhoto
                   ? "not-allowed"
                   : "pointer",
-                opacity:
-                  uploadingPhoto
-                    ? 0.7
-                    : 1,
-                margin: 0,
+                opacity: uploadingPhoto
+                  ? 0.6
+                  : 1,
               }}
             >
               <Upload size={18} />
 
               {uploadingPhoto
                 ? "Uploading..."
-                : content.photo
-                ? "Replace Photo"
                 : "Choose Photo"}
             </label>
 
             <input
               id="profile-photo-upload"
               type="file"
-              accept="image/jpeg,image/png,image/webp,image/gif"
+              accept="image/*"
               onChange={
                 handlePhotoUpload
               }
-              disabled={
-                uploadingPhoto ||
-                removingPhoto
-              }
+              disabled={uploadingPhoto}
               style={{
                 display: "none",
               }}
@@ -981,33 +766,19 @@ export default function Admin() {
               <button
                 type="button"
                 className="logout-btn"
-                onClick={
-                  handleRemovePhoto
-                }
-                disabled={
-                  uploadingPhoto ||
-                  removingPhoto
-                }
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "8px",
-                }}
+                onClick={removePhoto}
+                disabled={uploadingPhoto}
               >
                 <Trash2 size={18} />
-
-                {removingPhoto
-                  ? "Removing..."
-                  : "Remove Photo"}
+                Remove Photo
               </button>
             )}
 
           </div>
 
           <p className="field-help">
-            Choose an image from your
-            computer. JPG, PNG, WEBP or GIF.
-            Maximum size: 5 MB.
+            Select a JPG, PNG, WEBP or other
+            image. Maximum size: 5 MB.
           </p>
 
           <label>
@@ -1092,7 +863,7 @@ export default function Admin() {
           </label>
 
           <input
-            placeholder="Example: Diploma in Civil"
+            placeholder="Example: Diploma in Civil Engineering"
             value={
               content.personal?.education ||
               ""
@@ -1386,8 +1157,7 @@ export default function Admin() {
             disabled={
               saving ||
               loadingContent ||
-              uploadingPhoto ||
-              removingPhoto
+              uploadingPhoto
             }
           >
             <Save size={20} />
