@@ -1,24 +1,33 @@
 import { createClient } from "@supabase/supabase-js";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabasePublishableKey =
-  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+// Use the existing ANON key for now.
+// This is only for browser/client-side access.
+const supabaseKey =
+  import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl) {
   throw new Error(
-    "Missing VITE_SUPABASE_URL environment variable."
+    "VITE_SUPABASE_URL is missing from Vercel Environment Variables."
   );
 }
 
-if (!supabasePublishableKey) {
+if (!supabaseKey) {
   throw new Error(
-    "Missing VITE_SUPABASE_PUBLISHABLE_KEY environment variable."
+    "VITE_SUPABASE_ANON_KEY is missing from Vercel Environment Variables."
   );
 }
+
+console.log("Supabase URL:", supabaseUrl);
+console.log(
+  "Supabase key loaded:",
+  supabaseKey ? "YES" : "NO"
+);
 
 export const supabase = createClient(
   supabaseUrl,
-  supabasePublishableKey,
+  supabaseKey,
   {
     auth: {
       persistSession: true,
@@ -27,4 +36,3 @@ export const supabase = createClient(
     },
   }
 );
-
