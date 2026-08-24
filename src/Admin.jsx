@@ -52,55 +52,13 @@ const emptyContent = {
   },
 };
 
-function mergeContent(saved) {
-  if (!saved) {
-    return emptyContent;
-  }
-
-  return {
-    ...emptyContent,
-    ...saved,
-
-    personal: {
-      ...emptyContent.personal,
-      ...(saved.personal || {}),
-    },
-
-    contact: {
-      ...emptyContent.contact,
-      ...(saved.contact || {}),
-    },
-
-    experience:
-      Array.isArray(saved.experience) &&
-      saved.experience.length > 0
-        ? saved.experience
-        : emptyContent.experience,
-
-    skills: Array.isArray(saved.skills)
-      ? saved.skills
-      : [],
-
-    projects: Array.isArray(saved.projects)
-      ? saved.projects
-      : [],
-
-    achievements: Array.isArray(
-      saved.achievements
-    )
-      ? saved.achievements
-      : [],
-  };
-}
-
 export default function Admin() {
   const [session, setSession] = useState(null);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const [content, setContent] =
-    useState(emptyContent);
+  const [content, setContent] = useState(emptyContent);
 
   const [checkingSession, setCheckingSession] =
     useState(true);
@@ -125,8 +83,10 @@ export default function Admin() {
 
     async function checkSession() {
       try {
-        const { data, error } =
-          await supabase.auth.getSession();
+        const {
+          data,
+          error,
+        } = await supabase.auth.getSession();
 
         if (error) {
           throw error;
@@ -138,11 +98,12 @@ export default function Admin() {
 
         if (data?.session) {
           setSession(data.session);
+
           await loadContent();
         }
       } catch (err) {
         console.error(
-          "Session error:",
+          "SESSION CHECK ERROR:",
           err
         );
 
@@ -190,25 +151,66 @@ export default function Admin() {
       setLoadingContent(true);
       setError("");
 
-      const { data, error } =
-        await supabase
-          .from("site_content")
-          .select("content")
-          .eq("id", "main")
-          .maybeSingle();
+      console.log(
+        "=== LOADING CONTENT ==="
+      );
+
+      const {
+        data,
+        error,
+      } = await supabase
+        .from("site_content")
+        .select("content")
+        .eq("id", "main")
+        .maybeSingle();
+
+      console.log(
+        "LOAD RESPONSE:",
+        {
+          data,
+          error,
+        }
+      );
 
       if (error) {
         throw error;
       }
 
       if (data?.content) {
-        setContent(
-          mergeContent(data.content)
-        );
+        const saved = data.content;
+
+        setContent({
+          ...emptyContent,
+          ...saved,
+
+          personal: {
+            ...emptyContent.personal,
+            ...(saved.personal || {}),
+          },
+
+          contact: {
+            ...emptyContent.contact,
+            ...(saved.contact || {}),
+          },
+
+          experience:
+            saved.experience?.length
+              ? saved.experience
+              : emptyContent.experience,
+
+          skills:
+            saved.skills || [],
+
+          projects:
+            saved.projects || [],
+
+          achievements:
+            saved.achievements || [],
+        });
       }
     } catch (err) {
       console.error(
-        "Load content error:",
+        "LOAD CONTENT ERROR:",
         err
       );
 
@@ -221,8 +223,8 @@ export default function Admin() {
     }
   }
 
-  async function handleLogin(event) {
-    event.preventDefault();
+  async function handleLogin(e) {
+    e.preventDefault();
 
     setError("");
     setMessage("");
@@ -235,13 +237,26 @@ export default function Admin() {
         );
       }
 
-      const { data, error } =
-        await supabase.auth.signInWithPassword(
-          {
-            email: email.trim(),
-            password,
-          }
-        );
+      console.log(
+        "=== LOGIN START ==="
+      );
+
+      const {
+        data,
+        error,
+      } =
+        await supabase.auth.signInWithPassword({
+          email: email.trim(),
+          password,
+        });
+
+      console.log(
+        "LOGIN RESPONSE:",
+        {
+          data,
+          error,
+        }
+      );
 
       if (error) {
         throw error;
@@ -258,7 +273,7 @@ export default function Admin() {
       await loadContent();
     } catch (err) {
       console.error(
-        "Login error:",
+        "LOGIN ERROR:",
         err
       );
 
@@ -275,7 +290,14 @@ export default function Admin() {
     setError("");
     setMessage("");
 
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.error(
+        "LOGOUT ERROR:",
+        err
+      );
+    }
 
     setSession(null);
     setPassword("");
@@ -334,7 +356,10 @@ export default function Admin() {
       .map((item) => item.trim())
       .filter(Boolean);
 
-    updateField("skills", skills);
+    updateField(
+      "skills",
+      skills
+    );
   }
 
   function updateAchievements(value) {
@@ -383,68 +408,183 @@ export default function Admin() {
   }
 
   async function saveChanges() {
-    if (!session) {
-      setError(
-        "You are not logged in. Please login again."
-      );
-      return;
-    }
-
     try {
       setSaving(true);
       setError("");
       setMessage("");
 
-      const {
-        data: currentSession,
-        error: sessionError,
-      } =
-        await supabase.auth.getSession();
+      console.log(
+        "=============================="
+      );
 
-      if (sessionError) {
-        throw sessionError;
-      }
+      console.log(
+        "=== SAVE START ==="
+      );
 
-      if (!currentSession?.session) {
+      console.log(
+        "Supabase URL:",
+        import.meta.env.VITE_SUPABASE_URL
+      );
+
+      console.log(
+        "Supabase key exists:",
+        Boolean(
+          import.meta.env
+            .VITE_SUPABASE_ANON_KEY
+        )
+      );
+
+      console.log(
+        "Current session:",
+        session
+      );
+
+      console.log(
+        "Current user:",
+        session?.user
+      );
+
+      console.log(
+        "Current user ID:",
+        session?.user?.id
+      );
+
+      console.log(
+        "Content being saved:",
+        content
+      );
+
+      if (!session?.user) {
         throw new Error(
-          "Your login session has expired. Please login again."
+          "You are not logged in. Please logout and login again."
         );
       }
 
-      const updatedContent =
-        mergeContent(content);
+      if (
+        !import.meta.env
+          .VITE_SUPABASE_URL
+      ) {
+        throw new Error(
+          "VITE_SUPABASE_URL is missing from the deployed website."
+        );
+      }
 
-      const { error } =
-        await supabase
-          .from("site_content")
-          .update({
-            content: updatedContent,
-            updated_at:
-              new Date().toISOString(),
-          })
-          .eq("id", "main");
+      if (
+        !import.meta.env
+          .VITE_SUPABASE_ANON_KEY
+      ) {
+        throw new Error(
+          "VITE_SUPABASE_ANON_KEY is missing from the deployed website."
+        );
+      }
+
+      console.log(
+        "Sending UPDATE request to Supabase..."
+      );
+
+      const {
+        data,
+        error,
+      } = await supabase
+        .from("site_content")
+        .update({
+          content: content,
+
+          updated_at:
+            new Date().toISOString(),
+        })
+        .eq("id", "main")
+        .select(
+          "id, updated_at"
+        );
+
+      console.log(
+        "Supabase UPDATE response:",
+        {
+          data,
+          error,
+        }
+      );
 
       if (error) {
         console.error(
-          "Supabase save error:",
+          "SUPABASE UPDATE ERROR:",
           error
         );
 
         throw new Error(
-          error.message ||
-            "Supabase could not save the changes."
+          `Supabase error: ${
+            error.message ||
+            "Unknown error"
+          } | Code: ${
+            error.code ||
+            "N/A"
+          } | Details: ${
+            error.details ||
+            "N/A"
+          } | Hint: ${
+            error.hint ||
+            "N/A"
+          }`
         );
       }
 
-      setContent(updatedContent);
+      if (
+        !data ||
+        data.length === 0
+      ) {
+        throw new Error(
+          "The request completed, but no row was updated. The main row or UPDATE policy may be blocking the update."
+        );
+      }
+
+      console.log(
+        "=== SAVE SUCCESS ==="
+      );
+
+      console.log(
+        "Updated row:",
+        data
+      );
+
+      console.log(
+        "=============================="
+      );
 
       setMessage(
         "Changes saved successfully! 🎉"
       );
     } catch (err) {
       console.error(
-        "Save error:",
+        "=============================="
+      );
+
+      console.error(
+        "=== SAVE FAILED ==="
+      );
+
+      console.error(
+        "Error:",
         err
+      );
+
+      console.error(
+        "Error message:",
+        err?.message
+      );
+
+      console.error(
+        "Error name:",
+        err?.name
+      );
+
+      console.error(
+        "Error stack:",
+        err?.stack
+      );
+
+      console.error(
+        "=============================="
       );
 
       setError(
@@ -480,7 +620,9 @@ export default function Admin() {
   if (!session) {
     return (
       <div className="admin-page">
+
         <div className="admin-login-card">
+
           <div className="admin-logo">
             MB
           </div>
@@ -502,6 +644,7 @@ export default function Admin() {
             onSubmit={handleLogin}
             className="admin-login-form"
           >
+
             <label>
               Email
             </label>
@@ -510,9 +653,9 @@ export default function Admin() {
               type="email"
               placeholder="Enter admin email"
               value={email}
-              onChange={(event) =>
+              onChange={(e) =>
                 setEmail(
-                  event.target.value
+                  e.target.value
                 )
               }
               autoComplete="email"
@@ -526,9 +669,9 @@ export default function Admin() {
               type="password"
               placeholder="Enter password"
               value={password}
-              onChange={(event) =>
+              onChange={(e) =>
                 setPassword(
-                  event.target.value
+                  e.target.value
                 )
               }
               autoComplete="current-password"
@@ -545,31 +688,40 @@ export default function Admin() {
               className="admin-login-btn"
               disabled={loggingIn}
             >
+
               <LogIn size={18} />
 
               {loggingIn
                 ? "Logging in..."
                 : "Login"}
+
             </button>
+
           </form>
 
           <button
             className="back-home"
             onClick={() => {
-              window.location.href = "/";
+              window.location.href =
+                "/";
             }}
           >
             ← Back to Website
           </button>
+
         </div>
+
       </div>
     );
   }
 
   return (
     <div className="editor-page">
+
       <header className="editor-header">
+
         <div>
+
           <div className="editor-label">
             ADMIN PANEL
           </div>
@@ -581,18 +733,24 @@ export default function Admin() {
           <p>
             {session.user?.email}
           </p>
+
         </div>
 
         <button
           className="logout-btn"
           onClick={handleLogout}
         >
+
           <LogOut size={18} />
+
           Logout
+
         </button>
+
       </header>
 
       <main className="editor-container">
+
         {loadingContent && (
           <div className="admin-info">
             Loading your website content...
@@ -614,15 +772,19 @@ export default function Admin() {
         {/* PROFILE */}
 
         <section className="editor-card">
+
           <div className="editor-card-title">
+
             <User size={20} />
 
             <h2>
               Profile
             </h2>
+
           </div>
 
           <div className="profile-preview">
+
             {content.photo ? (
               <img
                 src={content.photo}
@@ -633,6 +795,7 @@ export default function Admin() {
                 MB
               </div>
             )}
+
           </div>
 
           <label>
@@ -643,17 +806,21 @@ export default function Admin() {
           <input
             type="url"
             placeholder="Paste your profile photo URL"
-            value={content.photo}
-            onChange={(event) =>
+            value={
+              content.photo || ""
+            }
+            onChange={(e) =>
               updateField(
                 "photo",
-                event.target.value
+                e.target.value
               )
             }
           />
 
           <p className="field-help">
             Paste a public image URL.
+            The image will appear on your
+            public website.
           </p>
 
           <label>
@@ -661,11 +828,13 @@ export default function Admin() {
           </label>
 
           <input
-            value={content.name}
-            onChange={(event) =>
+            value={
+              content.name || ""
+            }
+            onChange={(e) =>
               updateField(
                 "name",
-                event.target.value
+                e.target.value
               )
             }
           />
@@ -675,11 +844,13 @@ export default function Admin() {
           </label>
 
           <input
-            value={content.title}
-            onChange={(event) =>
+            value={
+              content.title || ""
+            }
+            onChange={(e) =>
               updateField(
                 "title",
-                event.target.value
+                e.target.value
               )
             }
           />
@@ -690,25 +861,31 @@ export default function Admin() {
 
           <textarea
             rows="7"
-            value={content.about}
-            onChange={(event) =>
+            value={
+              content.about || ""
+            }
+            onChange={(e) =>
               updateField(
                 "about",
-                event.target.value
+                e.target.value
               )
             }
           />
+
         </section>
 
         {/* PERSONAL INFORMATION */}
 
         <section className="editor-card">
+
           <div className="editor-card-title">
+
             <User size={20} />
 
             <h2>
               Personal Information
             </h2>
+
           </div>
 
           <label>
@@ -719,12 +896,13 @@ export default function Admin() {
           <input
             placeholder="Example: Bengaluru, India"
             value={
-              content.personal.location
+              content.personal?.location ||
+              ""
             }
-            onChange={(event) =>
+            onChange={(e) =>
               updatePersonal(
                 "location",
-                event.target.value
+                e.target.value
               )
             }
           />
@@ -737,26 +915,31 @@ export default function Admin() {
           <input
             placeholder="Example: Diploma in Civil"
             value={
-              content.personal.education
+              content.personal?.education ||
+              ""
             }
-            onChange={(event) =>
+            onChange={(e) =>
               updatePersonal(
                 "education",
-                event.target.value
+                e.target.value
               )
             }
           />
+
         </section>
 
         {/* CONTACT */}
 
         <section className="editor-card">
+
           <div className="editor-card-title">
+
             <Mail size={20} />
 
             <h2>
               Contact Information
             </h2>
+
           </div>
 
           <label>
@@ -768,12 +951,13 @@ export default function Admin() {
             type="email"
             placeholder="your@email.com"
             value={
-              content.contact.email
+              content.contact?.email ||
+              ""
             }
-            onChange={(event) =>
+            onChange={(e) =>
               updateContact(
                 "email",
-                event.target.value
+                e.target.value
               )
             }
           />
@@ -787,12 +971,13 @@ export default function Admin() {
             type="text"
             placeholder="Your phone number"
             value={
-              content.contact.phone
+              content.contact?.phone ||
+              ""
             }
-            onChange={(event) =>
+            onChange={(e) =>
               updateContact(
                 "phone",
-                event.target.value
+                e.target.value
               )
             }
           />
@@ -806,26 +991,31 @@ export default function Admin() {
             type="url"
             placeholder="https://www.linkedin.com/in/..."
             value={
-              content.contact.linkedin
+              content.contact?.linkedin ||
+              ""
             }
-            onChange={(event) =>
+            onChange={(e) =>
               updateContact(
                 "linkedin",
-                event.target.value
+                e.target.value
               )
             }
           />
+
         </section>
 
         {/* EXPERIENCE */}
 
         <section className="editor-card">
+
           <div className="editor-card-title">
+
             <Briefcase size={20} />
 
             <h2>
               Experience
             </h2>
+
           </div>
 
           <label>
@@ -837,10 +1027,10 @@ export default function Admin() {
               content.experience?.[0]
                 ?.role || ""
             }
-            onChange={(event) =>
+            onChange={(e) =>
               updateExperience(
                 "role",
-                event.target.value
+                e.target.value
               )
             }
           />
@@ -854,10 +1044,10 @@ export default function Admin() {
               content.experience?.[0]
                 ?.company || ""
             }
-            onChange={(event) =>
+            onChange={(e) =>
               updateExperience(
                 "company",
-                event.target.value
+                e.target.value
               )
             }
           />
@@ -872,10 +1062,10 @@ export default function Admin() {
               content.experience?.[0]
                 ?.period || ""
             }
-            onChange={(event) =>
+            onChange={(e) =>
               updateExperience(
                 "period",
-                event.target.value
+                e.target.value
               )
             }
           />
@@ -890,24 +1080,28 @@ export default function Admin() {
               content.experience?.[0]
                 ?.description || ""
             }
-            onChange={(event) =>
+            onChange={(e) =>
               updateExperience(
                 "description",
-                event.target.value
+                e.target.value
               )
             }
           />
+
         </section>
 
         {/* SKILLS */}
 
         <section className="editor-card">
+
           <div className="editor-card-title">
+
             <Code size={20} />
 
             <h2>
               Skills
             </h2>
+
           </div>
 
           <label>
@@ -918,27 +1112,30 @@ export default function Admin() {
             rows="5"
             placeholder="Data Annotation, QA, Team Management, Segmentation..."
             value={
-              (content.skills || []).join(
-                ", "
-              )
+              (content.skills || [])
+                .join(", ")
             }
-            onChange={(event) =>
+            onChange={(e) =>
               updateSkills(
-                event.target.value
+                e.target.value
               )
             }
           />
+
         </section>
 
         {/* PROJECTS */}
 
         <section className="editor-card">
+
           <div className="editor-card-title">
+
             <FolderKanban size={20} />
 
             <h2>
               Projects
             </h2>
+
           </div>
 
           <label>
@@ -947,8 +1144,8 @@ export default function Admin() {
 
           <p className="field-help">
             One project per line.
-            Format: Project Name:
-            Description
+            Format:
+            Project Name: Description
           </p>
 
           <textarea
@@ -964,23 +1161,27 @@ export default function Admin() {
                 )
                 .join("\n")
             }
-            onChange={(event) =>
+            onChange={(e) =>
               updateProjects(
-                event.target.value
+                e.target.value
               )
             }
           />
+
         </section>
 
         {/* ACHIEVEMENTS */}
 
         <section className="editor-card">
+
           <div className="editor-card-title">
+
             <Award size={20} />
 
             <h2>
               Achievements
             </h2>
+
           </div>
 
           <label>
@@ -994,21 +1195,22 @@ export default function Admin() {
           <textarea
             rows="7"
             value={
-              (content.achievements || []).join(
-                "\n"
-              )
+              (content.achievements || [])
+                .join("\n")
             }
-            onChange={(event) =>
+            onChange={(e) =>
               updateAchievements(
-                event.target.value
+                e.target.value
               )
             }
           />
+
         </section>
 
         {/* SAVE */}
 
         <div className="save-area">
+
           <button
             className="save-btn"
             onClick={saveChanges}
@@ -1017,14 +1219,19 @@ export default function Admin() {
               loadingContent
             }
           >
+
             <Save size={20} />
 
             {saving
               ? "Saving..."
               : "Save Changes"}
+
           </button>
+
         </div>
+
       </main>
+
     </div>
   );
 }
