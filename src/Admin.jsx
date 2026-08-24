@@ -1,5 +1,6 @@
 ```jsx
 import React, { useEffect, useState } from "react";
+
 import {
   LogIn,
   LogOut,
@@ -16,7 +17,6 @@ import {
   GraduationCap,
   Camera,
   Upload,
-  Trash2,
 } from "lucide-react";
 
 import { supabase } from "./supabase";
@@ -62,37 +62,59 @@ export default function Admin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const [content, setContent] = useState(emptyContent);
+  const [content, setContent] =
+    useState(emptyContent);
 
-  const [checkingSession, setCheckingSession] = useState(true);
-  const [loadingContent, setLoadingContent] = useState(false);
-  const [loggingIn, setLoggingIn] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [checkingSession, setCheckingSession] =
+    useState(true);
 
-  const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
+  const [loadingContent, setLoadingContent] =
+    useState(false);
+
+  const [loggingIn, setLoggingIn] =
+    useState(false);
+
+  const [saving, setSaving] =
+    useState(false);
+
+  const [uploadingPhoto, setUploadingPhoto] =
+    useState(false);
+
+  const [error, setError] =
+    useState("");
+
+  const [message, setMessage] =
+    useState("");
 
   useEffect(() => {
     let mounted = true;
 
-    async function checkSession() {
+    async function initialize() {
       try {
-        const { data, error } =
-          await supabase.auth.getSession();
+        setError("");
 
-        if (error) {
-          throw error;
+        const {
+          data,
+          error: sessionError,
+        } = await supabase.auth.getSession();
+
+        if (sessionError) {
+          throw sessionError;
         }
 
-        if (!mounted) return;
+        if (!mounted) {
+          return;
+        }
 
         if (data?.session) {
           setSession(data.session);
           await loadContent();
         }
       } catch (err) {
-        console.error("Session error:", err);
+        console.error(
+          "Session error:",
+          err
+        );
 
         if (mounted) {
           setError(
@@ -107,26 +129,29 @@ export default function Admin() {
       }
     }
 
-    checkSession();
+    initialize();
 
     const {
-      data: listener,
-    } = supabase.auth.onAuthStateChange(
-      async (_event, newSession) => {
-        if (!mounted) return;
+      data: authListener,
+    } =
+      supabase.auth.onAuthStateChange(
+        async (_event, newSession) => {
+          if (!mounted) {
+            return;
+          }
 
-        setSession(newSession);
+          setSession(newSession);
 
-        if (newSession) {
-          await loadContent();
+          if (newSession) {
+            await loadContent();
+          }
         }
-      }
-    );
+      );
 
     return () => {
       mounted = false;
 
-      listener?.subscription?.unsubscribe();
+      authListener?.subscription?.unsubscribe();
     };
   }, []);
 
@@ -137,15 +162,15 @@ export default function Admin() {
 
       const {
         data,
-        error,
+        error: fetchError,
       } = await supabase
         .from("site_content")
         .select("content")
         .eq("id", "main")
         .maybeSingle();
 
-      if (error) {
-        throw error;
+      if (fetchError) {
+        throw fetchError;
       }
 
       if (data?.content) {
@@ -166,20 +191,33 @@ export default function Admin() {
           },
 
           experience:
-            saved.experience?.length
+            saved.experience &&
+            saved.experience.length
               ? saved.experience
               : emptyContent.experience,
 
-          skills: saved.skills || [],
+          skills: Array.isArray(saved.skills)
+            ? saved.skills
+            : [],
 
-          projects: saved.projects || [],
+          projects: Array.isArray(
+            saved.projects
+          )
+            ? saved.projects
+            : [],
 
-          achievements:
-            saved.achievements || [],
+          achievements: Array.isArray(
+            saved.achievements
+          )
+            ? saved.achievements
+            : [],
         });
       }
     } catch (err) {
-      console.error("Load content error:", err);
+      console.error(
+        "Load content error:",
+        err
+      );
 
       setError(
         err?.message ||
@@ -198,23 +236,29 @@ export default function Admin() {
     setLoggingIn(true);
 
     try {
-      if (!email.trim() || !password) {
+      if (!email.trim()) {
         throw new Error(
-          "Please enter your email and password."
+          "Please enter your email."
+        );
+      }
+
+      if (!password) {
+        throw new Error(
+          "Please enter your password."
         );
       }
 
       const {
         data,
-        error,
+        error: loginError,
       } =
         await supabase.auth.signInWithPassword({
           email: email.trim(),
           password,
         });
 
-      if (error) {
-        throw error;
+      if (loginError) {
+        throw loginError;
       }
 
       if (!data?.session) {
@@ -227,7 +271,10 @@ export default function Admin() {
 
       await loadContent();
     } catch (err) {
-      console.error("Login error:", err);
+      console.error(
+        "Login error:",
+        err
+      );
 
       setError(
         err?.message ||
@@ -245,7 +292,10 @@ export default function Admin() {
     try {
       await supabase.auth.signOut();
     } catch (err) {
-      console.error("Logout error:", err);
+      console.error(
+        "Logout error:",
+        err
+      );
     }
 
     setSession(null);
@@ -353,9 +403,9 @@ export default function Admin() {
     );
   }
 
-  async function handlePhotoUpload(event) {
+  async function handlePhotoUpload(e) {
     const file =
-      event.target.files?.[0];
+      e.target.files?.[0];
 
     if (!file) {
       return;
@@ -363,6 +413,7 @@ export default function Admin() {
 
     setError("");
     setMessage("");
+    setUploadingPhoto(true);
 
     try {
       if (!session) {
@@ -386,8 +437,6 @@ export default function Admin() {
         );
       }
 
-      setUploadingPhoto(true);
-
       const extension =
         file.name.includes(".")
           ? file.name
@@ -400,46 +449,47 @@ export default function Admin() {
         `profile-${Date.now()}.${extension}`;
 
       const filePath =
-        `${fileName}`;
+        fileName;
 
       const {
         error: uploadError,
-      } = await supabase.storage
-        .from(PHOTO_BUCKET)
-        .upload(
-          filePath,
-          file,
-          {
-            cacheControl: "3600",
-            upsert: false,
-            contentType: file.type,
-          }
-        );
+      } =
+        await supabase.storage
+          .from(PHOTO_BUCKET)
+          .upload(
+            filePath,
+            file,
+            {
+              cacheControl: "3600",
+              upsert: true,
+              contentType: file.type,
+            }
+          );
 
       if (uploadError) {
         throw uploadError;
       }
 
       const {
-        data: publicUrlData,
+        data: publicData,
       } =
         supabase.storage
           .from(PHOTO_BUCKET)
           .getPublicUrl(filePath);
 
       const publicUrl =
-        publicUrlData?.publicUrl;
+        publicData?.publicUrl;
 
       if (!publicUrl) {
         throw new Error(
-          "Photo uploaded, but the public URL could not be created."
+          "Photo uploaded but public URL could not be created."
         );
       }
 
-      updateField(
-        "photo",
-        publicUrl
-      );
+      setContent((current) => ({
+        ...current,
+        photo: publicUrl,
+      }));
 
       setMessage(
         "Photo uploaded successfully. Click Save Changes to publish it."
@@ -452,21 +502,13 @@ export default function Admin() {
 
       setError(
         err?.message ||
-          "Unable to upload photo."
+          "Unable to upload profile photo."
       );
     } finally {
       setUploadingPhoto(false);
 
-      event.target.value = "";
+      e.target.value = "";
     }
-  }
-
-  function removePhoto() {
-    updateField("photo", "");
-
-    setMessage(
-      "Photo removed from the profile. Click Save Changes to apply it."
-    );
   }
 
   async function saveChanges() {
@@ -482,18 +524,43 @@ export default function Admin() {
       }
 
       const {
-        error,
-      } = await supabase
-        .from("site_content")
-        .update({
-          content: content,
-          updated_at:
-            new Date().toISOString(),
-        })
-        .eq("id", "main");
+        data: existingRow,
+        error: selectError,
+      } =
+        await supabase
+          .from("site_content")
+          .select("id")
+          .eq("id", "main")
+          .maybeSingle();
 
-      if (error) {
-        throw error;
+      if (selectError) {
+        throw new Error(
+          `Unable to check website content: ${selectError.message}`
+        );
+      }
+
+      if (!existingRow) {
+        throw new Error(
+          "The main site_content row was not found."
+        );
+      }
+
+      const {
+        error: updateError,
+      } =
+        await supabase
+          .from("site_content")
+          .update({
+            content: content,
+            updated_at:
+              new Date().toISOString(),
+          })
+          .eq("id", "main");
+
+      if (updateError) {
+        throw new Error(
+          `Supabase UPDATE failed: ${updateError.message}`
+        );
       }
 
       setMessage(
@@ -518,6 +585,7 @@ export default function Admin() {
     return (
       <div className="admin-page">
         <div className="admin-card">
+
           <div className="admin-spinner">
             Loading...
           </div>
@@ -530,6 +598,7 @@ export default function Admin() {
             Please wait while we connect
             to your account.
           </p>
+
         </div>
       </div>
     );
@@ -538,6 +607,7 @@ export default function Admin() {
   if (!session) {
     return (
       <div className="admin-page">
+
         <div className="admin-login-card">
 
           <div className="admin-logo">
@@ -561,6 +631,7 @@ export default function Admin() {
             onSubmit={handleLogin}
             className="admin-login-form"
           >
+
             <label>
               Email
             </label>
@@ -570,7 +641,9 @@ export default function Admin() {
               placeholder="Enter admin email"
               value={email}
               onChange={(e) =>
-                setEmail(e.target.value)
+                setEmail(
+                  e.target.value
+                )
               }
               autoComplete="email"
             />
@@ -584,7 +657,9 @@ export default function Admin() {
               placeholder="Enter password"
               value={password}
               onChange={(e) =>
-                setPassword(e.target.value)
+                setPassword(
+                  e.target.value
+                )
               }
               autoComplete="current-password"
             />
@@ -600,18 +675,22 @@ export default function Admin() {
               className="admin-login-btn"
               disabled={loggingIn}
             >
+
               <LogIn size={18} />
 
               {loggingIn
                 ? "Logging in..."
                 : "Login"}
+
             </button>
+
           </form>
 
           <button
             className="back-home"
             onClick={() => {
-              window.location.href = "/";
+              window.location.href =
+                "/";
             }}
           >
             ← Back to Website
@@ -628,6 +707,7 @@ export default function Admin() {
       <header className="editor-header">
 
         <div>
+
           <div className="editor-label">
             ADMIN PANEL
           </div>
@@ -639,14 +719,18 @@ export default function Admin() {
           <p>
             {session.user?.email}
           </p>
+
         </div>
 
         <button
           className="logout-btn"
           onClick={handleLogout}
         >
+
           <LogOut size={18} />
+
           Logout
+
         </button>
 
       </header>
@@ -676,14 +760,14 @@ export default function Admin() {
         <section className="editor-card">
 
           <div className="editor-card-title">
+
             <User size={20} />
 
             <h2>
               Profile
             </h2>
-          </div>
 
-          {/* PHOTO PREVIEW */}
+          </div>
 
           <div className="profile-preview">
 
@@ -710,8 +794,6 @@ export default function Admin() {
 
           </div>
 
-          {/* PHOTO UPLOAD */}
-
           <label>
             <Camera size={14} />
             Profile Photo
@@ -720,7 +802,8 @@ export default function Admin() {
           <div
             style={{
               display: "flex",
-              gap: "10px",
+              gap: "12px",
+              alignItems: "center",
               flexWrap: "wrap",
               marginBottom: "10px",
             }}
@@ -730,23 +813,25 @@ export default function Admin() {
               htmlFor="profile-photo-upload"
               className="save-btn"
               style={{
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "8px",
                 cursor: uploadingPhoto
                   ? "not-allowed"
                   : "pointer",
-                opacity: uploadingPhoto
-                  ? 0.6
-                  : 1,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px",
+                opacity:
+                  uploadingPhoto
+                    ? 0.6
+                    : 1,
               }}
             >
+
               <Upload size={18} />
 
               {uploadingPhoto
                 ? "Uploading..."
-                : "Choose Photo"}
+                : "Upload Photo"}
+
             </label>
 
             <input
@@ -756,29 +841,40 @@ export default function Admin() {
               onChange={
                 handlePhotoUpload
               }
-              disabled={uploadingPhoto}
+              disabled={
+                uploadingPhoto
+              }
               style={{
                 display: "none",
               }}
             />
 
-            {content.photo && (
-              <button
-                type="button"
-                className="logout-btn"
-                onClick={removePhoto}
-                disabled={uploadingPhoto}
-              >
-                <Trash2 size={18} />
-                Remove Photo
-              </button>
-            )}
-
           </div>
 
           <p className="field-help">
-            Select a JPG, PNG, WEBP or other
-            image. Maximum size: 5 MB.
+            Upload JPG, JPEG, PNG or WEBP.
+            Maximum file size: 5 MB.
+          </p>
+
+          <label>
+            Profile Photo URL
+          </label>
+
+          <input
+            type="url"
+            placeholder="Photo URL will appear here after upload"
+            value={content.photo}
+            onChange={(e) =>
+              updateField(
+                "photo",
+                e.target.value
+              )
+            }
+          />
+
+          <p className="field-help">
+            You can upload a photo above,
+            or paste a public image URL.
           </p>
 
           <label>
@@ -831,11 +927,13 @@ export default function Admin() {
         <section className="editor-card">
 
           <div className="editor-card-title">
+
             <User size={20} />
 
             <h2>
               Personal Information
             </h2>
+
           </div>
 
           <label>
@@ -883,11 +981,13 @@ export default function Admin() {
         <section className="editor-card">
 
           <div className="editor-card-title">
+
             <Mail size={20} />
 
             <h2>
               Contact Information
             </h2>
+
           </div>
 
           <label>
@@ -957,11 +1057,13 @@ export default function Admin() {
         <section className="editor-card">
 
           <div className="editor-card-title">
+
             <Briefcase size={20} />
 
             <h2>
               Experience
             </h2>
+
           </div>
 
           <label>
@@ -1041,11 +1143,13 @@ export default function Admin() {
         <section className="editor-card">
 
           <div className="editor-card-title">
+
             <Code size={20} />
 
             <h2>
               Skills
             </h2>
+
           </div>
 
           <label>
@@ -1073,11 +1177,13 @@ export default function Admin() {
         <section className="editor-card">
 
           <div className="editor-card-title">
+
             <FolderKanban size={20} />
 
             <h2>
               Projects
             </h2>
+
           </div>
 
           <label>
@@ -1117,11 +1223,13 @@ export default function Admin() {
         <section className="editor-card">
 
           <div className="editor-card-title">
+
             <Award size={20} />
 
             <h2>
               Achievements
             </h2>
+
           </div>
 
           <label>
@@ -1136,6 +1244,12 @@ export default function Admin() {
             rows="7"
             value={
               (content.achievements || [])
+                .map((item) =>
+                  typeof item ===
+                  "string"
+                    ? item
+                    : item.title || ""
+                )
                 .join("\n")
             }
             onChange={(e) =>
@@ -1160,16 +1274,19 @@ export default function Admin() {
               uploadingPhoto
             }
           >
+
             <Save size={20} />
 
             {saving
               ? "Saving..."
               : "Save Changes"}
+
           </button>
 
         </div>
 
       </main>
+
     </div>
   );
 }
