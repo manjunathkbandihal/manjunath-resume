@@ -1,6 +1,4 @@
-```jsx
 import React, { useEffect, useState } from "react";
-
 import {
   LogIn,
   LogOut,
@@ -16,7 +14,6 @@ import {
   MapPin,
   GraduationCap,
   Camera,
-  Upload,
 } from "lucide-react";
 
 import { supabase } from "./supabase";
@@ -56,65 +53,87 @@ const emptyContent = {
   },
 };
 
+function mergeContent(saved) {
+  if (!saved) {
+    return emptyContent;
+  }
+
+  return {
+    ...emptyContent,
+    ...saved,
+
+    personal: {
+      ...emptyContent.personal,
+      ...(saved.personal || {}),
+    },
+
+    contact: {
+      ...emptyContent.contact,
+      ...(saved.contact || {}),
+    },
+
+    experience:
+      saved.experience && saved.experience.length
+        ? saved.experience
+        : emptyContent.experience,
+
+    skills: Array.isArray(saved.skills)
+      ? saved.skills
+      : [],
+
+    projects: Array.isArray(saved.projects)
+      ? saved.projects
+      : [],
+
+    achievements: Array.isArray(saved.achievements)
+      ? saved.achievements
+      : [],
+  };
+}
+
 export default function Admin() {
   const [session, setSession] = useState(null);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const [content, setContent] =
-    useState(emptyContent);
+  const [content, setContent] = useState(emptyContent);
 
-  const [checkingSession, setCheckingSession] =
-    useState(true);
+  const [checkingSession, setCheckingSession] = useState(true);
+  const [loadingContent, setLoadingContent] = useState(false);
+  const [loggingIn, setLoggingIn] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
-  const [loadingContent, setLoadingContent] =
-    useState(false);
-
-  const [loggingIn, setLoggingIn] =
-    useState(false);
-
-  const [saving, setSaving] =
-    useState(false);
-
-  const [uploadingPhoto, setUploadingPhoto] =
-    useState(false);
-
-  const [error, setError] =
-    useState("");
-
-  const [message, setMessage] =
-    useState("");
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
     let mounted = true;
 
-    async function initialize() {
+    async function checkSession() {
       try {
         setError("");
 
-        const {
-          data,
-          error: sessionError,
-        } = await supabase.auth.getSession();
+        const result = await supabase.auth.getSession();
 
-        if (sessionError) {
-          throw sessionError;
+        if (result.error) {
+          throw result.error;
         }
 
         if (!mounted) {
           return;
         }
 
-        if (data?.session) {
-          setSession(data.session);
+        const currentSession = result.data?.session || null;
+
+        setSession(currentSession);
+
+        if (currentSession) {
           await loadContent();
         }
       } catch (err) {
-        console.error(
-          "Session error:",
-          err
-        );
+        console.error("Session check failed:", err);
 
         if (mounted) {
           setError(
@@ -129,13 +148,11 @@ export default function Admin() {
       }
     }
 
-    initialize();
+    checkSession();
 
-    const {
-      data: authListener,
-    } =
+    const authListener =
       supabase.auth.onAuthStateChange(
-        async (_event, newSession) => {
+        (_event, newSession) => {
           if (!mounted) {
             return;
           }
@@ -143,7 +160,11 @@ export default function Admin() {
           setSession(newSession);
 
           if (newSession) {
-            await loadContent();
+            setTimeout(() => {
+              if (mounted) {
+                loadContent();
+              }
+            }, 0);
           }
         }
       );
@@ -151,7 +172,7 @@ export default function Admin() {
     return () => {
       mounted = false;
 
-      authListener?.subscription?.unsubscribe();
+      authListener?.data?.subscription?.unsubscribe();
     };
   }, []);
 
@@ -160,121 +181,68 @@ export default function Admin() {
       setLoadingContent(true);
       setError("");
 
-      const {
-        data,
-        error: fetchError,
-      } = await supabase
+      const result = await supabase
         .from("site_content")
         .select("content")
         .eq("id", "main")
         .maybeSingle();
 
-      if (fetchError) {
-        throw fetchError;
+      if (result.error) {
+        throw result.error;
       }
 
-      if (data?.content) {
-        const saved = data.content;
-
-        setContent({
-          ...emptyContent,
-          ...saved,
-
-          personal: {
-            ...emptyContent.personal,
-            ...(saved.personal || {}),
-          },
-
-          contact: {
-            ...emptyContent.contact,
-            ...(saved.contact || {}),
-          },
-
-          experience:
-            saved.experience &&
-            saved.experience.length
-              ? saved.experience
-              : emptyContent.experience,
-
-          skills: Array.isArray(saved.skills)
-            ? saved.skills
-            : [],
-
-          projects: Array.isArray(
-            saved.projects
-          )
-            ? saved.projects
-            : [],
-
-          achievements: Array.isArray(
-            saved.achievements
-          )
-            ? saved.achievements
-            : [],
-        });
+      if (result.data?.content) {
+        setContent(
+          mergeContent(result.data.content)
+        );
       }
     } catch (err) {
-      console.error(
-        "Load content error:",
-        err
-      );
+      console.error("Load content failed:", err);
 
       setError(
-        err?.message ||
-          "Unable to load website content."
+        "Unable to load website content: " +
+          (err?.message || "Unknown error")
       );
     } finally {
       setLoadingContent(false);
     }
   }
 
-  async function handleLogin(e) {
-    e.preventDefault();
+  async function handleLogin(event) {
+    event.preventDefault();
 
     setError("");
     setMessage("");
     setLoggingIn(true);
 
     try {
-      if (!email.trim()) {
+      if (!email.trim() || !password) {
         throw new Error(
-          "Please enter your email."
+          "Please enter your email and password."
         );
       }
 
-      if (!password) {
-        throw new Error(
-          "Please enter your password."
-        );
-      }
-
-      const {
-        data,
-        error: loginError,
-      } =
+      const result =
         await supabase.auth.signInWithPassword({
           email: email.trim(),
           password,
         });
 
-      if (loginError) {
-        throw loginError;
+      if (result.error) {
+        throw result.error;
       }
 
-      if (!data?.session) {
+      if (!result.data?.session) {
         throw new Error(
           "Login succeeded but no session was created."
         );
       }
 
-      setSession(data.session);
+      setSession(result.data.session);
 
       await loadContent();
     } catch (err) {
-      console.error(
-        "Login error:",
-        err
-      );
+      console.error("Login failed:", err);
 
       setError(
         err?.message ||
@@ -286,20 +254,27 @@ export default function Admin() {
   }
 
   async function handleLogout() {
-    setError("");
-    setMessage("");
-
     try {
-      await supabase.auth.signOut();
+      setError("");
+      setMessage("");
+
+      const result =
+        await supabase.auth.signOut();
+
+      if (result.error) {
+        throw result.error;
+      }
+
+      setSession(null);
+      setPassword("");
     } catch (err) {
-      console.error(
-        "Logout error:",
-        err
+      console.error("Logout failed:", err);
+
+      setError(
+        err?.message ||
+          "Logout failed."
       );
     }
-
-    setSession(null);
-    setPassword("");
   }
 
   function updateField(field, value) {
@@ -314,7 +289,7 @@ export default function Admin() {
       ...current,
 
       personal: {
-        ...current.personal,
+        ...(current.personal || {}),
         [field]: value,
       },
     }));
@@ -325,7 +300,7 @@ export default function Admin() {
       ...current,
 
       contact: {
-        ...current.contact,
+        ...(current.contact || {}),
         [field]: value,
       },
     }));
@@ -376,8 +351,7 @@ export default function Admin() {
       .map((line) => line.trim())
       .filter(Boolean)
       .map((line) => {
-        const separator =
-          line.indexOf(":");
+        const separator = line.indexOf(":");
 
         if (separator === -1) {
           return {
@@ -397,30 +371,21 @@ export default function Admin() {
         };
       });
 
-    updateField(
-      "projects",
-      projects
-    );
+    updateField("projects", projects);
   }
 
-  async function handlePhotoUpload(e) {
+  async function handlePhotoUpload(event) {
     const file =
-      e.target.files?.[0];
+      event.target.files?.[0];
 
     if (!file) {
       return;
     }
 
-    setError("");
-    setMessage("");
-    setUploadingPhoto(true);
-
     try {
-      if (!session) {
-        throw new Error(
-          "Please login before uploading a photo."
-        );
-      }
+      setError("");
+      setMessage("");
+      setUploadingPhoto(true);
 
       if (!file.type.startsWith("image/")) {
         throw new Error(
@@ -437,23 +402,27 @@ export default function Admin() {
         );
       }
 
+      const originalName =
+        file.name || "profile.jpg";
+
+      const parts =
+        originalName.split(".");
+
       const extension =
-        file.name.includes(".")
-          ? file.name
-              .split(".")
-              .pop()
+        parts.length > 1
+          ? parts[parts.length - 1]
               .toLowerCase()
           : "jpg";
 
       const fileName =
-        `profile-${Date.now()}.${extension}`;
+        "profile-" +
+        Date.now() +
+        "." +
+        extension;
 
-      const filePath =
-        fileName;
+      const filePath = fileName;
 
-      const {
-        error: uploadError,
-      } =
+      const uploadResult =
         await supabase.storage
           .from(PHOTO_BUCKET)
           .upload(
@@ -466,23 +435,21 @@ export default function Admin() {
             }
           );
 
-      if (uploadError) {
-        throw uploadError;
+      if (uploadResult.error) {
+        throw uploadResult.error;
       }
 
-      const {
-        data: publicData,
-      } =
+      const publicUrlResult =
         supabase.storage
           .from(PHOTO_BUCKET)
           .getPublicUrl(filePath);
 
       const publicUrl =
-        publicData?.publicUrl;
+        publicUrlResult?.data?.publicUrl;
 
       if (!publicUrl) {
         throw new Error(
-          "Photo uploaded but public URL could not be created."
+          "Photo uploaded, but public URL could not be created."
         );
       }
 
@@ -496,19 +463,31 @@ export default function Admin() {
       );
     } catch (err) {
       console.error(
-        "Photo upload error:",
+        "Photo upload failed:",
         err
       );
 
       setError(
-        err?.message ||
-          "Unable to upload profile photo."
+        "Photo upload failed: " +
+          (err?.message ||
+            "Unknown error")
       );
     } finally {
       setUploadingPhoto(false);
 
-      e.target.value = "";
+      event.target.value = "";
     }
+  }
+
+  function removePhoto() {
+    setContent((current) => ({
+      ...current,
+      photo: "",
+    }));
+
+    setMessage(
+      "Photo removed from the profile. Click Save Changes to publish the change."
+    );
   }
 
   async function saveChanges() {
@@ -519,47 +498,23 @@ export default function Admin() {
 
       if (!session) {
         throw new Error(
-          "Your session has expired. Please login again."
+          "You are not logged in. Please login again."
         );
       }
 
-      const {
-        data: existingRow,
-        error: selectError,
-      } =
-        await supabase
-          .from("site_content")
-          .select("id")
-          .eq("id", "main")
-          .maybeSingle();
+      const result = await supabase
+        .from("site_content")
+        .update({
+          content: content,
+          updated_at:
+            new Date().toISOString(),
+        })
+        .eq("id", "main");
 
-      if (selectError) {
+      if (result.error) {
         throw new Error(
-          `Unable to check website content: ${selectError.message}`
-        );
-      }
-
-      if (!existingRow) {
-        throw new Error(
-          "The main site_content row was not found."
-        );
-      }
-
-      const {
-        error: updateError,
-      } =
-        await supabase
-          .from("site_content")
-          .update({
-            content: content,
-            updated_at:
-              new Date().toISOString(),
-          })
-          .eq("id", "main");
-
-      if (updateError) {
-        throw new Error(
-          `Supabase UPDATE failed: ${updateError.message}`
+          "Supabase UPDATE failed: " +
+            result.error.message
         );
       }
 
@@ -568,13 +523,14 @@ export default function Admin() {
       );
     } catch (err) {
       console.error(
-        "Save error:",
+        "Save failed:",
         err
       );
 
       setError(
-        err?.message ||
-          "Unable to save changes."
+        "Save failed: " +
+          (err?.message ||
+            "Unknown error")
       );
     } finally {
       setSaving(false);
@@ -585,7 +541,6 @@ export default function Admin() {
     return (
       <div className="admin-page">
         <div className="admin-card">
-
           <div className="admin-spinner">
             Loading...
           </div>
@@ -598,7 +553,6 @@ export default function Admin() {
             Please wait while we connect
             to your account.
           </p>
-
         </div>
       </div>
     );
@@ -607,7 +561,6 @@ export default function Admin() {
   if (!session) {
     return (
       <div className="admin-page">
-
         <div className="admin-login-card">
 
           <div className="admin-logo">
@@ -631,7 +584,6 @@ export default function Admin() {
             onSubmit={handleLogin}
             className="admin-login-form"
           >
-
             <label>
               Email
             </label>
@@ -640,9 +592,9 @@ export default function Admin() {
               type="email"
               placeholder="Enter admin email"
               value={email}
-              onChange={(e) =>
+              onChange={(event) =>
                 setEmail(
-                  e.target.value
+                  event.target.value
                 )
               }
               autoComplete="email"
@@ -656,9 +608,9 @@ export default function Admin() {
               type="password"
               placeholder="Enter password"
               value={password}
-              onChange={(e) =>
+              onChange={(event) =>
                 setPassword(
-                  e.target.value
+                  event.target.value
                 )
               }
               autoComplete="current-password"
@@ -675,31 +627,29 @@ export default function Admin() {
               className="admin-login-btn"
               disabled={loggingIn}
             >
-
               <LogIn size={18} />
 
               {loggingIn
                 ? "Logging in..."
                 : "Login"}
-
             </button>
-
           </form>
 
           <button
             className="back-home"
             onClick={() => {
-              window.location.href =
-                "/";
+              window.location.href = "/";
             }}
           >
             ← Back to Website
           </button>
-
         </div>
       </div>
     );
   }
+
+  const experience =
+    content.experience?.[0] || {};
 
   return (
     <div className="editor-page">
@@ -707,7 +657,6 @@ export default function Admin() {
       <header className="editor-header">
 
         <div>
-
           <div className="editor-label">
             ADMIN PANEL
           </div>
@@ -719,18 +668,14 @@ export default function Admin() {
           <p>
             {session.user?.email}
           </p>
-
         </div>
 
         <button
           className="logout-btn"
           onClick={handleLogout}
         >
-
           <LogOut size={18} />
-
           Logout
-
         </button>
 
       </header>
@@ -760,13 +705,11 @@ export default function Admin() {
         <section className="editor-card">
 
           <div className="editor-card-title">
-
             <User size={20} />
 
             <h2>
               Profile
             </h2>
-
           </div>
 
           <div className="profile-preview">
@@ -778,17 +721,7 @@ export default function Admin() {
               />
             ) : (
               <div className="profile-placeholder">
-                {content.name
-                  ? content.name
-                      .split(" ")
-                      .map(
-                        (word) =>
-                          word[0]
-                      )
-                      .join("")
-                      .slice(0, 2)
-                      .toUpperCase()
-                  : "MB"}
+                MB
               </div>
             )}
 
@@ -796,85 +729,36 @@ export default function Admin() {
 
           <label>
             <Camera size={14} />
-            Profile Photo
-          </label>
-
-          <div
-            style={{
-              display: "flex",
-              gap: "12px",
-              alignItems: "center",
-              flexWrap: "wrap",
-              marginBottom: "10px",
-            }}
-          >
-
-            <label
-              htmlFor="profile-photo-upload"
-              className="save-btn"
-              style={{
-                cursor: uploadingPhoto
-                  ? "not-allowed"
-                  : "pointer",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "8px",
-                opacity:
-                  uploadingPhoto
-                    ? 0.6
-                    : 1,
-              }}
-            >
-
-              <Upload size={18} />
-
-              {uploadingPhoto
-                ? "Uploading..."
-                : "Upload Photo"}
-
-            </label>
-
-            <input
-              id="profile-photo-upload"
-              type="file"
-              accept="image/*"
-              onChange={
-                handlePhotoUpload
-              }
-              disabled={
-                uploadingPhoto
-              }
-              style={{
-                display: "none",
-              }}
-            />
-
-          </div>
-
-          <p className="field-help">
-            Upload JPG, JPEG, PNG or WEBP.
-            Maximum file size: 5 MB.
-          </p>
-
-          <label>
-            Profile Photo URL
+            Upload Profile Photo
           </label>
 
           <input
-            type="url"
-            placeholder="Photo URL will appear here after upload"
-            value={content.photo}
-            onChange={(e) =>
-              updateField(
-                "photo",
-                e.target.value
-              )
-            }
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            onChange={handlePhotoUpload}
+            disabled={uploadingPhoto}
           />
 
+          {uploadingPhoto && (
+            <p className="field-help">
+              Uploading photo...
+            </p>
+          )}
+
+          {content.photo && (
+            <button
+              type="button"
+              className="back-home"
+              onClick={removePhoto}
+              disabled={uploadingPhoto}
+            >
+              Remove Photo
+            </button>
+          )}
+
           <p className="field-help">
-            You can upload a photo above,
-            or paste a public image URL.
+            Select a JPG, PNG, WEBP or GIF
+            image. Maximum size: 5 MB.
           </p>
 
           <label>
@@ -883,10 +767,10 @@ export default function Admin() {
 
           <input
             value={content.name}
-            onChange={(e) =>
+            onChange={(event) =>
               updateField(
                 "name",
-                e.target.value
+                event.target.value
               )
             }
           />
@@ -897,10 +781,10 @@ export default function Admin() {
 
           <input
             value={content.title}
-            onChange={(e) =>
+            onChange={(event) =>
               updateField(
                 "title",
-                e.target.value
+                event.target.value
               )
             }
           />
@@ -912,10 +796,10 @@ export default function Admin() {
           <textarea
             rows="7"
             value={content.about}
-            onChange={(e) =>
+            onChange={(event) =>
               updateField(
                 "about",
-                e.target.value
+                event.target.value
               )
             }
           />
@@ -927,13 +811,11 @@ export default function Admin() {
         <section className="editor-card">
 
           <div className="editor-card-title">
-
             <User size={20} />
 
             <h2>
               Personal Information
             </h2>
-
           </div>
 
           <label>
@@ -947,10 +829,10 @@ export default function Admin() {
               content.personal?.location ||
               ""
             }
-            onChange={(e) =>
+            onChange={(event) =>
               updatePersonal(
                 "location",
-                e.target.value
+                event.target.value
               )
             }
           />
@@ -961,15 +843,15 @@ export default function Admin() {
           </label>
 
           <input
-            placeholder="Example: Diploma in Civil Engineering"
+            placeholder="Example: Diploma in Civil"
             value={
               content.personal?.education ||
               ""
             }
-            onChange={(e) =>
+            onChange={(event) =>
               updatePersonal(
                 "education",
-                e.target.value
+                event.target.value
               )
             }
           />
@@ -981,13 +863,11 @@ export default function Admin() {
         <section className="editor-card">
 
           <div className="editor-card-title">
-
             <Mail size={20} />
 
             <h2>
               Contact Information
             </h2>
-
           </div>
 
           <label>
@@ -1002,10 +882,10 @@ export default function Admin() {
               content.contact?.email ||
               ""
             }
-            onChange={(e) =>
+            onChange={(event) =>
               updateContact(
                 "email",
-                e.target.value
+                event.target.value
               )
             }
           />
@@ -1022,10 +902,10 @@ export default function Admin() {
               content.contact?.phone ||
               ""
             }
-            onChange={(e) =>
+            onChange={(event) =>
               updateContact(
                 "phone",
-                e.target.value
+                event.target.value
               )
             }
           />
@@ -1042,10 +922,10 @@ export default function Admin() {
               content.contact?.linkedin ||
               ""
             }
-            onChange={(e) =>
+            onChange={(event) =>
               updateContact(
                 "linkedin",
-                e.target.value
+                event.target.value
               )
             }
           />
@@ -1057,13 +937,11 @@ export default function Admin() {
         <section className="editor-card">
 
           <div className="editor-card-title">
-
             <Briefcase size={20} />
 
             <h2>
               Experience
             </h2>
-
           </div>
 
           <label>
@@ -1071,14 +949,11 @@ export default function Admin() {
           </label>
 
           <input
-            value={
-              content.experience?.[0]
-                ?.role || ""
-            }
-            onChange={(e) =>
+            value={experience.role || ""}
+            onChange={(event) =>
               updateExperience(
                 "role",
-                e.target.value
+                event.target.value
               )
             }
           />
@@ -1089,13 +964,12 @@ export default function Admin() {
 
           <input
             value={
-              content.experience?.[0]
-                ?.company || ""
+              experience.company || ""
             }
-            onChange={(e) =>
+            onChange={(event) =>
               updateExperience(
                 "company",
-                e.target.value
+                event.target.value
               )
             }
           />
@@ -1107,13 +981,12 @@ export default function Admin() {
           <input
             placeholder="Example: 2023 - Present"
             value={
-              content.experience?.[0]
-                ?.period || ""
+              experience.period || ""
             }
-            onChange={(e) =>
+            onChange={(event) =>
               updateExperience(
                 "period",
-                e.target.value
+                event.target.value
               )
             }
           />
@@ -1125,13 +998,13 @@ export default function Admin() {
           <textarea
             rows="7"
             value={
-              content.experience?.[0]
-                ?.description || ""
+              experience.description ||
+              ""
             }
-            onChange={(e) =>
+            onChange={(event) =>
               updateExperience(
                 "description",
-                e.target.value
+                event.target.value
               )
             }
           />
@@ -1143,13 +1016,11 @@ export default function Admin() {
         <section className="editor-card">
 
           <div className="editor-card-title">
-
             <Code size={20} />
 
             <h2>
               Skills
             </h2>
-
           </div>
 
           <label>
@@ -1163,9 +1034,9 @@ export default function Admin() {
               (content.skills || [])
                 .join(", ")
             }
-            onChange={(e) =>
+            onChange={(event) =>
               updateSkills(
-                e.target.value
+                event.target.value
               )
             }
           />
@@ -1177,13 +1048,11 @@ export default function Admin() {
         <section className="editor-card">
 
           <div className="editor-card-title">
-
             <FolderKanban size={20} />
 
             <h2>
               Projects
             </h2>
-
           </div>
 
           <label>
@@ -1200,18 +1069,19 @@ export default function Admin() {
             rows="8"
             value={
               (content.projects || [])
-                .map(
-                  (project) =>
-                    `${project.title || ""}: ${
-                      project.description ||
-                      ""
-                    }`
-                )
+                .map((project) => {
+                  return (
+                    (project.title || "") +
+                    ": " +
+                    (project.description ||
+                      "")
+                  );
+                })
                 .join("\n")
             }
-            onChange={(e) =>
+            onChange={(event) =>
               updateProjects(
-                e.target.value
+                event.target.value
               )
             }
           />
@@ -1223,13 +1093,11 @@ export default function Admin() {
         <section className="editor-card">
 
           <div className="editor-card-title">
-
             <Award size={20} />
 
             <h2>
               Achievements
             </h2>
-
           </div>
 
           <label>
@@ -1244,17 +1112,23 @@ export default function Admin() {
             rows="7"
             value={
               (content.achievements || [])
-                .map((item) =>
-                  typeof item ===
-                  "string"
-                    ? item
-                    : item.title || ""
-                )
+                .map((item) => {
+                  if (
+                    typeof item ===
+                    "string"
+                  ) {
+                    return item;
+                  }
+
+                  return (
+                    item.title || ""
+                  );
+                })
                 .join("\n")
             }
-            onChange={(e) =>
+            onChange={(event) =>
               updateAchievements(
-                e.target.value
+                event.target.value
               )
             }
           />
@@ -1274,20 +1148,16 @@ export default function Admin() {
               uploadingPhoto
             }
           >
-
             <Save size={20} />
 
             {saving
               ? "Saving..."
               : "Save Changes"}
-
           </button>
 
         </div>
 
       </main>
-
     </div>
   );
 }
-```
