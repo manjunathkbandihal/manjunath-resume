@@ -27,150 +27,135 @@ const emptyContent = {
 };
 
 export default function Admin() {
-  const [user, setUser] = useState(null);
+  const [session, setSession] = useState(null);
   const [content, setContent] = useState(emptyContent);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    loadAdmin();
+    let mounted = true;
+
+    async function start() {
+      try {
+        setLoading(true);
+
+        const {
+          data: { session },
+          error,
+        } = await supabase.auth.getSession();
+
+        if (error) {
+          throw error;
+        }
+
+        if (!mounted) return;
+
+        if (!session) {
+          window.location.replace("/admin");
+          return;
+        }
+
+        setSession(session);
+
+        const result = await supabase
+          .from("site_content")
+          .select("content")
+          .eq("id", "main")
+          .limit(1);
+
+        if (result.error) {
+          throw result.error;
+        }
+
+        if (result.data && result.data.length > 0) {
+          setContent({
+            ...emptyContent,
+            ...result.data[0].content,
+            contact: {
+              ...emptyContent.contact,
+              ...(result.data[0].content.contact || {}),
+            },
+          });
+        }
+      } catch (err) {
+        if (mounted) {
+          setError(
+            err?.message ||
+              "Unable to load admin dashboard."
+          );
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    }
+
+    start();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
-  async function loadAdmin() {
-    try {
-      setLoading(true);
-      setError("");
-
-      const {
-        data: { session },
-        error: sessionError,
-      } = await supabase.auth.getSession();
-
-      if (sessionError) {
-        throw sessionError;
-      }
-
-      if (!session) {
-        window.location.href = "/admin";
-        return;
-      }
-
-      setUser(session.user);
-
-      const { data, error: contentError } = await supabase
-        .from("site_content")
-        .select("content")
-        .eq("id", "main")
-        .maybeSingle();
-
-      if (contentError) {
-        throw contentError;
-      }
-
-      if (data?.content) {
-        setContent({
-          ...emptyContent,
-          ...data.content,
-          contact: {
-            ...emptyContent.contact,
-            ...(data.content.contact || {}),
-          },
-        });
-      }
-    } catch (err) {
-      console.error(err);
-      setError(err.message || "Unable to load website data.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  function updateField(field, value) {
+  function updateField(name, value) {
     setContent((current) => ({
       ...current,
-      [field]: value,
+      [name]: value,
     }));
   }
 
-  function updateContact(field, value) {
+  function updateContact(name, value) {
     setContent((current) => ({
       ...current,
       contact: {
         ...current.contact,
-        [field]: value,
+        [name]: value,
       },
     }));
   }
 
   async function saveChanges() {
-    try {
-      setSaving(true);
-      setError("");
+    setSaving(true);
+    setError("");
 
-      const { error: updateError } = await supabase
-        .from("site_content")
-        .update({
-          content,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", "main");
+    const { error } = await supabase
+      .from("site_content")
+      .update({
+        content,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", "main");
 
-      if (updateError) {
-        throw updateError;
-      }
+    setSaving(false);
 
-      alert("Changes saved successfully! 🎉");
-    } catch (err) {
-      console.error(err);
-      setError(err.message || "Unable to save changes.");
-    } finally {
-      setSaving(false);
+    if (error) {
+      setError(error.message);
+      return;
     }
+
+    alert("Website updated successfully!");
   }
 
   async function logout() {
     await supabase.auth.signOut();
-    window.location.href = "/admin";
+    window.location.replace("/admin");
   }
 
   if (loading) {
     return (
       <div className="admin-page">
         <div className="admin-card">
-          <h2>Checking your account...</h2>
+          <h2>Loading admin dashboard...</h2>
           <p>Please wait.</p>
         </div>
       </div>
     );
   }
 
-  if (error) {
-    return (
-      <div className="admin-page">
-        <div className="admin-card">
-          <h2>Something went wrong</h2>
-
-          <p className="admin-error">
-            {error}
-          </p>
-
-          <button
-            className="admin-login-btn"
-            onClick={loadAdmin}
-          >
-            Try Again
-          </button>
-
-          <button
-            className="back-home"
-            onClick={logout}
-          >
-            Logout
-          </button>
-        </div>
-      </div>
-    );
+  if (!session) {
+    return null;
   }
 
   return (
@@ -183,9 +168,7 @@ export default function Admin() {
 
           <h1>Edit My Website</h1>
 
-          <p>
-            Logged in as {user?.email}
-          </p>
+          <p>{session.user.email}</p>
         </div>
 
         <button
@@ -199,6 +182,12 @@ export default function Admin() {
 
       <main className="editor-container">
 
+        {error && (
+          <div className="admin-error">
+            {error}
+          </div>
+        )}
+
         <section className="editor-card">
           <div className="editor-card-title">
             <User size={20} />
@@ -210,7 +199,10 @@ export default function Admin() {
           <input
             value={content.name}
             onChange={(e) =>
-              updateField("name", e.target.value)
+              updateField(
+                "name",
+                e.target.value
+              )
             }
           />
 
@@ -219,7 +211,10 @@ export default function Admin() {
           <input
             value={content.title}
             onChange={(e) =>
-              updateField("title", e.target.value)
+              updateField(
+                "title",
+                e.target.value
+              )
             }
           />
 
@@ -229,7 +224,10 @@ export default function Admin() {
             rows="6"
             value={content.about}
             onChange={(e) =>
-              updateField("about", e.target.value)
+              updateField(
+                "about",
+                e.target.value
+              )
             }
           />
         </section>
@@ -319,7 +317,7 @@ export default function Admin() {
           </div>
 
           <label>
-            Skills — separate with commas
+            Skills (separate with commas)
           </label>
 
           <textarea
@@ -346,7 +344,8 @@ export default function Admin() {
           </div>
 
           <label>
-            Projects — one project per line
+            One project per line:
+            Title: Description
           </label>
 
           <textarea
@@ -366,24 +365,23 @@ export default function Admin() {
                 .split("\n")
                 .filter(Boolean)
                 .map((line) => {
-                  const index =
+                  const i =
                     line.indexOf(":");
 
-                  if (index === -1) {
-                    return {
-                      title: line.trim(),
-                      description: "",
-                    };
-                  }
-
                   return {
-                    title: line
-                      .slice(0, index)
-                      .trim(),
+                    title:
+                      i >= 0
+                        ? line
+                            .slice(0, i)
+                            .trim()
+                        : line.trim(),
 
-                    description: line
-                      .slice(index + 1)
-                      .trim(),
+                    description:
+                      i >= 0
+                        ? line
+                            .slice(i + 1)
+                            .trim()
+                        : "",
                   };
                 });
 
@@ -402,7 +400,7 @@ export default function Admin() {
           </div>
 
           <label>
-            Achievements — separate with commas
+            Achievements (separate with commas)
           </label>
 
           <textarea
@@ -465,13 +463,7 @@ export default function Admin() {
           />
         </section>
 
-        <section className="save-area">
-          {error && (
-            <div className="admin-error">
-              {error}
-            </div>
-          )}
-
+        <div className="save-area">
           <button
             className="save-btn"
             onClick={saveChanges}
@@ -483,9 +475,9 @@ export default function Admin() {
               ? "Saving..."
               : "Save Changes"}
           </button>
-        </section>
+        </div>
 
       </main>
     </div>
   );
-}
+                }
