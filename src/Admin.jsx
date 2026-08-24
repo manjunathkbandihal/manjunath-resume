@@ -19,31 +19,75 @@ import {
 
 import { supabase } from "./supabase";
 
+
 const emptyContent = {
   name: "Manjunath Bandihal",
+
   title: "Data Annotation Team Lead",
+
   photo: "",
-  about: "",
+
+  about:
+    "Dedicated and result-driven professional with experience in data annotation, segmentation annotation, quality control, team coordination and project management.",
 
   personal: {
-    location: "",
-    education: "",
+    location: "India",
+    education: "Diploma in Civil Engineering",
   },
 
   experience: [
     {
-      role: "",
-      company: "",
-      period: "",
-      description: "",
+      role: "Data Annotation Team Lead",
+      company: "Annotation / Data Operations",
+      period: "Present",
+      description:
+        "Led annotation teams across multiple projects.\nManaged daily targets, deadlines and overall performance.\nEnsured high-quality annotations through reviews and quality checks.\nConducted calibration sessions and training for team members.\nCoordinated with QA teams to improve quality and reduce escalations.",
     },
   ],
 
-  skills: [],
+  skills: [
+    "Data Annotation",
+    "Segmentation Annotation",
+    "Quality Control / QA",
+    "Team Management",
+    "Project Management",
+    "Calibration & Training",
+    "Excel / Data Management",
+    "Communication",
+  ],
 
-  projects: [],
+  projects: [
+    {
+      title: "PCI_Annotations",
+      description:
+        "Segmentation annotation for pavement, light poles, fencing, chimneys, electrical wires and other objects.",
+    },
 
-  achievements: [],
+    {
+      title: "hase2_july_data_1",
+      description:
+        "Checked model predictions, corrected wrong labels and added missing annotations where required.",
+    },
+
+    {
+      title: "Object Annotation Projects",
+      description:
+        "Worked on umbrellas, tents, electrical units and other street-level objects from frames.",
+    },
+
+    {
+      title: "Multiple Concurrent Projects",
+      description:
+        "Managed and delivered multiple projects simultaneously with focus on quality and deadlines.",
+    },
+  ],
+
+  achievements: [
+    "Best Performer",
+    "Quality Improvement",
+    "Team Leadership",
+    "Process Improvement",
+  ],
 
   contact: {
     email: "",
@@ -52,6 +96,7 @@ const emptyContent = {
   },
 };
 
+
 function mergeContent(saved) {
   if (!saved) {
     return emptyContent;
@@ -59,6 +104,7 @@ function mergeContent(saved) {
 
   return {
     ...emptyContent,
+
     ...saved,
 
     personal: {
@@ -72,30 +118,37 @@ function mergeContent(saved) {
     },
 
     experience:
-      saved.experience?.length
+      saved.experience &&
+      saved.experience.length
         ? saved.experience
         : emptyContent.experience,
 
-    skills: Array.isArray(saved.skills)
-      ? saved.skills
-      : [],
+    skills:
+      saved.skills &&
+      saved.skills.length
+        ? saved.skills
+        : emptyContent.skills,
 
-    projects: Array.isArray(saved.projects)
-      ? saved.projects
-      : [],
+    projects:
+      saved.projects &&
+      saved.projects.length
+        ? saved.projects
+        : emptyContent.projects,
 
-    achievements: Array.isArray(
-      saved.achievements
-    )
-      ? saved.achievements
-      : [],
+    achievements:
+      saved.achievements &&
+      saved.achievements.length
+        ? saved.achievements
+        : emptyContent.achievements,
   };
 }
+
 
 export default function Admin() {
   const [session, setSession] = useState(null);
 
   const [email, setEmail] = useState("");
+
   const [password, setPassword] = useState("");
 
   const [content, setContent] =
@@ -119,10 +172,9 @@ export default function Admin() {
   const [message, setMessage] =
     useState("");
 
+
   /*
-   * --------------------------------------------------
-   * CHECK SESSION
-   * --------------------------------------------------
+   * CHECK LOGIN SESSION
    */
 
   useEffect(() => {
@@ -150,6 +202,7 @@ export default function Admin() {
 
           await loadContent();
         }
+
       } catch (err) {
         console.error(
           "Session error:",
@@ -162,6 +215,7 @@ export default function Admin() {
               "Unable to check login session."
           );
         }
+
       } finally {
         if (mounted) {
           setCheckingSession(false);
@@ -171,11 +225,12 @@ export default function Admin() {
 
     checkSession();
 
+
     const {
-      data: listener,
+      data: authListener,
     } =
       supabase.auth.onAuthStateChange(
-        async (_event, newSession) => {
+        (_event, newSession) => {
           if (!mounted) {
             return;
           }
@@ -183,29 +238,32 @@ export default function Admin() {
           setSession(newSession);
 
           if (newSession) {
-            await loadContent();
+            setTimeout(() => {
+              loadContent();
+            }, 0);
           }
         }
       );
 
+
     return () => {
       mounted = false;
 
-      listener?.subscription?.unsubscribe();
+      authListener?.subscription?.unsubscribe();
     };
+
   }, []);
 
+
   /*
-   * --------------------------------------------------
-   * LOAD CONTENT
-   * --------------------------------------------------
+   * LOAD WEBSITE CONTENT
    */
 
   async function loadContent() {
     try {
       setLoadingContent(true);
+
       setError("");
-      setMessage("");
 
       const {
         data,
@@ -216,15 +274,21 @@ export default function Admin() {
         .eq("id", "main")
         .maybeSingle();
 
+
       if (error) {
-        throw error;
+        throw new Error(
+          "Unable to load content: " +
+            error.message
+        );
       }
+
 
       if (data?.content) {
         setContent(
           mergeContent(data.content)
         );
       }
+
     } catch (err) {
       console.error(
         "Load content error:",
@@ -232,36 +296,43 @@ export default function Admin() {
       );
 
       setError(
-        "Unable to load website content: " +
-          (err?.message || String(err))
+        err?.message ||
+          "Unable to load website content."
       );
+
     } finally {
       setLoadingContent(false);
     }
   }
 
+
   /*
-   * --------------------------------------------------
    * LOGIN
-   * --------------------------------------------------
    */
 
-  async function handleLogin(e) {
-    e.preventDefault();
+  async function handleLogin(event) {
+    event.preventDefault();
 
     setError("");
+
     setMessage("");
+
     setLoggingIn(true);
 
+
     try {
-      if (
-        !email.trim() ||
-        !password
-      ) {
+      if (!email.trim()) {
         throw new Error(
-          "Please enter your email and password."
+          "Please enter your email."
         );
       }
+
+      if (!password) {
+        throw new Error(
+          "Please enter your password."
+        );
+      }
+
 
       const {
         data,
@@ -272,9 +343,14 @@ export default function Admin() {
           password,
         });
 
+
       if (error) {
-        throw error;
+        throw new Error(
+          "Login failed: " +
+            error.message
+        );
       }
+
 
       if (!data?.session) {
         throw new Error(
@@ -282,9 +358,11 @@ export default function Admin() {
         );
       }
 
+
       setSession(data.session);
 
       await loadContent();
+
     } catch (err) {
       console.error(
         "Login error:",
@@ -295,26 +373,38 @@ export default function Admin() {
         err?.message ||
           "Login failed."
       );
+
     } finally {
       setLoggingIn(false);
     }
   }
 
+
   /*
-   * --------------------------------------------------
    * LOGOUT
-   * --------------------------------------------------
    */
 
   async function handleLogout() {
     try {
       setError("");
+
       setMessage("");
 
-      await supabase.auth.signOut();
+      const {
+        error,
+      } = await supabase.auth.signOut();
+
+      if (error) {
+        console.error(
+          "Logout error:",
+          error
+        );
+      }
 
       setSession(null);
+
       setPassword("");
+
     } catch (err) {
       console.error(
         "Logout error:",
@@ -323,18 +413,26 @@ export default function Admin() {
     }
   }
 
+
   /*
-   * --------------------------------------------------
-   * UPDATE HELPERS
-   * --------------------------------------------------
+   * UPDATE MAIN FIELD
    */
 
-  function updateField(field, value) {
+  function updateField(
+    field,
+    value
+  ) {
     setContent((current) => ({
       ...current,
+
       [field]: value,
     }));
   }
+
+
+  /*
+   * UPDATE PERSONAL INFORMATION
+   */
 
   function updatePersonal(
     field,
@@ -344,11 +442,17 @@ export default function Admin() {
       ...current,
 
       personal: {
-        ...(current.personal || {}),
+        ...current.personal,
+
         [field]: value,
       },
     }));
   }
+
+
+  /*
+   * UPDATE CONTACT INFORMATION
+   */
 
   function updateContact(
     field,
@@ -358,11 +462,17 @@ export default function Admin() {
       ...current,
 
       contact: {
-        ...(current.contact || {}),
+        ...current.contact,
+
         [field]: value,
       },
     }));
   }
+
+
+  /*
+   * UPDATE EXPERIENCE
+   */
 
   function updateExperience(
     field,
@@ -375,15 +485,22 @@ export default function Admin() {
 
       experience[0] = {
         ...(experience[0] || {}),
+
         [field]: value,
       };
 
       return {
         ...current,
+
         experience,
       };
     });
   }
+
+
+  /*
+   * UPDATE SKILLS
+   */
 
   function updateSkills(value) {
     const skills = value
@@ -398,6 +515,11 @@ export default function Admin() {
       skills
     );
   }
+
+
+  /*
+   * UPDATE ACHIEVEMENTS
+   */
 
   function updateAchievements(
     value
@@ -415,6 +537,11 @@ export default function Admin() {
     );
   }
 
+
+  /*
+   * UPDATE PROJECTS
+   */
+
   function updateProjects(value) {
     const projects = value
       .split("\n")
@@ -426,12 +553,15 @@ export default function Admin() {
         const separator =
           line.indexOf(":");
 
+
         if (separator === -1) {
           return {
             title: line,
+
             description: "",
           };
         }
+
 
         return {
           title: line
@@ -444,290 +574,164 @@ export default function Admin() {
         };
       });
 
+
     updateField(
       "projects",
       projects
     );
   }
 
+
   /*
-   * --------------------------------------------------
-   * SAVE
-   * --------------------------------------------------
+   * SAVE CHANGES
    *
-   * IMPORTANT:
-   * We first get the current Supabase session.
-   * Then we perform the UPDATE through the
-   * Supabase client.
+   * Uses the Supabase RPC function:
    *
-   * We also verify that the row was actually
-   * updated.
+   * save_site_content
    */
 
   async function saveChanges() {
-  setSaving(true);
-  setError("");
-  setMessage("");
+    setSaving(true);
 
-  try {
-    console.log("=== SAVE START ===");
+    setError("");
 
-    const {
-      data: sessionData,
-      error: sessionError,
-    } = await supabase.auth.getSession();
+    setMessage("");
 
-    if (sessionError) {
-      throw new Error(
-        "Session check failed: " +
-          sessionError.message
+
+    try {
+      console.log(
+        "=== SAVE START ==="
       );
-    }
 
-    if (!sessionData?.session) {
-      throw new Error(
-        "Your login session has expired. Please login again."
-      );
-    }
 
-    console.log(
-      "Logged in as:",
-      sessionData.session.user?.email
-    );
-
-    const {
-      data,
-      error,
-    } = await supabase.rpc(
-      "save_site_content",
-      {
-        p_content: content,
-      }
-    );
-
-    console.log("RPC data:", data);
-    console.log("RPC error:", error);
-
-    if (error) {
-      throw new Error(
-        "Supabase save failed: " +
-          error.message +
-          (error.details
-            ? " | Details: " +
-              error.details
-            : "") +
-          (error.hint
-            ? " | Hint: " +
-              error.hint
-            : "")
-      );
-    }
-
-    if (!data) {
-      throw new Error(
-        "Save completed but Supabase returned no data."
-      );
-    }
-
-    console.log("=== SAVE SUCCESS ===");
-
-    setMessage(
-      "Changes saved successfully! 🎉"
-    );
-
-    await loadContent();
-
-  } catch (err) {
-    console.error(
-      "=== SAVE ERROR ===",
-      err
-    );
-
-    setError(
-      err?.message ||
-        "Unable to save changes."
-    );
-
-  } finally {
-    setSaving(false);
-  }
-}
       /*
-       * Make a clean copy of the content.
+       * Check current login session
        */
 
-      const cleanContent = {
-        name:
-          content.name || "",
+      const {
+        data: sessionData,
+        error: sessionError,
+      } =
+        await supabase.auth.getSession();
 
-        title:
-          content.title || "",
 
-        photo:
-          content.photo || "",
+      if (sessionError) {
+        throw new Error(
+          "Session check failed: " +
+            sessionError.message
+        );
+      }
 
-        about:
-          content.about || "",
 
-        personal: {
-          location:
-            content.personal
-              ?.location || "",
+      if (!sessionData?.session) {
+        throw new Error(
+          "Your login session has expired. Please login again."
+        );
+      }
 
-          education:
-            content.personal
-              ?.education || "",
-        },
-
-        experience:
-          Array.isArray(
-            content.experience
-          )
-            ? content.experience
-            : [],
-
-        skills:
-          Array.isArray(
-            content.skills
-          )
-            ? content.skills
-            : [],
-
-        projects:
-          Array.isArray(
-            content.projects
-          )
-            ? content.projects
-            : [],
-
-        achievements:
-          Array.isArray(
-            content.achievements
-          )
-            ? content.achievements
-            : [],
-
-        contact: {
-          email:
-            content.contact
-              ?.email || "",
-
-          phone:
-            content.contact
-              ?.phone || "",
-
-          linkedin:
-            content.contact
-              ?.linkedin || "",
-        },
-      };
 
       console.log(
-        "Saving content:",
-        cleanContent
+        "Authenticated user:",
+        sessionData.session.user?.email
       );
 
+
       /*
-       * UPDATE
+       * Call PostgreSQL RPC function
        */
 
       const {
         data,
         error,
-      } = await supabase
-        .from("site_content")
-        .update({
-          content:
-            cleanContent,
-
-          updated_at:
-            new Date().toISOString(),
-        })
-        .eq("id", "main")
-        .select("id, updated_at")
-        .single();
-
-      /*
-       * Supabase returned an actual error.
-       */
-
-      if (error) {
-        console.error(
-          "Supabase UPDATE error:",
-          error
+      } =
+        await supabase.rpc(
+          "save_site_content",
+          {
+            p_content: content,
+          }
         );
 
+
+      console.log(
+        "RPC response:",
+        data
+      );
+
+      console.log(
+        "RPC error:",
+        error
+      );
+
+
+      if (error) {
         throw new Error(
-          "Supabase UPDATE failed: " +
-            (error.message ||
-              "Unknown error") +
-            (error.code
-              ? " | Code: " +
-                error.code
-              : "") +
-            (error.details
-              ? " | Details: " +
-                error.details
-              : "") +
-            (error.hint
-              ? " | Hint: " +
-                error.hint
-              : "")
+          "Supabase save failed: " +
+            error.message +
+            (
+              error.details
+                ? " | Details: " +
+                  error.details
+                : ""
+            ) +
+            (
+              error.hint
+                ? " | Hint: " +
+                  error.hint
+                : ""
+            )
         );
       }
 
-      /*
-       * No row returned means the UPDATE
-       * did not affect the row.
-       */
 
       if (!data) {
         throw new Error(
-          "Save completed but Supabase did not return the updated row. Check the UPDATE policy for site_content."
+          "Save completed but Supabase returned no data."
         );
       }
 
+
       console.log(
-        "Save successful:",
-        data
+        "=== SAVE SUCCESS ==="
       );
+
 
       setMessage(
         "Changes saved successfully! 🎉"
       );
 
+
       /*
-       * Reload from database so we know
-       * the public website will receive
-       * the saved version.
+       * Reload saved content
        */
 
       await loadContent();
+
     } catch (err) {
       console.error(
-        "SAVE FAILED:",
+        "=== SAVE ERROR ===",
         err
       );
 
+
       setError(
-        "Save failed: " +
-          (err?.message ||
-            String(err))
+        err?.message ||
+          "Unable to save changes."
       );
+
     } finally {
       setSaving(false);
     }
   }
 
+
   /*
-   * --------------------------------------------------
-   * LOADING
-   * --------------------------------------------------
+   * CHECKING SESSION SCREEN
    */
 
   if (checkingSession) {
     return (
       <div className="admin-page">
+
         <div className="admin-card">
 
           <div className="admin-spinner">
@@ -744,14 +748,14 @@ export default function Admin() {
           </p>
 
         </div>
+
       </div>
     );
   }
 
+
   /*
-   * --------------------------------------------------
-   * LOGIN PAGE
-   * --------------------------------------------------
+   * LOGIN SCREEN
    */
 
   if (!session) {
@@ -764,18 +768,22 @@ export default function Admin() {
             MB
           </div>
 
+
           <div className="editor-label">
             PRIVATE ADMIN AREA
           </div>
+
 
           <h1>
             Welcome Back
           </h1>
 
+
           <p className="admin-subtitle">
             Login to edit your resume
             website.
           </p>
+
 
           <form
             onSubmit={handleLogin}
@@ -786,39 +794,44 @@ export default function Admin() {
               Email
             </label>
 
+
             <input
               type="email"
               placeholder="Enter admin email"
               value={email}
-              onChange={(e) =>
+              onChange={(event) =>
                 setEmail(
-                  e.target.value
+                  event.target.value
                 )
               }
               autoComplete="email"
             />
 
+
             <label>
               Password
             </label>
+
 
             <input
               type="password"
               placeholder="Enter password"
               value={password}
-              onChange={(e) =>
+              onChange={(event) =>
                 setPassword(
-                  e.target.value
+                  event.target.value
                 )
               }
               autoComplete="current-password"
             />
+
 
             {error && (
               <div className="admin-error">
                 {error}
               </div>
             )}
+
 
             <button
               type="submit"
@@ -836,11 +849,11 @@ export default function Admin() {
 
           </form>
 
+
           <button
             className="back-home"
             onClick={() => {
-              window.location.href =
-                "/";
+              window.location.href = "/";
             }}
           >
             ← Back to Website
@@ -852,14 +865,15 @@ export default function Admin() {
     );
   }
 
+
   /*
-   * --------------------------------------------------
    * ADMIN EDITOR
-   * --------------------------------------------------
    */
 
   return (
     <div className="editor-page">
+
+      {/* HEADER */}
 
       <header className="editor-header">
 
@@ -879,6 +893,7 @@ export default function Admin() {
 
         </div>
 
+
         <button
           className="logout-btn"
           onClick={handleLogout}
@@ -892,7 +907,10 @@ export default function Admin() {
 
       </header>
 
+
       <main className="editor-container">
+
+        {/* LOADING */}
 
         {loadingContent && (
           <div className="admin-info">
@@ -900,11 +918,17 @@ export default function Admin() {
           </div>
         )}
 
+
+        {/* ERROR */}
+
         {error && (
           <div className="admin-error">
             {error}
           </div>
         )}
+
+
+        {/* SUCCESS */}
 
         {message && (
           <div className="admin-success">
@@ -912,7 +936,10 @@ export default function Admin() {
           </div>
         )}
 
-        {/* PROFILE */}
+
+        {/* =========================
+            PROFILE
+        ========================== */}
 
         <section className="editor-card">
 
@@ -925,6 +952,7 @@ export default function Admin() {
             </h2>
 
           </div>
+
 
           <div className="profile-preview">
 
@@ -941,10 +969,12 @@ export default function Admin() {
 
           </div>
 
+
           <label>
             <Camera size={14} />
             Profile Photo URL
           </label>
+
 
           <input
             type="url"
@@ -952,70 +982,82 @@ export default function Admin() {
             value={
               content.photo || ""
             }
-            onChange={(e) =>
+            onChange={(event) =>
               updateField(
                 "photo",
-                e.target.value
+                event.target.value
               )
             }
           />
 
+
           <p className="field-help">
             Paste a public image URL.
+            The image will appear on your
+            public website.
           </p>
+
 
           <label>
             Full Name
           </label>
 
+
           <input
             value={
               content.name || ""
             }
-            onChange={(e) =>
+            onChange={(event) =>
               updateField(
                 "name",
-                e.target.value
+                event.target.value
               )
             }
           />
+
 
           <label>
             Professional Title
           </label>
 
+
           <input
             value={
               content.title || ""
             }
-            onChange={(e) =>
+            onChange={(event) =>
               updateField(
                 "title",
-                e.target.value
+                event.target.value
               )
             }
           />
 
+
           <label>
             About Me
           </label>
+
 
           <textarea
             rows="7"
             value={
               content.about || ""
             }
-            onChange={(e) =>
+            onChange={(event) =>
               updateField(
                 "about",
-                e.target.value
+                event.target.value
               )
             }
           />
 
         </section>
 
-        {/* PERSONAL INFORMATION */}
+
+        {/* =========================
+            PERSONAL INFORMATION
+        ========================== */}
 
         <section className="editor-card">
 
@@ -1029,47 +1071,60 @@ export default function Admin() {
 
           </div>
 
+
           <label>
+
             <MapPin size={14} />
+
             Location
+
           </label>
+
 
           <input
             placeholder="Example: Bengaluru, India"
             value={
-              content.personal
-                ?.location || ""
+              content.personal?.location ||
+              ""
             }
-            onChange={(e) =>
+            onChange={(event) =>
               updatePersonal(
                 "location",
-                e.target.value
+                event.target.value
               )
             }
           />
 
+
           <label>
+
             <GraduationCap size={14} />
+
             Education
+
           </label>
+
 
           <input
             placeholder="Example: Diploma in Civil Engineering"
             value={
-              content.personal
-                ?.education || ""
+              content.personal?.education ||
+              ""
             }
-            onChange={(e) =>
+            onChange={(event) =>
               updatePersonal(
                 "education",
-                e.target.value
+                event.target.value
               )
             }
           />
 
         </section>
 
-        {/* CONTACT */}
+
+        {/* =========================
+            CONTACT
+        ========================== */}
 
         <section className="editor-card">
 
@@ -1083,69 +1138,87 @@ export default function Admin() {
 
           </div>
 
+
           <label>
+
             <Mail size={14} />
+
             Email
+
           </label>
+
 
           <input
             type="email"
             placeholder="your@email.com"
             value={
-              content.contact
-                ?.email || ""
+              content.contact?.email ||
+              ""
             }
-            onChange={(e) =>
+            onChange={(event) =>
               updateContact(
                 "email",
-                e.target.value
+                event.target.value
               )
             }
           />
 
+
           <label>
+
             <Phone size={14} />
+
             Phone
+
           </label>
+
 
           <input
             type="text"
             placeholder="Your phone number"
             value={
-              content.contact
-                ?.phone || ""
+              content.contact?.phone ||
+              ""
             }
-            onChange={(e) =>
+            onChange={(event) =>
               updateContact(
                 "phone",
-                e.target.value
+                event.target.value
               )
             }
           />
 
+
           <label>
+
             <Linkedin size={14} />
+
             LinkedIn URL
+
           </label>
+
 
           <input
             type="url"
             placeholder="https://www.linkedin.com/in/..."
             value={
-              content.contact
-                ?.linkedin || ""
+              content.contact?.linkedin ||
+              ""
             }
-            onChange={(e) =>
+            onChange={(event) =>
               updateContact(
                 "linkedin",
-                e.target.value
+                event.target.value
               )
             }
           />
 
         </section>
 
-        {/* EXPERIENCE */}
+
+        {/* =========================
+            EXPERIENCE
+        ========================== */}
 
         <section className="editor-card">
 
@@ -1159,79 +1232,96 @@ export default function Admin() {
 
           </div>
 
+
           <label>
             Job Role
           </label>
 
+
           <input
             value={
-              content.experience?.[0]
-                ?.role || ""
+              content.experience?.[0]?.role ||
+              ""
             }
-            onChange={(e) =>
+            onChange={(event) =>
               updateExperience(
                 "role",
-                e.target.value
+                event.target.value
               )
             }
           />
+
 
           <label>
             Company
           </label>
 
+
           <input
             value={
-              content.experience?.[0]
-                ?.company || ""
+              content.experience?.[0]?.company ||
+              ""
             }
-            onChange={(e) =>
+            onChange={(event) =>
               updateExperience(
                 "company",
-                e.target.value
+                event.target.value
               )
             }
           />
+
 
           <label>
             Period
           </label>
 
+
           <input
             placeholder="Example: 2023 - Present"
             value={
-              content.experience?.[0]
-                ?.period || ""
+              content.experience?.[0]?.period ||
+              ""
             }
-            onChange={(e) =>
+            onChange={(event) =>
               updateExperience(
                 "period",
-                e.target.value
+                event.target.value
               )
             }
           />
+
 
           <label>
             Description
           </label>
 
+
+          <p className="field-help">
+            Put each responsibility on a
+            separate line.
+          </p>
+
+
           <textarea
-            rows="7"
+            rows="8"
             value={
               content.experience?.[0]
                 ?.description || ""
             }
-            onChange={(e) =>
+            onChange={(event) =>
               updateExperience(
                 "description",
-                e.target.value
+                event.target.value
               )
             }
           />
 
         </section>
 
-        {/* SKILLS */}
+
+        {/* =========================
+            SKILLS
+        ========================== */}
 
         <section className="editor-card">
 
@@ -1245,36 +1335,43 @@ export default function Admin() {
 
           </div>
 
+
           <label>
             Skills
           </label>
+
+
+          <p className="field-help">
+            Separate skills with commas.
+          </p>
+
 
           <textarea
             rows="5"
             placeholder="Data Annotation, QA, Team Management, Segmentation..."
             value={
-              (
-                content.skills || []
-              ).join(", ")
+              (content.skills || [])
+                .join(", ")
             }
-            onChange={(e) =>
+            onChange={(event) =>
               updateSkills(
-                e.target.value
+                event.target.value
               )
             }
           />
 
         </section>
 
-        {/* PROJECTS */}
+
+        {/* =========================
+            PROJECTS
+        ========================== */}
 
         <section className="editor-card">
 
           <div className="editor-card-title">
 
-            <FolderKanban
-              size={20}
-            />
+            <FolderKanban size={20} />
 
             <h2>
               Projects
@@ -1282,41 +1379,46 @@ export default function Admin() {
 
           </div>
 
+
           <label>
             Projects
           </label>
 
+
           <p className="field-help">
             One project per line.
+            <br />
             Format:
+            <br />
             Project Name: Description
           </p>
 
+
           <textarea
-            rows="8"
+            rows="10"
             value={
-              (
-                content.projects || []
-              )
+              (content.projects || [])
                 .map(
                   (project) =>
                     `${project.title || ""}: ${
-                      project.description ||
-                      ""
+                      project.description || ""
                     }`
                 )
                 .join("\n")
             }
-            onChange={(e) =>
+            onChange={(event) =>
               updateProjects(
-                e.target.value
+                event.target.value
               )
             }
           />
 
         </section>
 
-        {/* ACHIEVEMENTS */}
+
+        {/* =========================
+            ACHIEVEMENTS
+        ========================== */}
 
         <section className="editor-card">
 
@@ -1330,32 +1432,48 @@ export default function Admin() {
 
           </div>
 
+
           <label>
             Achievements
           </label>
+
 
           <p className="field-help">
             One achievement per line.
           </p>
 
+
           <textarea
             rows="7"
             value={
-              (
-                content.achievements ||
-                []
-              ).join("\n")
+              (content.achievements || [])
+                .map((item) => {
+                  if (
+                    typeof item ===
+                    "string"
+                  ) {
+                    return item;
+                  }
+
+                  return (
+                    item.title || ""
+                  );
+                })
+                .join("\n")
             }
-            onChange={(e) =>
+            onChange={(event) =>
               updateAchievements(
-                e.target.value
+                event.target.value
               )
             }
           />
 
         </section>
 
-        {/* SAVE */}
+
+        {/* =========================
+            SAVE
+        ========================== */}
 
         <div className="save-area">
 
