@@ -127,50 +127,43 @@ function mergeContent(saved) {
     },
 
     experience:
-      saved.experience &&
-      saved.experience.length
+      Array.isArray(saved.experience) &&
+      saved.experience.length > 0
         ? saved.experience
         : defaultContent.experience,
 
     skills:
-      saved.skills &&
-      saved.skills.length
+      Array.isArray(saved.skills) &&
+      saved.skills.length > 0
         ? saved.skills
         : defaultContent.skills,
 
     projects:
-      saved.projects &&
-      saved.projects.length
+      Array.isArray(saved.projects) &&
+      saved.projects.length > 0
         ? saved.projects
         : defaultContent.projects,
 
     achievements:
-      saved.achievements &&
-      saved.achievements.length
+      Array.isArray(saved.achievements) &&
+      saved.achievements.length > 0
         ? saved.achievements
         : defaultContent.achievements,
   };
 }
 
 function App() {
-  const [menuOpen, setMenuOpen] =
-    React.useState(false);
-
+  const [menuOpen, setMenuOpen] = React.useState(false);
   const [content, setContent] =
     React.useState(defaultContent);
-
-  const [loading, setLoading] =
-    React.useState(true);
+  const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
     let mounted = true;
 
     async function loadWebsiteContent() {
       try {
-        const {
-          data,
-          error,
-        } = await supabase
+        const { data, error } = await supabase
           .from("site_content")
           .select("content")
           .eq("id", "main")
@@ -184,13 +177,11 @@ function App() {
           return;
         }
 
-        if (!mounted) {
-          return;
+        if (mounted && data && data.content) {
+          setContent(
+            mergeContent(data.content)
+          );
         }
-
-        setContent(
-          mergeContent(data?.content)
-        );
       } catch (error) {
         console.error(
           "Unable to load website content:",
@@ -213,8 +204,7 @@ function App() {
   const go = (id) => {
     setMenuOpen(false);
 
-    const element =
-      document.getElementById(id);
+    const element = document.getElementById(id);
 
     if (element) {
       element.scrollIntoView({
@@ -229,16 +219,15 @@ function App() {
         <section className="hero">
           <div
             className="container"
-            style={{
-              textAlign: "center",
-            }}
+            style={{ textAlign: "center" }}
           >
             <div className="eyebrow">
               LOADING PROFILE
             </div>
 
             <h1>
-              {defaultContent.name}
+              Manjunath
+              <span>Bandihal</span>
             </h1>
 
             <p className="hero-text">
@@ -252,29 +241,25 @@ function App() {
 
   const firstExperience =
     content.experience &&
-    content.experience.length
+    content.experience.length > 0
       ? content.experience[0]
       : {};
 
   return (
     <div className="site">
-
       {/* HEADER */}
 
       <header className="header">
         <div className="nav container">
-
           <button
             className="brand"
             onClick={() => go("home")}
           >
             <span>
               {content.name
-                ? content.name
-                    .split(" ")[0]
+                ? content.name.split(" ")[0]
                 : "Manjunath"}
             </span>{" "}
-
             {content.name
               ? content.name
                   .split(" ")
@@ -315,22 +300,15 @@ function App() {
               <Menu size={24} />
             )}
           </button>
-
         </div>
       </header>
 
       <main>
-
         {/* HERO */}
 
-        <section
-          id="home"
-          className="hero"
-        >
+        <section id="home" className="hero">
           <div className="container hero-grid">
-
             <div className="hero-copy">
-
               <div className="eyebrow">
                 {content.title ||
                   "DATA ANNOTATION TEAM LEAD"}
@@ -339,9 +317,7 @@ function App() {
               <h1>
                 {content.name
                   ? content.name
-                      .split(" ")
-                      .slice(0, 1)
-                      .join(" ")
+                      .split(" ")[0]
                       .toUpperCase()
                   : "MANJUNATH"}
 
@@ -362,7 +338,6 @@ function App() {
               </p>
 
               <div className="hero-actions">
-
                 <a
                   className="btn primary"
                   href="/Manjunath-Bandihal-Resume.pdf"
@@ -386,11 +361,9 @@ function App() {
                       LinkedIn Profile
                     </a>
                   )}
-
               </div>
 
               <div className="contact-chips">
-
                 {content.contact &&
                   content.contact.email && (
                     <span>
@@ -414,15 +387,12 @@ function App() {
                       {content.personal.location}
                     </span>
                   )}
-
               </div>
-
             </div>
 
             {/* PROFILE PHOTO */}
 
             <div className="portrait-wrap">
-
               {content.photo ? (
                 <div
                   className="portrait-placeholder"
@@ -440,21 +410,18 @@ function App() {
                       width: "100%",
                       height: "100%",
                       objectFit: "cover",
-                      borderRadius:
-                        "inherit",
+                      borderRadius: "inherit",
                     }}
                   />
                 </div>
               ) : (
                 <div className="portrait-placeholder">
-
                   <div className="portrait-icon">
                     {content.name
                       ? content.name
                           .split(" ")
                           .map(
-                            (word) =>
-                              word[0]
+                            (word) => word[0]
                           )
                           .join("")
                           .slice(0, 2)
@@ -469,23 +436,16 @@ function App() {
                   <small>
                     Add your photo here
                   </small>
-
                 </div>
               )}
-
             </div>
-
           </div>
         </section>
 
         {/* ABOUT */}
 
-        <section
-          id="about"
-          className="section"
-        >
+        <section id="about" className="section">
           <div className="container">
-
             <SectionTitle
               icon={<Users size={18} />}
               label="ABOUT ME"
@@ -493,25 +453,21 @@ function App() {
             />
 
             <div className="about-grid">
-
               <div>
-
                 <p>
                   {content.about ||
                     "About me information will appear here."}
                 </p>
 
                 <div className="mini-cards">
-
                   <Mini
-                    icon={
-                      <GraduationCap />
-                    }
+                    icon={<GraduationCap />}
                     title="Education"
                     value={
                       content.personal &&
                       content.personal.education
-                        ? content.personal.education
+                        ? content.personal
+                            .education
                         : "Education"
                     }
                   />
@@ -532,13 +488,10 @@ function App() {
                       "Professional"
                     }
                   />
-
                 </div>
-
               </div>
 
               <div className="info-card">
-
                 <h3>
                   Personal Information
                 </h3>
@@ -595,11 +548,8 @@ function App() {
                       : "Not provided"
                   }
                 />
-
               </div>
-
             </div>
-
           </div>
         </section>
 
@@ -610,27 +560,20 @@ function App() {
           className="section alt"
         >
           <div className="container">
-
             <SectionTitle
               icon={
-                <BriefcaseBusiness
-                  size={18}
-                />
+                <BriefcaseBusiness size={18} />
               }
               label="EXPERIENCE"
               title="Work Experience"
             />
 
             <div className="experience-grid">
-
               <div className="timeline-card">
-
                 <div className="timeline-dot" />
 
                 <div className="role-head">
-
                   <div>
-
                     <h3>
                       {firstExperience.role ||
                         content.title}
@@ -640,18 +583,15 @@ function App() {
                       {firstExperience.company ||
                         "Annotation / Data Operations"}
                     </p>
-
                   </div>
 
                   <span className="pill">
                     {firstExperience.period ||
                       "Present"}
                   </span>
-
                 </div>
 
                 <ul>
-
                   {(
                     firstExperience.description ||
                     ""
@@ -659,26 +599,18 @@ function App() {
                     .split("\n")
                     .filter(Boolean)
                     .map(
-                      (
-                        item,
-                        index
-                      ) => (
+                      (item, index) => (
                         <li key={index}>
                           {item}
                         </li>
                       )
                     )}
-
                 </ul>
-
               </div>
 
               <div className="stats-grid">
-
                 <Stat
-                  icon={
-                    <FolderKanban />
-                  }
+                  icon={<FolderKanban />}
                   value="18+"
                   label="Projects handled concurrently"
                 />
@@ -690,9 +622,7 @@ function App() {
                 />
 
                 <Stat
-                  icon={
-                    <BarChart3 />
-                  }
+                  icon={<BarChart3 />}
                   value="100%"
                   label="Focus on on-time delivery"
                 />
@@ -702,47 +632,33 @@ function App() {
                   value="10+"
                   label="Team members supported"
                 />
-
               </div>
-
             </div>
-
           </div>
         </section>
 
         {/* SKILLS */}
 
-        <section
-          id="skills"
-          className="section"
-        >
+        <section id="skills" className="section">
           <div className="container">
-
             <SectionTitle
               icon={
-                <CheckCircle2
-                  size={18}
-                />
+                <CheckCircle2 size={18} />
               }
               label="SKILLS"
               title="My Skills"
             />
 
             <div className="skill-list">
-
-              {(
-                content.skills || []
-              ).map((skill) => (
-                <span key={skill}>
-                  <CheckCircle2
-                    size={16}
-                  />
-                  {skill}
-                </span>
-              ))}
-
+              {(content.skills || []).map(
+                (skill, index) => (
+                  <span key={index}>
+                    <CheckCircle2 size={16} />
+                    {skill}
+                  </span>
+                )
+              )}
             </div>
-
           </div>
         </section>
 
@@ -753,22 +669,16 @@ function App() {
           className="section alt"
         >
           <div className="container">
-
             <SectionTitle
               icon={
-                <FolderKanban
-                  size={18}
-                />
+                <FolderKanban size={18} />
               }
               label="PROJECTS"
               title="Projects Worked On"
             />
 
             <div className="projects-grid">
-
-              {(
-                content.projects || []
-              ).map(
+              {(content.projects || []).map(
                 (project, index) => (
                   <article
                     className="project-card"
@@ -777,15 +687,13 @@ function App() {
                       index
                     }
                   >
-
                     <div className="project-icon">
-                      <FolderKanban
-                        size={20}
-                      />
+                      <FolderKanban size={20} />
                     </div>
 
                     <h3>
-                      {project.title}
+                      {project.title ||
+                        "Project"}
                     </h3>
 
                     <p>
@@ -798,13 +706,10 @@ function App() {
                       {project.tag ||
                         "Project"}
                     </span>
-
                   </article>
                 )
               )}
-
             </div>
-
           </div>
         </section>
 
@@ -815,38 +720,290 @@ function App() {
           className="section"
         >
           <div className="container">
-
             <SectionTitle
-              icon={
-                <Award size={18} />
-              }
+              icon={<Award size={18} />}
               label="ACHIEVEMENTS"
               title="Key Achievements"
             />
 
             <div className="achievement-grid">
-
-              {(
-                content.achievements ||
-                []
-              ).map(
-                (
-                  achievement,
-                  index
-                ) => {
-
+              {(content.achievements || []).map(
+                (achievement, index) => {
                   const title =
                     typeof achievement ===
                     "string"
                       ? achievement
-                      : achievement.title;
+                      : achievement &&
+                        achievement.title
+                      ? achievement.title
+                      : "Achievement";
 
                   const text =
                     typeof achievement ===
                     "string"
                       ? ""
-                      : achievement.description ||
-                        "";
+                      : achievement &&
+                        achievement.description
+                      ? achievement.description
+                      : "";
 
                   return (
-               
+                    <article
+                      className="achievement"
+                      key={index}
+                    >
+                      <div className="round-icon">
+                        <Award size={20} />
+                      </div>
+
+                      <div>
+                        <h3>
+                          {title}
+                        </h3>
+
+                        {text && (
+                          <p>
+                            {text}
+                          </p>
+                        )}
+                      </div>
+                    </article>
+                  );
+                }
+              )}
+            </div>
+          </div>
+        </section>
+
+        {/* CONTACT */}
+
+        <section
+          id="contact"
+          className="contact-section"
+        >
+          <div className="container contact-grid">
+            <div>
+              <div className="eyebrow">
+                LET'S CONNECT
+              </div>
+
+              <h2>
+                Get In Touch
+              </h2>
+
+              <p>
+                Open to discussing new
+                opportunities,
+                collaborations and
+                professional conversations
+                around annotation and
+                leadership.
+              </p>
+            </div>
+
+            <div className="contact-details">
+              {content.contact &&
+                content.contact.email && (
+                  <div>
+                    <Mail size={20} />
+
+                    <a
+                      href={
+                        "mailto:" +
+                        content.contact.email
+                      }
+                    >
+                      {content.contact.email}
+                    </a>
+                  </div>
+                )}
+
+              {content.contact &&
+                content.contact.phone && (
+                  <div>
+                    <Phone size={20} />
+
+                    <a
+                      href={
+                        "tel:" +
+                        content.contact.phone
+                      }
+                    >
+                      {content.contact.phone}
+                    </a>
+                  </div>
+                )}
+
+              {content.personal &&
+                content.personal.location && (
+                  <div>
+                    <MapPin size={20} />
+
+                    <span>
+                      {
+                        content.personal
+                          .location
+                      }
+                    </span>
+                  </div>
+                )}
+
+              {content.contact &&
+                content.contact.linkedin && (
+                  <div>
+                    <Linkedin size={20} />
+
+                    <a
+                      href={
+                        content.contact.linkedin
+                      }
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      LinkedIn Profile
+                    </a>
+                  </div>
+                )}
+            </div>
+
+            <form
+              className="message-form"
+              onSubmit={(event) =>
+                event.preventDefault()
+              }
+            >
+              <h3>
+                Send a Message
+              </h3>
+
+              <div className="form-row">
+                <input
+                  placeholder="Your Name"
+                />
+
+                <input
+                  type="email"
+                  placeholder="Your Email"
+                />
+              </div>
+
+              <textarea
+                placeholder="Your Message"
+                rows="5"
+              />
+
+              <button
+                className="btn primary"
+                type="submit"
+              >
+                <MessageCircle size={18} />
+                Send Message
+              </button>
+            </form>
+          </div>
+        </section>
+      </main>
+
+      {/* FOOTER */}
+
+      <footer className="footer">
+        <div className="container">
+          <span>
+            © 2026 {content.name}.
+            All Rights Reserved.
+          </span>
+
+          <span>
+            Built with purpose & passion.
+          </span>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+function SectionTitle({
+  icon,
+  label,
+  title,
+}) {
+  return (
+    <div className="section-title">
+      <div className="section-label">
+        {icon}
+        {label}
+      </div>
+
+      <h2>{title}</h2>
+    </div>
+  );
+}
+
+function Mini({
+  icon,
+  title,
+  value,
+}) {
+  return (
+    <div className="mini-card">
+      <span>{icon}</span>
+
+      <div>
+        <strong>{title}</strong>
+
+        <small>{value}</small>
+      </div>
+    </div>
+  );
+}
+
+function InfoRow({
+  icon,
+  label,
+  value,
+}) {
+  return (
+    <div className="info-row">
+      <span>{icon}</span>
+
+      <strong>{label}</strong>
+
+      <em>{value}</em>
+    </div>
+  );
+}
+
+function Stat({
+  icon,
+  value,
+  label,
+}) {
+  return (
+    <div className="stat">
+      <span>{icon}</span>
+
+      <strong>{value}</strong>
+
+      <p>{label}</p>
+    </div>
+  );
+}
+
+function Root() {
+  const isAdmin =
+    window.location.pathname === "/admin";
+
+  if (isAdmin) {
+    return <Admin />;
+  }
+
+  return <App />;
+}
+
+ReactDOM.createRoot(
+  document.getElementById("root")
+).render(
+  <React.StrictMode>
+    <Root />
+  </React.StrictMode>
+);
