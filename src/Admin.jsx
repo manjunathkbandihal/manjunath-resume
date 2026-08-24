@@ -465,36 +465,96 @@ export default function Admin() {
    */
 
   async function saveChanges() {
+  try {
     setSaving(true);
     setError("");
     setMessage("");
 
-    try {
-      /*
-       * Get fresh session
-       */
+    console.log("=== SAVE START ===");
 
-      const {
-        data: sessionData,
-        error: sessionError,
-      } =
-        await supabase.auth.getSession();
+    // Make sure the user is still logged in
+    const {
+      data: sessionData,
+      error: sessionError,
+    } = await supabase.auth.getSession();
 
-      if (sessionError) {
-        throw new Error(
-          "Session error: " +
-            sessionError.message
-        );
+    if (sessionError) {
+      throw new Error(
+        "Session check failed: " +
+          sessionError.message
+      );
+    }
+
+    if (!sessionData?.session) {
+      throw new Error(
+        "Your login session has expired. Please login again."
+      );
+    }
+
+    console.log(
+      "Authenticated user:",
+      sessionData.session.user?.email
+    );
+
+    // Save through PostgreSQL RPC
+    const {
+      data,
+      error,
+    } = await supabase.rpc(
+      "save_site_content",
+      {
+        p_content: content,
       }
+    );
 
-      const currentSession =
-        sessionData?.session;
+    console.log("RPC response:", data);
+    console.log("RPC error:", error);
 
-      if (!currentSession) {
-        throw new Error(
-          "Your admin session has expired. Please logout and login again."
-        );
-      }
+    if (error) {
+      throw new Error(
+        "Supabase RPC save failed: " +
+          error.message +
+          (error.details
+            ? " | Details: " +
+              error.details
+            : "") +
+          (error.hint
+            ? " | Hint: " +
+              error.hint
+            : "")
+      );
+    }
+
+    if (!data) {
+      throw new Error(
+        "Save completed but Supabase returned no data."
+      );
+    }
+
+    console.log("=== SAVE SUCCESS ===");
+
+    setMessage(
+      "Changes saved successfully! 🎉"
+    );
+
+    // Reload the saved content from Supabase
+    await loadContent();
+
+  } catch (err) {
+    console.error(
+      "=== SAVE ERROR ===",
+      err
+    );
+
+    setError(
+      err?.message ||
+        "Unable to save changes."
+    );
+
+  } finally {
+    setSaving(false);
+  }
+}
 
       /*
        * Make a clean copy of the content.
