@@ -21,73 +21,29 @@ import { supabase } from "./supabase";
 
 const emptyContent = {
   name: "Manjunath Bandihal",
-
   title: "Data Annotation Team Lead",
-
   photo: "",
-
-  about:
-    "Dedicated and result-driven professional with experience in data annotation, segmentation annotation, quality control, team coordination and project management.",
+  about: "",
 
   personal: {
-    location: "India",
-    education: "Diploma in Civil Engineering",
+    location: "",
+    education: "",
   },
 
   experience: [
     {
-      role: "Data Annotation Team Lead",
-      company: "Annotation / Data Operations",
-      period: "Present",
-      description:
-        "Led annotation teams across multiple projects.\nManaged daily targets, deadlines and overall performance.\nEnsured high-quality annotations through reviews and quality checks.\nConducted calibration sessions and training for team members.\nCoordinated with QA teams to improve quality and reduce escalations.",
+      role: "",
+      company: "",
+      period: "",
+      description: "",
     },
   ],
 
-  skills: [
-    "Data Annotation",
-    "Segmentation Annotation",
-    "Quality Control / QA",
-    "Team Management",
-    "Project Management",
-    "Calibration & Training",
-    "Excel / Data Management",
-    "Communication",
-  ],
+  skills: [],
 
-  projects: [
-    {
-      title: "PCI_Annotations",
-      description:
-        "Segmentation annotation for pavement, light poles, fencing, chimneys, electrical wires and other objects.",
-      tag: "Segmentation",
-    },
-    {
-      title: "hase2_july_data_1",
-      description:
-        "Checked model predictions, corrected wrong labels and added missing annotations where required.",
-      tag: "QA & Correction",
-    },
-    {
-      title: "Object Annotation Projects",
-      description:
-        "Worked on umbrellas, tents, electrical units and other street-level objects from frames.",
-      tag: "Object Annotation",
-    },
-    {
-      title: "Multiple Concurrent Projects",
-      description:
-        "Managed and delivered multiple projects simultaneously with focus on quality and deadlines.",
-      tag: "Team Management",
-    },
-  ],
+  projects: [],
 
-  achievements: [
-    "Best Performer",
-    "Quality Improvement",
-    "Team Leadership",
-    "Process Improvement",
-  ],
+  achievements: [],
 
   contact: {
     email: "",
@@ -96,17 +52,9 @@ const emptyContent = {
   },
 };
 
-function normalizeContent(saved) {
-  if (!saved || typeof saved !== "object") {
-    return {
-      ...emptyContent,
-      personal: { ...emptyContent.personal },
-      contact: { ...emptyContent.contact },
-      experience: [...emptyContent.experience],
-      skills: [...emptyContent.skills],
-      projects: [...emptyContent.projects],
-      achievements: [...emptyContent.achievements],
-    };
+function mergeContent(saved) {
+  if (!saved) {
+    return emptyContent;
   }
 
   return {
@@ -124,25 +72,23 @@ function normalizeContent(saved) {
     },
 
     experience:
-      Array.isArray(saved.experience) &&
-      saved.experience.length > 0
+      saved.experience?.length
         ? saved.experience
-        : [...emptyContent.experience],
+        : emptyContent.experience,
 
-    skills:
-      Array.isArray(saved.skills)
-        ? saved.skills
-        : [...emptyContent.skills],
+    skills: Array.isArray(saved.skills)
+      ? saved.skills
+      : [],
 
-    projects:
-      Array.isArray(saved.projects)
-        ? saved.projects
-        : [...emptyContent.projects],
+    projects: Array.isArray(saved.projects)
+      ? saved.projects
+      : [],
 
-    achievements:
-      Array.isArray(saved.achievements)
-        ? saved.achievements
-        : [...emptyContent.achievements],
+    achievements: Array.isArray(
+      saved.achievements
+    )
+      ? saved.achievements
+      : [],
   };
 }
 
@@ -150,11 +96,10 @@ export default function Admin() {
   const [session, setSession] = useState(null);
 
   const [email, setEmail] = useState("");
-
   const [password, setPassword] = useState("");
 
   const [content, setContent] =
-    useState(normalizeContent(null));
+    useState(emptyContent);
 
   const [checkingSession, setCheckingSession] =
     useState(true);
@@ -175,71 +120,25 @@ export default function Admin() {
     useState("");
 
   /*
-   * LOAD CONTENT
+   * --------------------------------------------------
+   * CHECK SESSION
+   * --------------------------------------------------
    */
-  async function loadContent() {
-    try {
-      setLoadingContent(true);
-      setError("");
-      setMessage("");
 
-      const {
-        data,
-        error: supabaseError,
-      } = await supabase
-        .from("site_content")
-        .select("id, content, updated_at")
-        .eq("id", "main")
-        .maybeSingle();
-
-      if (supabaseError) {
-        throw supabaseError;
-      }
-
-      if (data?.content) {
-        setContent(
-          normalizeContent(data.content)
-        );
-      } else {
-        setContent(
-          normalizeContent(null)
-        );
-      }
-    } catch (err) {
-      console.error(
-        "LOAD CONTENT ERROR:",
-        err
-      );
-
-      setError(
-        `Unable to load website content. ${
-          err?.message || "Unknown error"
-        }`
-      );
-    } finally {
-      setLoadingContent(false);
-    }
-  }
-
-  /*
-   * CHECK EXISTING SESSION
-   */
   useEffect(() => {
     let mounted = true;
 
-    async function initialize() {
+    async function checkSession() {
       try {
-        setCheckingSession(true);
         setError("");
 
         const {
           data,
-          error: sessionError,
-        } =
-          await supabase.auth.getSession();
+          error,
+        } = await supabase.auth.getSession();
 
-        if (sessionError) {
-          throw sessionError;
+        if (error) {
+          throw error;
         }
 
         if (!mounted) {
@@ -253,7 +152,7 @@ export default function Admin() {
         }
       } catch (err) {
         console.error(
-          "SESSION ERROR:",
+          "Session error:",
           err
         );
 
@@ -270,23 +169,21 @@ export default function Admin() {
       }
     }
 
-    initialize();
+    checkSession();
 
     const {
-      data: authListener,
+      data: listener,
     } =
       supabase.auth.onAuthStateChange(
-        (event, newSession) => {
+        async (_event, newSession) => {
           if (!mounted) {
             return;
           }
 
           setSession(newSession);
 
-          if (event === "SIGNED_OUT") {
-            setContent(
-              normalizeContent(null)
-            );
+          if (newSession) {
+            await loadContent();
           }
         }
       );
@@ -294,71 +191,109 @@ export default function Admin() {
     return () => {
       mounted = false;
 
-      authListener?.subscription?.unsubscribe();
+      listener?.subscription?.unsubscribe();
     };
   }, []);
 
   /*
-   * LOGIN
+   * --------------------------------------------------
+   * LOAD CONTENT
+   * --------------------------------------------------
    */
-  async function handleLogin(event) {
-    event.preventDefault();
+
+  async function loadContent() {
+    try {
+      setLoadingContent(true);
+      setError("");
+      setMessage("");
+
+      const {
+        data,
+        error,
+      } = await supabase
+        .from("site_content")
+        .select("content")
+        .eq("id", "main")
+        .maybeSingle();
+
+      if (error) {
+        throw error;
+      }
+
+      if (data?.content) {
+        setContent(
+          mergeContent(data.content)
+        );
+      }
+    } catch (err) {
+      console.error(
+        "Load content error:",
+        err
+      );
+
+      setError(
+        "Unable to load website content: " +
+          (err?.message || String(err))
+      );
+    } finally {
+      setLoadingContent(false);
+    }
+  }
+
+  /*
+   * --------------------------------------------------
+   * LOGIN
+   * --------------------------------------------------
+   */
+
+  async function handleLogin(e) {
+    e.preventDefault();
 
     setError("");
     setMessage("");
     setLoggingIn(true);
 
     try {
-      const cleanEmail =
-        email.trim();
-
-      if (!cleanEmail) {
+      if (
+        !email.trim() ||
+        !password
+      ) {
         throw new Error(
-          "Please enter your email address."
-        );
-      }
-
-      if (!password) {
-        throw new Error(
-          "Please enter your password."
+          "Please enter your email and password."
         );
       }
 
       const {
         data,
-        error: loginError,
+        error,
       } =
-        await supabase.auth.signInWithPassword(
-          {
-            email: cleanEmail,
-            password,
-          }
-        );
+        await supabase.auth.signInWithPassword({
+          email: email.trim(),
+          password,
+        });
 
-      if (loginError) {
-        throw loginError;
+      if (error) {
+        throw error;
       }
 
       if (!data?.session) {
         throw new Error(
-          "Login succeeded, but Supabase did not return a session."
+          "Login succeeded but no session was created."
         );
       }
 
       setSession(data.session);
 
-      setPassword("");
-
       await loadContent();
     } catch (err) {
       console.error(
-        "LOGIN ERROR:",
+        "Login error:",
         err
       );
 
       setError(
         err?.message ||
-          "Login failed. Please check your email and password."
+          "Login failed."
       );
     } finally {
       setLoggingIn(false);
@@ -366,39 +301,34 @@ export default function Admin() {
   }
 
   /*
+   * --------------------------------------------------
    * LOGOUT
+   * --------------------------------------------------
    */
+
   async function handleLogout() {
     try {
       setError("");
       setMessage("");
 
-      const {
-        error: logoutError,
-      } = await supabase.auth.signOut();
-
-      if (logoutError) {
-        throw logoutError;
-      }
+      await supabase.auth.signOut();
 
       setSession(null);
       setPassword("");
     } catch (err) {
       console.error(
-        "LOGOUT ERROR:",
+        "Logout error:",
         err
-      );
-
-      setError(
-        err?.message ||
-          "Unable to logout."
       );
     }
   }
 
   /*
-   * UPDATE BASIC FIELD
+   * --------------------------------------------------
+   * UPDATE HELPERS
+   * --------------------------------------------------
    */
+
   function updateField(field, value) {
     setContent((current) => ({
       ...current,
@@ -406,9 +336,6 @@ export default function Admin() {
     }));
   }
 
-  /*
-   * UPDATE PERSONAL
-   */
   function updatePersonal(
     field,
     value
@@ -423,9 +350,6 @@ export default function Admin() {
     }));
   }
 
-  /*
-   * UPDATE CONTACT
-   */
   function updateContact(
     field,
     value
@@ -440,9 +364,6 @@ export default function Admin() {
     }));
   }
 
-  /*
-   * UPDATE EXPERIENCE
-   */
   function updateExperience(
     field,
     value
@@ -464,25 +385,42 @@ export default function Admin() {
     });
   }
 
-  /*
-   * UPDATE SKILLS
-   */
   function updateSkills(value) {
     const skills = value
       .split(",")
-      .map((item) => item.trim())
+      .map((item) =>
+        item.trim()
+      )
       .filter(Boolean);
 
-    updateField("skills", skills);
+    updateField(
+      "skills",
+      skills
+    );
   }
 
-  /*
-   * UPDATE PROJECTS
-   */
+  function updateAchievements(
+    value
+  ) {
+    const achievements = value
+      .split("\n")
+      .map((item) =>
+        item.trim()
+      )
+      .filter(Boolean);
+
+    updateField(
+      "achievements",
+      achievements
+    );
+  }
+
   function updateProjects(value) {
     const projects = value
       .split("\n")
-      .map((line) => line.trim())
+      .map((line) =>
+        line.trim()
+      )
       .filter(Boolean)
       .map((line) => {
         const separator =
@@ -492,7 +430,6 @@ export default function Admin() {
           return {
             title: line,
             description: "",
-            tag: "Project",
           };
         }
 
@@ -504,8 +441,6 @@ export default function Admin() {
           description: line
             .slice(separator + 1)
             .trim(),
-
-          tag: "Project",
         };
       });
 
@@ -516,91 +451,212 @@ export default function Admin() {
   }
 
   /*
-   * UPDATE ACHIEVEMENTS
-   */
-  function updateAchievements(
-    value
-  ) {
-    const achievements = value
-      .split("\n")
-      .map((item) => item.trim())
-      .filter(Boolean);
-
-    updateField(
-      "achievements",
-      achievements
-    );
-  }
-
-  /*
+   * --------------------------------------------------
    * SAVE
+   * --------------------------------------------------
+   *
+   * IMPORTANT:
+   * We first get the current Supabase session.
+   * Then we perform the UPDATE through the
+   * Supabase client.
+   *
+   * We also verify that the row was actually
+   * updated.
    */
-  async function saveChanges() {
-    if (!session) {
-      setError(
-        "You must be logged in to save changes."
-      );
 
-      return;
-    }
+  async function saveChanges() {
+    setSaving(true);
+    setError("");
+    setMessage("");
 
     try {
-      setSaving(true);
-      setError("");
-      setMessage("");
+      /*
+       * Get fresh session
+       */
 
-      const updatedContent =
-        normalizeContent(content);
+      const {
+        data: sessionData,
+        error: sessionError,
+      } =
+        await supabase.auth.getSession();
+
+      if (sessionError) {
+        throw new Error(
+          "Session error: " +
+            sessionError.message
+        );
+      }
+
+      const currentSession =
+        sessionData?.session;
+
+      if (!currentSession) {
+        throw new Error(
+          "Your admin session has expired. Please logout and login again."
+        );
+      }
+
+      /*
+       * Make a clean copy of the content.
+       */
+
+      const cleanContent = {
+        name:
+          content.name || "",
+
+        title:
+          content.title || "",
+
+        photo:
+          content.photo || "",
+
+        about:
+          content.about || "",
+
+        personal: {
+          location:
+            content.personal
+              ?.location || "",
+
+          education:
+            content.personal
+              ?.education || "",
+        },
+
+        experience:
+          Array.isArray(
+            content.experience
+          )
+            ? content.experience
+            : [],
+
+        skills:
+          Array.isArray(
+            content.skills
+          )
+            ? content.skills
+            : [],
+
+        projects:
+          Array.isArray(
+            content.projects
+          )
+            ? content.projects
+            : [],
+
+        achievements:
+          Array.isArray(
+            content.achievements
+          )
+            ? content.achievements
+            : [],
+
+        contact: {
+          email:
+            content.contact
+              ?.email || "",
+
+          phone:
+            content.contact
+              ?.phone || "",
+
+          linkedin:
+            content.contact
+              ?.linkedin || "",
+        },
+      };
+
+      console.log(
+        "Saving content:",
+        cleanContent
+      );
+
+      /*
+       * UPDATE
+       */
 
       const {
         data,
-        error: updateError,
+        error,
       } = await supabase
         .from("site_content")
         .update({
-          content: updatedContent,
+          content:
+            cleanContent,
 
           updated_at:
             new Date().toISOString(),
         })
         .eq("id", "main")
         .select("id, updated_at")
-        .maybeSingle();
+        .single();
 
-      if (updateError) {
-        throw updateError;
-      }
+      /*
+       * Supabase returned an actual error.
+       */
 
-      if (!data) {
+      if (error) {
+        console.error(
+          "Supabase UPDATE error:",
+          error
+        );
+
         throw new Error(
-          "Nothing was updated. The site_content row with id 'main' was not found or you do not have permission to update it."
+          "Supabase UPDATE failed: " +
+            (error.message ||
+              "Unknown error") +
+            (error.code
+              ? " | Code: " +
+                error.code
+              : "") +
+            (error.details
+              ? " | Details: " +
+                error.details
+              : "") +
+            (error.hint
+              ? " | Hint: " +
+                error.hint
+              : "")
         );
       }
 
-      setContent(updatedContent);
+      /*
+       * No row returned means the UPDATE
+       * did not affect the row.
+       */
+
+      if (!data) {
+        throw new Error(
+          "Save completed but Supabase did not return the updated row. Check the UPDATE policy for site_content."
+        );
+      }
+
+      console.log(
+        "Save successful:",
+        data
+      );
 
       setMessage(
         "Changes saved successfully! 🎉"
       );
+
+      /*
+       * Reload from database so we know
+       * the public website will receive
+       * the saved version.
+       */
+
+      await loadContent();
     } catch (err) {
       console.error(
-        "SAVE ERROR:",
+        "SAVE FAILED:",
         err
       );
 
-      let detailedMessage =
-        err?.message ||
-        "Unable to save changes.";
-
-      if (
-        err?.code === "42501"
-      ) {
-        detailedMessage =
-          "Permission denied. Your logged-in user does not have permission to update site_content.";
-      }
-
       setError(
-        `Save failed: ${detailedMessage}`
+        "Save failed: " +
+          (err?.message ||
+            String(err))
       );
     } finally {
       setSaving(false);
@@ -608,8 +664,11 @@ export default function Admin() {
   }
 
   /*
-   * LOADING SESSION
+   * --------------------------------------------------
+   * LOADING
+   * --------------------------------------------------
    */
+
   if (checkingSession) {
     return (
       <div className="admin-page">
@@ -634,8 +693,11 @@ export default function Admin() {
   }
 
   /*
+   * --------------------------------------------------
    * LOGIN PAGE
+   * --------------------------------------------------
    */
+
   if (!session) {
     return (
       <div className="admin-page">
@@ -672,13 +734,12 @@ export default function Admin() {
               type="email"
               placeholder="Enter admin email"
               value={email}
-              onChange={(event) =>
+              onChange={(e) =>
                 setEmail(
-                  event.target.value
+                  e.target.value
                 )
               }
               autoComplete="email"
-              disabled={loggingIn}
             />
 
             <label>
@@ -689,13 +750,12 @@ export default function Admin() {
               type="password"
               placeholder="Enter password"
               value={password}
-              onChange={(event) =>
+              onChange={(e) =>
                 setPassword(
-                  event.target.value
+                  e.target.value
                 )
               }
               autoComplete="current-password"
-              disabled={loggingIn}
             />
 
             {error && (
@@ -709,11 +769,13 @@ export default function Admin() {
               className="admin-login-btn"
               disabled={loggingIn}
             >
+
               <LogIn size={18} />
 
               {loggingIn
                 ? "Logging in..."
                 : "Login"}
+
             </button>
 
           </form>
@@ -721,7 +783,8 @@ export default function Admin() {
           <button
             className="back-home"
             onClick={() => {
-              window.location.href = "/";
+              window.location.href =
+                "/";
             }}
           >
             ← Back to Website
@@ -734,12 +797,13 @@ export default function Admin() {
   }
 
   /*
+   * --------------------------------------------------
    * ADMIN EDITOR
+   * --------------------------------------------------
    */
+
   return (
     <div className="editor-page">
-
-      {/* HEADER */}
 
       <header className="editor-header">
 
@@ -754,7 +818,6 @@ export default function Admin() {
           </h1>
 
           <p>
-            Logged in as:{" "}
             {session.user?.email}
           </p>
 
@@ -764,15 +827,16 @@ export default function Admin() {
           className="logout-btn"
           onClick={handleLogout}
         >
+
           <LogOut size={18} />
+
           Logout
+
         </button>
 
       </header>
 
       <main className="editor-container">
-
-        {/* LOADING */}
 
         {loadingContent && (
           <div className="admin-info">
@@ -780,15 +844,11 @@ export default function Admin() {
           </div>
         )}
 
-        {/* ERROR */}
-
         {error && (
           <div className="admin-error">
             {error}
           </div>
         )}
-
-        {/* SUCCESS */}
 
         {message && (
           <div className="admin-success">
@@ -816,24 +876,10 @@ export default function Admin() {
               <img
                 src={content.photo}
                 alt="Profile"
-                onError={(event) => {
-                  event.currentTarget.style.display =
-                    "none";
-                }}
               />
             ) : (
               <div className="profile-placeholder">
-                {content.name
-                  ? content.name
-                      .split(" ")
-                      .map(
-                        (word) =>
-                          word[0]
-                      )
-                      .join("")
-                      .slice(0, 2)
-                      .toUpperCase()
-                  : "MB"}
+                MB
               </div>
             )}
 
@@ -846,23 +892,20 @@ export default function Admin() {
 
           <input
             type="url"
-            placeholder="Paste your public profile photo URL"
+            placeholder="Paste your profile photo URL"
             value={
               content.photo || ""
             }
-            onChange={(event) =>
+            onChange={(e) =>
               updateField(
                 "photo",
-                event.target.value
+                e.target.value
               )
             }
           />
 
           <p className="field-help">
             Paste a public image URL.
-            The image will appear on
-            your public website after
-            saving.
           </p>
 
           <label>
@@ -873,10 +916,10 @@ export default function Admin() {
             value={
               content.name || ""
             }
-            onChange={(event) =>
+            onChange={(e) =>
               updateField(
                 "name",
-                event.target.value
+                e.target.value
               )
             }
           />
@@ -889,10 +932,10 @@ export default function Admin() {
             value={
               content.title || ""
             }
-            onChange={(event) =>
+            onChange={(e) =>
               updateField(
                 "title",
-                event.target.value
+                e.target.value
               )
             }
           />
@@ -906,10 +949,10 @@ export default function Admin() {
             value={
               content.about || ""
             }
-            onChange={(event) =>
+            onChange={(e) =>
               updateField(
                 "about",
-                event.target.value
+                e.target.value
               )
             }
           />
@@ -941,10 +984,10 @@ export default function Admin() {
               content.personal
                 ?.location || ""
             }
-            onChange={(event) =>
+            onChange={(e) =>
               updatePersonal(
                 "location",
-                event.target.value
+                e.target.value
               )
             }
           />
@@ -960,10 +1003,10 @@ export default function Admin() {
               content.personal
                 ?.education || ""
             }
-            onChange={(event) =>
+            onChange={(e) =>
               updatePersonal(
                 "education",
-                event.target.value
+                e.target.value
               )
             }
           />
@@ -996,10 +1039,10 @@ export default function Admin() {
               content.contact
                 ?.email || ""
             }
-            onChange={(event) =>
+            onChange={(e) =>
               updateContact(
                 "email",
-                event.target.value
+                e.target.value
               )
             }
           />
@@ -1016,10 +1059,10 @@ export default function Admin() {
               content.contact
                 ?.phone || ""
             }
-            onChange={(event) =>
+            onChange={(e) =>
               updateContact(
                 "phone",
-                event.target.value
+                e.target.value
               )
             }
           />
@@ -1036,10 +1079,10 @@ export default function Admin() {
               content.contact
                 ?.linkedin || ""
             }
-            onChange={(event) =>
+            onChange={(e) =>
               updateContact(
                 "linkedin",
-                event.target.value
+                e.target.value
               )
             }
           />
@@ -1069,10 +1112,10 @@ export default function Admin() {
               content.experience?.[0]
                 ?.role || ""
             }
-            onChange={(event) =>
+            onChange={(e) =>
               updateExperience(
                 "role",
-                event.target.value
+                e.target.value
               )
             }
           />
@@ -1086,10 +1129,10 @@ export default function Admin() {
               content.experience?.[0]
                 ?.company || ""
             }
-            onChange={(event) =>
+            onChange={(e) =>
               updateExperience(
                 "company",
-                event.target.value
+                e.target.value
               )
             }
           />
@@ -1104,10 +1147,10 @@ export default function Admin() {
               content.experience?.[0]
                 ?.period || ""
             }
-            onChange={(event) =>
+            onChange={(e) =>
               updateExperience(
                 "period",
-                event.target.value
+                e.target.value
               )
             }
           />
@@ -1122,10 +1165,10 @@ export default function Admin() {
               content.experience?.[0]
                 ?.description || ""
             }
-            onChange={(event) =>
+            onChange={(e) =>
               updateExperience(
                 "description",
-                event.target.value
+                e.target.value
               )
             }
           />
@@ -1150,11 +1193,6 @@ export default function Admin() {
             Skills
           </label>
 
-          <p className="field-help">
-            Separate each skill with a
-            comma.
-          </p>
-
           <textarea
             rows="5"
             placeholder="Data Annotation, QA, Team Management, Segmentation..."
@@ -1163,9 +1201,9 @@ export default function Admin() {
                 content.skills || []
               ).join(", ")
             }
-            onChange={(event) =>
+            onChange={(e) =>
               updateSkills(
-                event.target.value
+                e.target.value
               )
             }
           />
@@ -1178,7 +1216,9 @@ export default function Admin() {
 
           <div className="editor-card-title">
 
-            <FolderKanban size={20} />
+            <FolderKanban
+              size={20}
+            />
 
             <h2>
               Projects
@@ -1192,29 +1232,28 @@ export default function Admin() {
 
           <p className="field-help">
             One project per line.
-            Use this format:
-            <br />
-            <strong>
-              Project Name: Description
-            </strong>
+            Format:
+            Project Name: Description
           </p>
 
           <textarea
-            rows="10"
-            value={(
-              content.projects || []
-            )
-              .map(
-                (project) =>
-                  `${project.title || ""}: ${
-                    project.description ||
-                    ""
-                  }`
+            rows="8"
+            value={
+              (
+                content.projects || []
               )
-              .join("\n")}
-            onChange={(event) =>
+                .map(
+                  (project) =>
+                    `${project.title || ""}: ${
+                      project.description ||
+                      ""
+                    }`
+                )
+                .join("\n")
+            }
+            onChange={(e) =>
               updateProjects(
-                event.target.value
+                e.target.value
               )
             }
           />
@@ -1245,13 +1284,15 @@ export default function Admin() {
 
           <textarea
             rows="7"
-            value={(
-              content.achievements ||
-              []
-            ).join("\n")}
-            onChange={(event) =>
+            value={
+              (
+                content.achievements ||
+                []
+              ).join("\n")
+            }
+            onChange={(e) =>
               updateAchievements(
-                event.target.value
+                e.target.value
               )
             }
           />
