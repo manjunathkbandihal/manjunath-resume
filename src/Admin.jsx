@@ -52,8 +52,8 @@ const emptyContent = {
   },
 };
 
-function mergeContent(saved) {
-  if (!saved) {
+function normalizeContent(saved) {
+  if (!saved || typeof saved !== "object") {
     return emptyContent;
   }
 
@@ -72,7 +72,8 @@ function mergeContent(saved) {
     },
 
     experience:
-      saved.experience && saved.experience.length
+      Array.isArray(saved.experience) &&
+      saved.experience.length > 0
         ? saved.experience
         : emptyContent.experience,
 
@@ -118,97 +119,22 @@ export default function Admin() {
     useState("");
 
   /*
-   * LOAD WEBSITE CONTENT
+   * --------------------------------------------------
+   * LOAD SESSION
+   * --------------------------------------------------
    */
-  async function loadContent() {
-    try {
-      setLoadingContent(true);
-      setError("");
 
-      console.log(
-        "Loading content from Supabase..."
-      );
-
-      const {
-        data,
-        error,
-      } = await supabase
-        .from("site_content")
-        .select("content")
-        .eq("id", "main")
-        .maybeSingle();
-
-      if (error) {
-        console.error(
-          "Supabase load error:",
-          error
-        );
-
-        throw new Error(
-          `Supabase error: ${
-            error.message || "Unable to load content"
-          } | Code: ${
-            error.code || "N/A"
-          } | Details: ${
-            error.details || "N/A"
-          } | Hint: ${
-            error.hint || "N/A"
-          }`
-        );
-      }
-
-      console.log(
-        "Website content loaded:",
-        data
-      );
-
-      if (data?.content) {
-        setContent(
-          mergeContent(data.content)
-        );
-      }
-    } catch (err) {
-      console.error(
-        "FULL LOAD ERROR:",
-        err
-      );
-
-      if (
-        err?.message ===
-          "Failed to fetch" ||
-        err?.name === "TypeError"
-      ) {
-        setError(
-          "Unable to connect to Supabase. Please check your Supabase URL, publishable key, and Data API settings."
-        );
-      } else {
-        setError(
-          err?.message ||
-            "Unable to load website content."
-        );
-      }
-    } finally {
-      setLoadingContent(false);
-    }
-  }
-
-  /*
-   * CHECK LOGIN SESSION
-   */
   useEffect(() => {
     let mounted = true;
 
-    async function checkSession() {
+    async function initialize() {
       try {
-        console.log(
-          "Checking Supabase session..."
-        );
+        setError("");
 
         const {
           data,
           error,
-        } =
-          await supabase.auth.getSession();
+        } = await supabase.auth.getSession();
 
         if (error) {
           throw error;
@@ -217,11 +143,6 @@ export default function Admin() {
         if (!mounted) {
           return;
         }
-
-        console.log(
-          "Current session:",
-          data?.session
-        );
 
         if (data?.session) {
           setSession(data.session);
@@ -236,8 +157,10 @@ export default function Admin() {
 
         if (mounted) {
           setError(
-            err?.message ||
+            getErrorMessage(
+              err,
               "Unable to check login session."
+            )
           );
         }
       } finally {
@@ -247,22 +170,16 @@ export default function Admin() {
       }
     }
 
-    checkSession();
+    initialize();
 
     const {
-      data: listener,
+      data: authListener,
     } =
       supabase.auth.onAuthStateChange(
         async (_event, newSession) => {
           if (!mounted) {
             return;
           }
-
-          console.log(
-            "Auth state changed:",
-            _event,
-            newSession
-          );
 
           setSession(newSession);
 
@@ -275,13 +192,106 @@ export default function Admin() {
     return () => {
       mounted = false;
 
-      listener?.subscription?.unsubscribe();
+      authListener?.subscription?.unsubscribe();
     };
   }, []);
 
   /*
-   * LOGIN
+   * --------------------------------------------------
+   * ERROR MESSAGE
+   * --------------------------------------------------
    */
+
+  function getErrorMessage(
+    err,
+    fallback
+  ) {
+    if (
+      err?.message ===
+      "TypeError: Failed to fetch"
+    ) {
+      return (
+        "Unable to connect to Supabase. " +
+        "Please check your Supabase URL, publishable key, " +
+        "and Vercel Environment Variables."
+      );
+    }
+
+    if (
+      err?.name === "TypeError" &&
+      String(err?.message || "")
+        .toLowerCase()
+        .includes("failed to fetch")
+    ) {
+      return (
+        "Unable to connect to Supabase. " +
+        "Please check your Supabase URL and publishable key."
+      );
+    }
+
+    return (
+      err?.message ||
+      fallback
+    );
+  }
+
+  /*
+   * --------------------------------------------------
+   * LOAD WEBSITE CONTENT
+   * --------------------------------------------------
+   */
+
+  async function loadContent() {
+    try {
+      setLoadingContent(true);
+      setError("");
+      setMessage("");
+
+      const {
+        data,
+        error,
+      } = await supabase
+        .from("site_content")
+        .select("content")
+        .eq("id", "main")
+        .maybeSingle();
+
+      if (error) {
+        throw error;
+      }
+
+      if (!data) {
+        throw new Error(
+          'The "main" row was not found in site_content.'
+        );
+      }
+
+      setContent(
+        normalizeContent(data.content)
+      );
+    } catch (err) {
+      console.error(
+        "Load content error:",
+        err
+      );
+
+      setError(
+        getErrorMessage(
+          err,
+          "Unable to load website content."
+        )
+      );
+    } finally {
+      setLoadingContent(false);
+    }
+  }
+
+  /*
+   * --------------------------------------------------
+   * LOGIN
+   * --------------------------------------------------
+   */
+
   async function handleLogin(e) {
     e.preventDefault();
 
@@ -290,7 +300,10 @@ export default function Admin() {
     setLoggingIn(true);
 
     try {
-      if (!email.trim()) {
+      const cleanEmail =
+        email.trim();
+
+      if (!cleanEmail) {
         throw new Error(
           "Please enter your email."
         );
@@ -302,31 +315,17 @@ export default function Admin() {
         );
       }
 
-      console.log(
-        "Attempting Supabase login..."
-      );
-
       const {
         data,
         error,
       } =
         await supabase.auth.signInWithPassword({
-          email: email.trim(),
+          email: cleanEmail,
           password,
         });
 
       if (error) {
-        console.error(
-          "Login error:",
-          error
-        );
-
-        throw new Error(
-          `Login error: ${
-            error.message ||
-            "Login failed"
-          }`
-        );
+        throw error;
       }
 
       if (!data?.session) {
@@ -335,46 +334,37 @@ export default function Admin() {
         );
       }
 
-      console.log(
-        "Login successful."
-      );
-
       setSession(data.session);
 
       await loadContent();
     } catch (err) {
       console.error(
-        "FULL LOGIN ERROR:",
+        "Login error:",
         err
       );
 
-      if (
-        err?.message ===
-          "Failed to fetch" ||
-        err?.name === "TypeError"
-      ) {
-        setError(
-          "Unable to connect to Supabase. Please check your Supabase configuration."
-        );
-      } else {
-        setError(
-          err?.message ||
-            "Login failed."
-        );
-      }
+      setError(
+        getErrorMessage(
+          err,
+          "Login failed."
+        )
+      );
     } finally {
       setLoggingIn(false);
     }
   }
 
   /*
+   * --------------------------------------------------
    * LOGOUT
+   * --------------------------------------------------
    */
-  async function handleLogout() {
-    setError("");
-    setMessage("");
 
+  async function handleLogout() {
     try {
+      setError("");
+      setMessage("");
+
       const {
         error,
       } =
@@ -393,25 +383,30 @@ export default function Admin() {
       );
 
       setError(
-        err?.message ||
+        getErrorMessage(
+          err,
           "Unable to logout."
+        )
       );
     }
   }
 
   /*
-   * UPDATE MAIN FIELD
+   * --------------------------------------------------
+   * PROFILE UPDATE HELPERS
+   * --------------------------------------------------
    */
-  function updateField(field, value) {
+
+  function updateField(
+    field,
+    value
+  ) {
     setContent((current) => ({
       ...current,
       [field]: value,
     }));
   }
 
-  /*
-   * UPDATE PERSONAL INFORMATION
-   */
   function updatePersonal(
     field,
     value
@@ -420,15 +415,12 @@ export default function Admin() {
       ...current,
 
       personal: {
-        ...current.personal,
+        ...(current.personal || {}),
         [field]: value,
       },
     }));
   }
 
-  /*
-   * UPDATE CONTACT INFORMATION
-   */
   function updateContact(
     field,
     value
@@ -437,15 +429,12 @@ export default function Admin() {
       ...current,
 
       contact: {
-        ...current.contact,
+        ...(current.contact || {}),
         [field]: value,
       },
     }));
   }
 
-  /*
-   * UPDATE EXPERIENCE
-   */
   function updateExperience(
     field,
     value
@@ -468,12 +457,17 @@ export default function Admin() {
   }
 
   /*
-   * UPDATE SKILLS
+   * --------------------------------------------------
+   * SKILLS
+   * --------------------------------------------------
    */
+
   function updateSkills(value) {
     const skills = value
       .split(",")
-      .map((item) => item.trim())
+      .map((item) =>
+        item.trim()
+      )
       .filter(Boolean);
 
     updateField(
@@ -483,14 +477,19 @@ export default function Admin() {
   }
 
   /*
-   * UPDATE ACHIEVEMENTS
+   * --------------------------------------------------
+   * ACHIEVEMENTS
+   * --------------------------------------------------
    */
+
   function updateAchievements(
     value
   ) {
     const achievements = value
       .split("\n")
-      .map((item) => item.trim())
+      .map((item) =>
+        item.trim()
+      )
       .filter(Boolean);
 
     updateField(
@@ -500,12 +499,17 @@ export default function Admin() {
   }
 
   /*
-   * UPDATE PROJECTS
+   * --------------------------------------------------
+   * PROJECTS
+   * --------------------------------------------------
    */
+
   function updateProjects(value) {
     const projects = value
       .split("\n")
-      .map((line) => line.trim())
+      .map((line) =>
+        line.trim()
+      )
       .filter(Boolean)
       .map((line) => {
         const separator =
@@ -515,6 +519,7 @@ export default function Admin() {
           return {
             title: line,
             description: "",
+            tag: "Project",
           };
         }
 
@@ -526,6 +531,8 @@ export default function Admin() {
           description: line
             .slice(separator + 1)
             .trim(),
+
+          tag: "Project",
         };
       });
 
@@ -536,10 +543,21 @@ export default function Admin() {
   }
 
   /*
-   * SAVE CHANGES
+   * --------------------------------------------------
+   * SAVE
+   *
+   * IMPORTANT:
+   * We UPDATE only the existing "main" row.
+   * We do not insert or upsert.
+   * --------------------------------------------------
    */
+
   async function saveChanges() {
-    if (saving) {
+    if (!session) {
+      setError(
+        "You are not logged in."
+      );
+
       return;
     }
 
@@ -548,46 +566,53 @@ export default function Admin() {
       setError("");
       setMessage("");
 
-      console.log(
-        "Starting save..."
-      );
-
       /*
-       * Check current login session
+       * Make sure the session is still valid.
        */
+
       const {
         data: sessionData,
         error: sessionError,
       } =
         await supabase.auth.getSession();
 
-      console.log(
-        "Session before save:",
-        sessionData
-      );
-
       if (sessionError) {
         throw sessionError;
       }
 
       if (!sessionData?.session) {
+        setSession(null);
+
         throw new Error(
           "Your login session has expired. Please login again."
         );
       }
 
       /*
-       * Make sure the content is valid
+       * Clean the data before sending it.
        */
-      const contentToSave = {
-        ...content,
+
+      const cleanContent = {
+        name:
+          content.name || "",
+
+        title:
+          content.title || "",
+
+        photo:
+          content.photo || "",
+
+        about:
+          content.about || "",
 
         personal: {
-          ...(content.personal || {}),
-        },
+          location:
+            content.personal?.location ||
+            "",
 
-        contact: {
-          ...(content.contact || {}),
+          education:
+            content.personal?.education ||
+            "",
         },
 
         experience:
@@ -617,16 +642,26 @@ export default function Admin() {
           )
             ? content.achievements
             : [],
+
+        contact: {
+          email:
+            content.contact?.email ||
+            "",
+
+          phone:
+            content.contact?.phone ||
+            "",
+
+          linkedin:
+            content.contact?.linkedin ||
+            "",
+        },
       };
 
-      console.log(
-        "Content being saved:",
-        contentToSave
-      );
-
       /*
-       * UPDATE SUPABASE
+       * Update the existing main record.
        */
+
       const {
         data,
         error,
@@ -634,117 +669,61 @@ export default function Admin() {
         await supabase
           .from("site_content")
           .update({
-            content: contentToSave,
+            content: cleanContent,
+
             updated_at:
               new Date().toISOString(),
           })
           .eq("id", "main")
-          .select("id, content, updated_at");
-
-      console.log(
-        "Supabase save response:",
-        data
-      );
-
-      console.log(
-        "Supabase save error:",
-        error
-      );
+          .select("id, updated_at")
+          .single();
 
       if (error) {
+        throw error;
+      }
+
+      if (!data) {
         throw new Error(
-          `Supabase error: ${
-            error.message ||
-            "Unable to save changes"
-          } | Code: ${
-            error.code || "N/A"
-          } | Details: ${
-            error.details || "N/A"
-          } | Hint: ${
-            error.hint || "N/A"
-          }`
+          'Unable to save. The "main" site_content row was not found.'
         );
       }
 
       /*
-       * If no row was updated
+       * Keep local React state synchronized.
        */
-      if (
-        !data ||
-        data.length === 0
-      ) {
-        throw new Error(
-          "No data was updated. Please make sure the site_content row with id 'main' exists and your UPDATE policy allows authenticated users."
-        );
-      }
 
-      /*
-       * Update local state with
-       * returned Supabase data
-       */
-      if (data[0]?.content) {
-        setContent(
-          mergeContent(
-            data[0].content
-          )
-        );
-      }
+      setContent(
+        normalizeContent(
+          cleanContent
+        )
+      );
 
       setMessage(
         "Changes saved successfully! 🎉"
       );
-
-      console.log(
-        "SAVE SUCCESSFUL"
-      );
     } catch (err) {
       console.error(
-        "FULL SAVE ERROR:",
+        "SAVE ERROR:",
         err
       );
 
-      console.error(
-        "Error name:",
-        err?.name
-      );
-
-      console.error(
-        "Error message:",
-        err?.message
-      );
-
-      console.error(
-        "Error stack:",
-        err?.stack
-      );
-
-      if (
-        err?.message ===
-          "Failed to fetch" ||
-        err?.name === "TypeError" ||
-        String(
-          err?.message || ""
-        ).includes(
-          "Failed to fetch"
+      setError(
+        getErrorMessage(
+          err,
+          "Unable to save changes."
         )
-      ) {
-        setError(
-          "TypeError: Failed to fetch. The browser cannot connect to Supabase. Please check the Supabase URL, publishable key, and Data API configuration."
-        );
-      } else {
-        setError(
-          err?.message ||
-            "Unable to save changes."
-        );
-      }
+      );
     } finally {
       setSaving(false);
     }
   }
 
   /*
-   * CHECKING SESSION SCREEN
+   * --------------------------------------------------
+   * SESSION CHECK SCREEN
+   * --------------------------------------------------
    */
+
   if (checkingSession) {
     return (
       <div className="admin-page">
@@ -769,8 +748,11 @@ export default function Admin() {
   }
 
   /*
+   * --------------------------------------------------
    * LOGIN SCREEN
+   * --------------------------------------------------
    */
+
   if (!session) {
     return (
       <div className="admin-page">
@@ -813,6 +795,7 @@ export default function Admin() {
                 )
               }
               autoComplete="email"
+              required
             />
 
             <label>
@@ -829,6 +812,7 @@ export default function Admin() {
                 )
               }
               autoComplete="current-password"
+              required
             />
 
             {error && (
@@ -856,8 +840,7 @@ export default function Admin() {
           <button
             className="back-home"
             onClick={() => {
-              window.location.href =
-                "/";
+              window.location.href = "/";
             }}
           >
             ← Back to Website
@@ -870,12 +853,13 @@ export default function Admin() {
   }
 
   /*
+   * --------------------------------------------------
    * ADMIN EDITOR
+   * --------------------------------------------------
    */
+
   return (
     <div className="editor-page">
-
-      {/* HEADER */}
 
       <header className="editor-header">
 
@@ -890,7 +874,6 @@ export default function Admin() {
           </h1>
 
           <p>
-            Logged in as:{" "}
             {session.user?.email}
           </p>
 
@@ -900,18 +883,13 @@ export default function Admin() {
           className="logout-btn"
           onClick={handleLogout}
         >
-
           <LogOut size={18} />
-
           Logout
-
         </button>
 
       </header>
 
       <main className="editor-container">
-
-        {/* LOADING */}
 
         {loadingContent && (
           <div className="admin-info">
@@ -920,23 +898,15 @@ export default function Admin() {
           </div>
         )}
 
-        {/* ERROR */}
-
         {error && (
           <div className="admin-error">
-
             {error}
-
           </div>
         )}
 
-        {/* SUCCESS */}
-
         {message && (
           <div className="admin-success">
-
             {message}
-
           </div>
         )}
 
@@ -960,24 +930,10 @@ export default function Admin() {
               <img
                 src={content.photo}
                 alt="Profile"
-                onError={(e) => {
-                  e.currentTarget.style.display =
-                    "none";
-                }}
               />
             ) : (
               <div className="profile-placeholder">
-                {content.name
-                  ? content.name
-                      .split(" ")
-                      .map(
-                        (word) =>
-                          word[0]
-                      )
-                      .join("")
-                      .slice(0, 2)
-                      .toUpperCase()
-                  : "MB"}
+                MB
               </div>
             )}
 
@@ -1093,9 +1049,7 @@ export default function Admin() {
           />
 
           <label>
-            <GraduationCap
-              size={14}
-            />
+            <GraduationCap size={14} />
             Education
           </label>
 
@@ -1138,8 +1092,8 @@ export default function Admin() {
             type="email"
             placeholder="your@email.com"
             value={
-              content.contact
-                ?.email || ""
+              content.contact?.email ||
+              ""
             }
             onChange={(e) =>
               updateContact(
@@ -1158,8 +1112,8 @@ export default function Admin() {
             type="text"
             placeholder="Your phone number"
             value={
-              content.contact
-                ?.phone || ""
+              content.contact?.phone ||
+              ""
             }
             onChange={(e) =>
               updateContact(
@@ -1178,8 +1132,8 @@ export default function Admin() {
             type="url"
             placeholder="https://www.linkedin.com/in/..."
             value={
-              content.contact
-                ?.linkedin || ""
+              content.contact?.linkedin ||
+              ""
             }
             onChange={(e) =>
               updateContact(
@@ -1299,9 +1253,8 @@ export default function Admin() {
             rows="5"
             placeholder="Data Annotation, QA, Team Management, Segmentation..."
             value={
-              (
-                content.skills || []
-              ).join(", ")
+              (content.skills || [])
+                .join(", ")
             }
             onChange={(e) =>
               updateSkills(
@@ -1309,11 +1262,6 @@ export default function Admin() {
               )
             }
           />
-
-          <p className="field-help">
-            Separate each skill with a
-            comma.
-          </p>
 
         </section>
 
@@ -1340,16 +1288,13 @@ export default function Admin() {
           <p className="field-help">
             One project per line.
             Format:
-            <br />
             Project Name: Description
           </p>
 
           <textarea
             rows="8"
             value={
-              (
-                content.projects || []
-              )
+              (content.projects || [])
                 .map(
                   (project) =>
                     `${project.title || ""}: ${
