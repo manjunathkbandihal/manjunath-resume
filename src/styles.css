@@ -25,3 +25,379 @@ button,a,input,textarea{font:inherit}button{cursor:pointer}a{text-decoration:non
 .contact-section{background:var(--navy);color:#fff;padding:70px 0}.contact-section h2{font-size:35px;margin:12px 0}.contact-section p{color:#aebac3;line-height:1.7;font-size:13px;max-width:390px}.contact-details{display:flex;flex-direction:column;gap:22px;justify-content:center}.contact-details div{display:flex;align-items:center;gap:13px;color:#dce5e9;font-size:13px}.contact-details svg{color:var(--green)}.message-form{background:#0d1925;padding:25px;border:1px solid #243442;border-radius:12px}.message-form h3{margin-top:0}.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}input,textarea{width:100%;background:#07121e;border:1px solid #2a3a48;color:#fff;padding:12px;border-radius:6px;outline:none;margin-bottom:10px}textarea{resize:vertical}.footer{background:#030a12;color:#83909a;border-top:1px solid #18232c;padding:17px 0;font-size:10px}.footer .container{display:flex;justify-content:space-between}
 @media(max-width:900px){.hero-grid,.about-grid,.experience-grid,.contact-grid{grid-template-columns:1fr}.hero{padding:70px 0}.portrait-wrap{order:-1}.portrait-placeholder{width:260px}.projects-grid{grid-template-columns:1fr 1fr}.achievement-grid{grid-template-columns:1fr 1fr}.nav-links{gap:14px}.mini-cards{grid-template-columns:1fr}.timeline-dot{display:none}}
 @media(max-width:680px){.nav{height:64px}.menu-btn{display:block}.nav-links{display:none;position:absolute;top:64px;left:0;right:0;background:#06101b;padding:15px 4%;flex-direction:column;border-top:1px solid #1c2a35}.nav-links.open{display:flex}.nav-links button{text-align:left;padding:11px}.hero{min-height:auto;padding:60px 0}.hero h1{font-size:48px}.hero-text{font-size:13px}.hero-actions .btn{width:100%}.contact-chips span{flex:1}.section{padding:60px 0}.projects-grid,.achievement-grid,.stats-grid{grid-template-columns:1fr}.section-title h2{font-size:28px}.form-row{grid-template-columns:1fr}.footer .container{flex-direction:column;gap:8px}.info-row{grid-template-columns:24px 65px 1fr}.brand{font-size:15px}}
+
+/* =========================================
+   ADMIN PANEL
+   Matches the main website theme
+========================================= */
+
+.admin-page {
+  min-height: 100vh;
+  background:
+    radial-gradient(
+      circle at 75% 20%,
+      #0d2b29 0,
+      #06101b 38%,
+      #030a12 80%
+    );
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 30px 4%;
+}
+
+.admin-login-card {
+  width: min(440px, 100%);
+  background: rgba(13, 25, 37, 0.95);
+  border: 1px solid #243442;
+  border-radius: 14px;
+  padding: 35px;
+  box-shadow: 0 20px 70px rgba(0, 0, 0, 0.35);
+}
+
+.admin-logo {
+  width: 58px;
+  height: 58px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #e9f8f0;
+  color: #159154;
+  font-weight: 800;
+  font-size: 18px;
+  margin-bottom: 25px;
+}
+
+.admin-login-card h1 {
+  font-size: 34px;
+  margin: 10px 0;
+  letter-spacing: -0.03em;
+}
+
+.admin-subtitle {
+  color: #aebac3;
+  font-size: 13px;
+  line-height: 1.7;
+  margin-bottom: 25px;
+}
+
+.admin-login-form {
+  margin-top: 20px;
+}
+
+.admin-login-form label,
+.editor-card label {
+  display: block;
+  color: #cbd4db;
+  font-size: 12px;
+  font-weight: 700;
+  margin: 15px 0 7px;
+}
+
+.admin-login-form input,
+.editor-card input,
+.editor-card textarea {
+  background: #07121e;
+  border: 1px solid #2a3a48;
+  color: #fff;
+}
+
+.admin-login-form input:focus,
+.editor-card input:focus,
+.editor-card textarea:focus {
+  border-color: #37c878;
+  box-shadow: 0 0 0 2px rgba(55, 200, 120, 0.12);
+}
+
+.admin-login-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 15px;
+  padding: 14px 18px;
+  border: 0;
+  border-radius: 6px;
+  background: #37c878;
+  color: #06140c;
+  font-weight: 800;
+  font-size: 13px;
+}
+
+.admin-login-btn:hover {
+  background: #56da8d;
+}
+
+.admin-login-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.back-home {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: #8e9ba5;
+  padding: 15px 0 0;
+  font-size: 12px;
+}
+
+.back-home:hover {
+  color: #37c878;
+}
+
+/* Editor */
+
+.editor-page {
+  min-height: 100vh;
+  background:
+    radial-gradient(
+      circle at 80% 0%,
+      #0d2b29 0,
+      #06101b 28%,
+      #030a12 70%
+    );
+  color: #fff;
+}
+
+.editor-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 22px 4%;
+  background: rgba(6, 16, 27, 0.96);
+  border-bottom: 1px solid #182a35;
+  backdrop-filter: blur(12px);
+}
+
+.editor-header h1 {
+  margin: 7px 0;
+  font-size: 30px;
+  letter-spacing: -0.03em;
+}
+
+.editor-header p {
+  margin: 0;
+  color: #83909a;
+  font-size: 11px;
+}
+
+.editor-label {
+  color: #37c878;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.logout-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #53606d;
+  background: transparent;
+  color: #fff;
+  padding: 10px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.logout-btn:hover {
+  border-color: #37c878;
+  color: #37c878;
+}
+
+.editor-container {
+  width: min(900px, 92%);
+  margin: auto;
+  padding: 45px 0 80px;
+}
+
+.editor-card {
+  background: #0d1925;
+  border: 1px solid #243442;
+  border-radius: 14px;
+  padding: 28px;
+  margin-bottom: 20px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+}
+
+.editor-card-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.editor-card-title svg {
+  color: #37c878;
+}
+
+.editor-card-title h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.editor-card input,
+.editor-card textarea {
+  margin-bottom: 5px;
+}
+
+.field-help {
+  color: #83909a;
+  font-size: 11px;
+  line-height: 1.6;
+  margin: -8px 0 12px;
+}
+
+.save-area {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 10px;
+}
+
+.save-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 22px;
+  border: 0;
+  border-radius: 6px;
+  background: #37c878;
+  color: #06140c;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.save-btn:hover {
+  background: #56da8d;
+}
+
+.save-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.admin-error {
+  padding: 12px 14px;
+  margin: 15px 0;
+  border: 1px solid #6d3434;
+  background: #291417;
+  border-radius: 7px;
+  color: #ff9b9b;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.admin-success {
+  padding: 12px 14px;
+  margin-bottom: 20px;
+  border: 1px solid #236544;
+  background: #0b2923;
+  border-radius: 7px;
+  color: #7be09e;
+  font-size: 12px;
+}
+
+.admin-info {
+  padding: 12px 14px;
+  margin-bottom: 20px;
+  border: 1px solid #273541;
+  background: #0d1925;
+  border-radius: 7px;
+  color: #aebac3;
+  font-size: 12px;
+}
+
+.admin-card {
+  width: min(440px, 100%);
+  background: #0d1925;
+  border: 1px solid #243442;
+  border-radius: 14px;
+  padding: 35px;
+  text-align: center;
+}
+
+.admin-card h2 {
+  margin: 15px 0 8px;
+}
+
+.admin-card p {
+  color: #8e9ba5;
+  font-size: 12px;
+}
+
+.admin-spinner {
+  color: #37c878;
+  font-weight: 800;
+}
+
+/* Mobile */
+
+@media (max-width: 680px) {
+
+  .admin-page {
+    padding: 20px 4%;
+  }
+
+  .admin-login-card {
+    padding: 27px 22px;
+  }
+
+  .admin-login-card h1 {
+    font-size: 29px;
+  }
+
+  .editor-header {
+    align-items: flex-start;
+    padding: 18px 4%;
+  }
+
+  .editor-header h1 {
+    font-size: 23px;
+  }
+
+  .editor-header p {
+    max-width: 190px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .logout-btn {
+    padding: 9px 11px;
+  }
+
+  .logout-btn svg {
+    width: 16px;
+  }
+
+  .editor-container {
+    width: 92%;
+    padding: 28px 0 60px;
+  }
+
+  .editor-card {
+    padding: 21px;
+  }
+
+  .editor-card-title h2 {
+    font-size: 16px;
+  }
+
+  .save-area {
+    position: sticky;
+    bottom: 12px;
+    z-index: 10;
+  }
+
+  .save-btn {
+    width: 100%;
+  }
+}
