@@ -993,3 +993,46 @@ button,a,input,textarea{font:inherit}button{cursor:pointer}a{text-decoration:non
     transform: none;
   }
 }
+
+@media (max-width: 900px) {
+  .admin-sidebar {
+    width: 270px !important;
+    transform: translateX(-100%) !important;
+    transition: transform 0.25s ease;
+  }
+
+  .admin-sidebar[style*="translateX(0)"] {
+    transform: translateX(0) !important;
+  }
+
+  .admin-mobile-menu {
+    display: grid !important;
+  }
+
+  .admin-mobile-close {
+    display: block !important;
+  }
+
+  .admin-main-with-sidebar {
+    margin-left: 0 !important;
+  }
+
+  .admin-main-with-sidebar .editor-header {
+    padding-left: 72px !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .admin-main-with-sidebar .editor-header {
+    align-items: flex-start;
+  }
+
+  .admin-main-with-sidebar .editor-header .logout-btn {
+    font-size: 0;
+    padding: 10px;
+  }
+
+  .admin-main-with-sidebar .editor-header .logout-btn svg {
+    margin: 0;
+  }
+}
