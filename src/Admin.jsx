@@ -1597,21 +1597,46 @@ export default function Admin() {
               gap: "11px",
             }}
           >
+            {/* ADMIN PROFILE PHOTO */}
+
             <div
               style={{
                 width: "42px",
                 height: "42px",
                 borderRadius: "13px",
+                overflow: "hidden",
                 display: "grid",
                 placeItems: "center",
                 background:
                   "linear-gradient(135deg,#e9f8f0,#bff0d2)",
-                color: "#159154",
-                fontWeight: 900,
-                fontSize: "14px",
+                flexShrink: 0,
               }}
             >
-              MB
+              {content.photo ? (
+                <img
+                  src={content.photo}
+                  alt={
+                    content.name ||
+                    "Profile"
+                  }
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                    display: "block",
+                  }}
+                />
+              ) : (
+                <span
+                  style={{
+                    color: "#159154",
+                    fontWeight: 900,
+                    fontSize: "14px",
+                  }}
+                >
+                  MB
+                </span>
+              )}
             </div>
 
             <div>
