@@ -11,7 +11,6 @@ import {
   MapPin,
   CheckCircle2,
   Users,
-  Target,
   BarChart3,
   Award,
   GraduationCap,
@@ -77,7 +76,6 @@ const defaultContent = {
       tag: "Segmentation",
       url: "",
     },
-
     {
       title: "hase2_july_data_1",
       description:
@@ -85,7 +83,6 @@ const defaultContent = {
       tag: "QA & Correction",
       url: "",
     },
-
     {
       title: "Object Annotation Projects",
       description:
@@ -93,7 +90,6 @@ const defaultContent = {
       tag: "Object Annotation",
       url: "",
     },
-
     {
       title: "Multiple Concurrent Projects",
       description:
@@ -110,44 +106,31 @@ const defaultContent = {
     "Process Improvement",
   ],
 
+  stats: [
+    {
+      value: "18+",
+      label: "Projects handled concurrently",
+    },
+    {
+      value: "90%",
+      label: "Reduction in escalations",
+    },
+    {
+      value: "100%",
+      label: "Focus on on-time delivery",
+    },
+    {
+      value: "10+",
+      label: "Team members supported",
+    },
+  ],
+
   contact: {
     email: "",
     phone: "",
     linkedin: "",
   },
 };
-
-/*
- * ============================================================
- * EXPERIENCE NORMALIZER
- * ============================================================
- *
- * Keeps compatibility with your existing Supabase data.
- */
-
-function normalizeExperience(item) {
-  return {
-    role:
-      typeof item?.role === "string"
-        ? item.role
-        : "",
-
-    company:
-      typeof item?.company === "string"
-        ? item.company
-        : "",
-
-    period:
-      typeof item?.period === "string"
-        ? item.period
-        : "",
-
-    description:
-      typeof item?.description === "string"
-        ? item.description
-        : "",
-  };
-}
 
 function mergeContent(saved) {
   if (!saved) {
@@ -168,26 +151,34 @@ function mergeContent(saved) {
       ...(saved.contact || {}),
     },
 
-    /*
-     * EXPERIENCE
-     *
-     * IMPORTANT:
-     * We now keep ALL experience entries.
-     *
-     * The order saved from Admin is preserved.
-     */
-
     experience:
       Array.isArray(saved.experience) &&
       saved.experience.length > 0
-        ? saved.experience.map(
-            normalizeExperience
-          )
+        ? saved.experience.map((item) => ({
+            role:
+              typeof item?.role === "string"
+                ? item.role
+                : "",
+
+            company:
+              typeof item?.company === "string"
+                ? item.company
+                : "",
+
+            period:
+              typeof item?.period === "string"
+                ? item.period
+                : "",
+
+            description:
+              typeof item?.description === "string"
+                ? item.description
+                : "",
+          }))
         : defaultContent.experience,
 
     skills:
-      Array.isArray(saved.skills) &&
-      saved.skills.length > 0
+      Array.isArray(saved.skills)
         ? saved.skills
         : defaultContent.skills,
 
@@ -196,8 +187,7 @@ function mergeContent(saved) {
       saved.projects.length > 0
         ? saved.projects.map((project) => ({
             title:
-              typeof project?.title ===
-              "string"
+              typeof project?.title === "string"
                 ? project.title
                 : "",
 
@@ -220,10 +210,25 @@ function mergeContent(saved) {
         : defaultContent.projects,
 
     achievements:
-      Array.isArray(saved.achievements) &&
-      saved.achievements.length > 0
+      Array.isArray(saved.achievements)
         ? saved.achievements
         : defaultContent.achievements,
+
+    stats:
+      Array.isArray(saved.stats) &&
+      saved.stats.length > 0
+        ? saved.stats.map((stat) => ({
+            value:
+              typeof stat?.value === "string"
+                ? stat.value
+                : "",
+
+            label:
+              typeof stat?.label === "string"
+                ? stat.label
+                : "",
+          }))
+        : defaultContent.stats,
 
     resume:
       typeof saved.resume === "string"
@@ -252,11 +257,12 @@ function App() {
 
     async function loadWebsiteContent() {
       try {
-        const { data, error } = await supabase
-          .from("site_content")
-          .select("content")
-          .eq("id", "main")
-          .maybeSingle();
+        const { data, error } =
+          await supabase
+            .from("site_content")
+            .select("content")
+            .eq("id", "main")
+            .maybeSingle();
 
         if (error) {
           console.error(
@@ -312,14 +318,12 @@ function App() {
     return (
       <div className="site">
         <section className="hero">
-
           <div
             className="container"
             style={{
               textAlign: "center",
             }}
           >
-
             <div className="eyebrow">
               LOADING PROFILE
             </div>
@@ -332,43 +336,28 @@ function App() {
             <p className="hero-text">
               Loading website...
             </p>
-
           </div>
-
         </section>
       </div>
     );
   }
 
-  /*
-   * ============================================================
-   * EXPERIENCE DATA
-   * ============================================================
-   */
-
   const experiences =
     Array.isArray(content.experience)
-      ? content.experience.filter(
-          (experience) =>
-            experience &&
-            (
-              experience.role ||
-              experience.company ||
-              experience.period ||
-              experience.description
-            )
-        )
+      ? content.experience
+      : [];
+
+  const stats =
+    Array.isArray(content.stats)
+      ? content.stats
       : [];
 
   return (
     <div className="site">
 
-      {/* ======================================================
-          HEADER
-          ====================================================== */}
+      {/* HEADER */}
 
       <header className="header">
-
         <div className="nav container">
 
           <button
@@ -398,7 +387,6 @@ function App() {
                 : "nav-links"
             }
           >
-
             {navItems.map((item) => (
               <button
                 key={item}
@@ -411,7 +399,6 @@ function App() {
                 {item}
               </button>
             ))}
-
           </nav>
 
           <button
@@ -421,30 +408,24 @@ function App() {
             }
             aria-label="Toggle menu"
           >
-
             {menuOpen ? (
               <X size={24} />
             ) : (
               <Menu size={24} />
             )}
-
           </button>
 
         </div>
-
       </header>
 
       <main>
 
-        {/* ====================================================
-            HERO
-            ==================================================== */}
+        {/* HERO */}
 
         <section
           id="home"
           className="hero"
         >
-
           <div className="container hero-grid">
 
             <div className="hero-copy">
@@ -455,7 +436,6 @@ function App() {
               </div>
 
               <h1>
-
                 {content.name
                   ? content.name
                       .split(" ")[0]
@@ -471,7 +451,6 @@ function App() {
                         .toUpperCase()
                     : "BANDIHAL"}
                 </span>
-
               </h1>
 
               <p className="hero-text">
@@ -502,51 +481,44 @@ function App() {
                   </a>
                 )}
 
-                {content.contact &&
-                  content.contact.linkedin && (
-                    <a
-                      className="btn secondary"
-                      href={
-                        content.contact.linkedin
-                      }
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      <Linkedin size={18} />
-                      LinkedIn Profile
-                    </a>
-                  )}
+                {content.contact?.linkedin && (
+                  <a
+                    className="btn secondary"
+                    href={
+                      content.contact.linkedin
+                    }
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    <Linkedin size={18} />
+                    LinkedIn Profile
+                  </a>
+                )}
 
               </div>
 
               <div className="contact-chips">
 
-                {content.contact &&
-                  content.contact.email && (
-                    <span>
-                      <Mail size={15} />
-                      {content.contact.email}
-                    </span>
-                  )}
+                {content.contact?.email && (
+                  <span>
+                    <Mail size={15} />
+                    {content.contact.email}
+                  </span>
+                )}
 
-                {content.contact &&
-                  content.contact.phone && (
-                    <span>
-                      <Phone size={15} />
-                      {content.contact.phone}
-                    </span>
-                  )}
+                {content.contact?.phone && (
+                  <span>
+                    <Phone size={15} />
+                    {content.contact.phone}
+                  </span>
+                )}
 
-                {content.personal &&
-                  content.personal.location && (
-                    <span>
-                      <MapPin size={15} />
-                      {
-                        content.personal
-                          .location
-                      }
-                    </span>
-                  )}
+                {content.personal?.location && (
+                  <span>
+                    <MapPin size={15} />
+                    {content.personal.location}
+                  </span>
+                )}
 
               </div>
 
@@ -564,7 +536,6 @@ function App() {
                     overflow: "hidden",
                   }}
                 >
-
                   <img
                     src={content.photo}
                     alt={
@@ -581,7 +552,6 @@ function App() {
                         "inherit",
                     }}
                   />
-
                 </div>
               ) : (
                 <div className="portrait-placeholder">
@@ -614,18 +584,14 @@ function App() {
             </div>
 
           </div>
-
         </section>
 
-        {/* ====================================================
-            ABOUT
-            ==================================================== */}
+        {/* ABOUT */}
 
         <section
           id="about"
           className="section"
         >
-
           <div className="container">
 
             <SectionTitle
@@ -651,12 +617,8 @@ function App() {
                     }
                     title="Education"
                     value={
-                      content.personal &&
-                      content.personal
-                        .education
-                        ? content.personal
-                            .education
-                        : "Education"
+                      content.personal?.education ||
+                      "Education"
                     }
                   />
 
@@ -700,10 +662,8 @@ function App() {
                   icon={<Mail />}
                   label="Email"
                   value={
-                    content.contact &&
-                    content.contact.email
-                      ? content.contact.email
-                      : "Not provided"
+                    content.contact?.email ||
+                    "Not provided"
                   }
                 />
 
@@ -711,10 +671,8 @@ function App() {
                   icon={<Phone />}
                   label="Phone"
                   value={
-                    content.contact &&
-                    content.contact.phone
-                      ? content.contact.phone
-                      : "Not provided"
+                    content.contact?.phone ||
+                    "Not provided"
                   }
                 />
 
@@ -722,11 +680,8 @@ function App() {
                   icon={<MapPin />}
                   label="Location"
                   value={
-                    content.personal &&
-                    content.personal.location
-                      ? content.personal
-                          .location
-                      : "India"
+                    content.personal?.location ||
+                    "India"
                   }
                 />
 
@@ -734,11 +689,8 @@ function App() {
                   icon={<Linkedin />}
                   label="LinkedIn"
                   value={
-                    content.contact &&
-                    content.contact.linkedin
-                      ? content.contact
-                          .linkedin
-                      : "Not provided"
+                    content.contact?.linkedin ||
+                    "Not provided"
                   }
                 />
 
@@ -747,18 +699,14 @@ function App() {
             </div>
 
           </div>
-
         </section>
 
-        {/* ====================================================
-            EXPERIENCE
-            ==================================================== */}
+        {/* EXPERIENCE */}
 
         <section
           id="experience"
           className="section alt"
         >
-
           <div className="container">
 
             <SectionTitle
@@ -773,35 +721,49 @@ function App() {
 
             <div className="experience-grid">
 
-              {/* =================================================
-                  ALL EXPERIENCE ENTRIES
-                  ================================================= */}
+              {/* DYNAMIC EXPERIENCE TIMELINE */}
 
-              <div>
+              <div className="timeline-card">
 
                 {experiences.length > 0 ? (
                   experiences.map(
-                    (
-                      experience,
-                      index
-                    ) => (
-
+                    (experience, index) => (
                       <div
-                        className="timeline-card"
-                        key={
-                          `${experience.role}-${experience.company}-${index}`
-                        }
+                        className="experience-item"
+                        key={index}
                         style={{
-                          marginBottom:
-                            index <
+                          position: "relative",
+                          paddingLeft: "28px",
+                          paddingBottom:
+                            index ===
                             experiences.length -
                               1
-                              ? "24px"
-                              : "0",
+                              ? "0"
+                              : "32px",
+                          marginBottom:
+                            index ===
+                            experiences.length -
+                              1
+                              ? "0"
+                              : "32px",
+                          borderLeft:
+                            index ===
+                            experiences.length -
+                              1
+                              ? "none"
+                              : "2px solid rgba(127,127,127,0.25)",
                         }}
                       >
 
-                        <div className="timeline-dot" />
+                        <div
+                          className="timeline-dot"
+                          style={{
+                            position:
+                              "absolute",
+                            left: "-7px",
+                            top: "3px",
+                          }}
+                        />
 
                         <div className="role-head">
 
@@ -809,7 +771,8 @@ function App() {
 
                             <h3>
                               {experience.role ||
-                                "Professional Experience"}
+                                content.title ||
+                                "Professional Role"}
                             </h3>
 
                             <p>
@@ -826,130 +789,84 @@ function App() {
 
                         </div>
 
-                        {experience.description && (
-                          <ul>
+                        <ul>
 
-                            {experience.description
-                              .split("\n")
-                              .map(
-                                (
-                                  item
-                                ) =>
-                                  item.trim()
+                          {(
+                            experience.description ||
+                            ""
+                          )
+                            .split("\n")
+                            .filter(Boolean)
+                            .map(
+                              (
+                                item,
+                                itemIndex
+                              ) => (
+                                <li
+                                  key={
+                                    itemIndex
+                                  }
+                                >
+                                  {item}
+                                </li>
                               )
-                              .filter(Boolean)
-                              .map(
-                                (
-                                  item,
-                                  descriptionIndex
-                                ) => (
-                                  <li
-                                    key={
-                                      descriptionIndex
-                                    }
-                                  >
-                                    {item}
-                                  </li>
-                                )
-                              )}
+                            )}
 
-                          </ul>
-                        )}
+                        </ul>
 
                       </div>
-
                     )
                   )
                 ) : (
-                  <div className="timeline-card">
+                  <div>
+                    <h3>
+                      {content.title}
+                    </h3>
 
-                    <div className="timeline-dot" />
-
-                    <div className="role-head">
-
-                      <div>
-
-                        <h3>
-                          {content.title ||
-                            "Professional Experience"}
-                        </h3>
-
-                        <p>
-                          Annotation / Data Operations
-                        </p>
-
-                      </div>
-
-                      <span className="pill">
-                        Present
-                      </span>
-
-                    </div>
-
-                    <ul>
-                      <li>
-                        Professional experience
-                        information will appear
-                        here.
-                      </li>
-                    </ul>
-
+                    <p>
+                      Professional experience
+                    </p>
                   </div>
                 )}
 
               </div>
 
-              {/* =================================================
-                  PROFESSIONAL STATS
-                  ================================================= */}
+              {/* PROFESSIONAL STATS */}
 
               <div className="stats-grid">
 
-                <Stat
-                  icon={
-                    <FolderKanban />
-                  }
-                  value="18+"
-                  label="Projects handled concurrently"
-                />
-
-                <Stat
-                  icon={<Target />}
-                  value="90%"
-                  label="Reduction in escalations"
-                />
-
-                <Stat
-                  icon={
-                    <BarChart3 />
-                  }
-                  value="100%"
-                  label="Focus on on-time delivery"
-                />
-
-                <Stat
-                  icon={<Users />}
-                  value="10+"
-                  label="Team members supported"
-                />
+                {stats.map(
+                  (stat, index) => (
+                    <Stat
+                      key={index}
+                      icon={
+                        <BarChart3 />
+                      }
+                      value={
+                        stat.value ||
+                        "—"
+                      }
+                      label={
+                        stat.label ||
+                        "Professional statistic"
+                      }
+                    />
+                  )
+                )}
 
               </div>
 
             </div>
 
           </div>
-
         </section>
 
-        {/* ====================================================
-            SKILLS
-            ==================================================== */}
+        {/* SKILLS */}
 
         <section
           id="skills"
           className="section"
         >
-
           <div className="container">
 
             <SectionTitle
@@ -966,35 +883,26 @@ function App() {
 
               {(content.skills || []).map(
                 (skill, index) => (
-
                   <span key={index}>
-
                     <CheckCircle2
                       size={16}
                     />
-
                     {skill}
-
                   </span>
-
                 )
               )}
 
             </div>
 
           </div>
-
         </section>
 
-        {/* ====================================================
-            PROJECTS
-            ==================================================== */}
+        {/* PROJECTS */}
 
         <section
           id="projects"
           className="section alt"
         >
-
           <div className="container">
 
             <SectionTitle
@@ -1011,7 +919,6 @@ function App() {
 
               {(content.projects || []).map(
                 (project, index) => (
-
                   <article
                     className="project-card"
                     key={
@@ -1060,36 +967,28 @@ function App() {
                             "none",
                         }}
                       >
-
                         <ExternalLink
                           size={16}
                         />
-
                         View Project
-
                       </a>
                     )}
 
                   </article>
-
                 )
               )}
 
             </div>
 
           </div>
-
         </section>
 
-        {/* ====================================================
-            ACHIEVEMENTS
-            ==================================================== */}
+        {/* ACHIEVEMENTS */}
 
         <section
           id="achievements"
           className="section"
         >
-
           <div className="container">
 
             <SectionTitle
@@ -1110,19 +1009,15 @@ function App() {
                     typeof achievement ===
                     "string"
                       ? achievement
-                      : achievement &&
-                        achievement.title
-                      ? achievement.title
-                      : "Achievement";
+                      : achievement?.title ||
+                        "Achievement";
 
                   const text =
                     typeof achievement ===
                     "string"
                       ? ""
-                      : achievement &&
-                        achievement.description
-                      ? achievement.description
-                      : "";
+                      : achievement?.description ||
+                        "";
 
                   return (
                     <article
@@ -1131,11 +1026,9 @@ function App() {
                     >
 
                       <div className="round-icon">
-
                         <Award
                           size={20}
                         />
-
                       </div>
 
                       <div>
@@ -1160,18 +1053,14 @@ function App() {
             </div>
 
           </div>
-
         </section>
 
-        {/* ====================================================
-            CONTACT
-            ==================================================== */}
+        {/* CONTACT */}
 
         <section
           id="contact"
           className="contact-section"
         >
-
           <div className="container contact-grid">
 
             <div>
@@ -1197,86 +1086,61 @@ function App() {
 
             <div className="contact-details">
 
-              {content.contact &&
-                content.contact.email && (
-                  <div>
+              {content.contact?.email && (
+                <div>
+                  <Mail size={20} />
 
-                    <Mail size={20} />
+                  <a
+                    href={
+                      "mailto:" +
+                      content.contact.email
+                    }
+                  >
+                    {content.contact.email}
+                  </a>
+                </div>
+              )}
 
-                    <a
-                      href={
-                        "mailto:" +
-                        content.contact
-                          .email
-                      }
-                    >
-                      {
-                        content.contact
-                          .email
-                      }
-                    </a>
+              {content.contact?.phone && (
+                <div>
+                  <Phone size={20} />
 
-                  </div>
-                )}
+                  <a
+                    href={
+                      "tel:" +
+                      content.contact.phone
+                    }
+                  >
+                    {content.contact.phone}
+                  </a>
+                </div>
+              )}
 
-              {content.contact &&
-                content.contact.phone && (
-                  <div>
+              {content.personal?.location && (
+                <div>
+                  <MapPin size={20} />
 
-                    <Phone size={20} />
+                  <span>
+                    {content.personal.location}
+                  </span>
+                </div>
+              )}
 
-                    <a
-                      href={
-                        "tel:" +
-                        content.contact
-                          .phone
-                      }
-                    >
-                      {
-                        content.contact
-                          .phone
-                      }
-                    </a>
+              {content.contact?.linkedin && (
+                <div>
+                  <Linkedin size={20} />
 
-                  </div>
-                )}
-
-              {content.personal &&
-                content.personal
-                  .location && (
-                  <div>
-
-                    <MapPin size={20} />
-
-                    <span>
-                      {
-                        content.personal
-                          .location
-                      }
-                    </span>
-
-                  </div>
-                )}
-
-              {content.contact &&
-                content.contact.linkedin && (
-                  <div>
-
-                    <Linkedin size={20} />
-
-                    <a
-                      href={
-                        content.contact
-                          .linkedin
-                      }
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      LinkedIn Profile
-                    </a>
-
-                  </div>
-                )}
+                  <a
+                    href={
+                      content.contact.linkedin
+                    }
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    LinkedIn Profile
+                  </a>
+                </div>
+              )}
 
             </div>
 
@@ -1313,29 +1177,22 @@ function App() {
                 className="btn primary"
                 type="submit"
               >
-
                 <MessageCircle
                   size={18}
                 />
-
                 Send Message
-
               </button>
 
             </form>
 
           </div>
-
         </section>
 
       </main>
 
-      {/* ======================================================
-          FOOTER
-          ====================================================== */}
+      {/* FOOTER */}
 
       <footer className="footer">
-
         <div className="container">
 
           <span>
@@ -1348,7 +1205,6 @@ function App() {
           </span>
 
         </div>
-
       </footer>
 
     </div>
