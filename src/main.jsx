@@ -18,6 +18,7 @@ import {
   BriefcaseBusiness,
   FolderKanban,
   MessageCircle,
+  ExternalLink,
 } from "lucide-react";
 
 import Admin from "./Admin";
@@ -73,24 +74,28 @@ const defaultContent = {
       description:
         "Segmentation annotation for pavement, light poles, fencing, chimneys, electrical wires and other objects.",
       tag: "Segmentation",
+      url: "",
     },
     {
       title: "hase2_july_data_1",
       description:
         "Checked model predictions, corrected wrong labels and added missing annotations where required.",
       tag: "QA & Correction",
+      url: "",
     },
     {
       title: "Object Annotation Projects",
       description:
         "Worked on umbrellas, tents, electrical units and other street-level objects from frames.",
       tag: "Object Annotation",
+      url: "",
     },
     {
       title: "Multiple Concurrent Projects",
       description:
         "Managed and delivered multiple projects simultaneously with focus on quality and deadlines.",
       tag: "Team Management",
+      url: "",
     },
   ],
 
@@ -142,7 +147,27 @@ function mergeContent(saved) {
     projects:
       Array.isArray(saved.projects) &&
       saved.projects.length > 0
-        ? saved.projects
+        ? saved.projects.map((project) => ({
+            title:
+              typeof project?.title === "string"
+                ? project.title
+                : "",
+
+            description:
+              typeof project?.description === "string"
+                ? project.description
+                : "",
+
+            tag:
+              typeof project?.tag === "string"
+                ? project.tag
+                : "",
+
+            url:
+              typeof project?.url === "string"
+                ? project.url
+                : "",
+          }))
         : defaultContent.projects,
 
     achievements:
@@ -155,14 +180,22 @@ function mergeContent(saved) {
       typeof saved.resume === "string"
         ? saved.resume
         : defaultContent.resume,
+
+    photo:
+      typeof saved.photo === "string"
+        ? saved.photo
+        : defaultContent.photo,
   };
 }
 
 function App() {
   const [menuOpen, setMenuOpen] = React.useState(false);
+
   const [content, setContent] =
     React.useState(defaultContent);
-  const [loading, setLoading] = React.useState(true);
+
+  const [loading, setLoading] =
+    React.useState(true);
 
   React.useEffect(() => {
     let mounted = true;
@@ -180,10 +213,15 @@ function App() {
             "Supabase viewer error:",
             error
           );
+
           return;
         }
 
-        if (mounted && data && data.content) {
+        if (
+          mounted &&
+          data &&
+          data.content
+        ) {
           setContent(
             mergeContent(data.content)
           );
@@ -210,7 +248,8 @@ function App() {
   const go = (id) => {
     setMenuOpen(false);
 
-    const element = document.getElementById(id);
+    const element =
+      document.getElementById(id);
 
     if (element) {
       element.scrollIntoView({
@@ -225,7 +264,9 @@ function App() {
         <section className="hero">
           <div
             className="container"
-            style={{ textAlign: "center" }}
+            style={{
+              textAlign: "center",
+            }}
           >
             <div className="eyebrow">
               LOADING PROFILE
@@ -253,19 +294,24 @@ function App() {
 
   return (
     <div className="site">
+
       {/* HEADER */}
 
       <header className="header">
         <div className="nav container">
+
           <button
             className="brand"
-            onClick={() => go("home")}
+            onClick={() =>
+              go("home")
+            }
           >
             <span>
               {content.name
                 ? content.name.split(" ")[0]
                 : "Manjunath"}
             </span>{" "}
+
             {content.name
               ? content.name
                   .split(" ")
@@ -285,7 +331,9 @@ function App() {
               <button
                 key={item}
                 onClick={() =>
-                  go(item.toLowerCase())
+                  go(
+                    item.toLowerCase()
+                  )
                 }
               >
                 {item}
@@ -306,15 +354,22 @@ function App() {
               <Menu size={24} />
             )}
           </button>
+
         </div>
       </header>
 
       <main>
+
         {/* HERO */}
 
-        <section id="home" className="hero">
+        <section
+          id="home"
+          className="hero"
+        >
           <div className="container hero-grid">
+
             <div className="hero-copy">
+
               <div className="eyebrow">
                 {content.title ||
                   "DATA ANNOTATION TEAM LEAD"}
@@ -344,6 +399,7 @@ function App() {
               </p>
 
               <div className="hero-actions">
+
                 {content.resume ? (
                   <a
                     className="btn primary"
@@ -379,9 +435,11 @@ function App() {
                       LinkedIn Profile
                     </a>
                   )}
+
               </div>
 
               <div className="contact-chips">
+
                 {content.contact &&
                   content.contact.email && (
                     <span>
@@ -402,15 +460,21 @@ function App() {
                   content.personal.location && (
                     <span>
                       <MapPin size={15} />
-                      {content.personal.location}
+                      {
+                        content.personal
+                          .location
+                      }
                     </span>
                   )}
+
               </div>
+
             </div>
 
             {/* PROFILE PHOTO */}
 
             <div className="portrait-wrap">
+
               {content.photo ? (
                 <div
                   className="portrait-placeholder"
@@ -421,25 +485,31 @@ function App() {
                 >
                   <img
                     src={content.photo}
-                    alt={content.name}
+                    alt={
+                      content.name ||
+                      "Profile"
+                    }
                     style={{
                       position: "absolute",
                       inset: 0,
                       width: "100%",
                       height: "100%",
                       objectFit: "cover",
-                      borderRadius: "inherit",
+                      borderRadius:
+                        "inherit",
                     }}
                   />
                 </div>
               ) : (
                 <div className="portrait-placeholder">
+
                   <div className="portrait-icon">
                     {content.name
                       ? content.name
                           .split(" ")
                           .map(
-                            (word) => word[0]
+                            (word) =>
+                              word[0]
                           )
                           .join("")
                           .slice(0, 2)
@@ -454,16 +524,23 @@ function App() {
                   <small>
                     Add your photo here
                   </small>
+
                 </div>
               )}
+
             </div>
+
           </div>
         </section>
 
         {/* ABOUT */}
 
-        <section id="about" className="section">
+        <section
+          id="about"
+          className="section"
+        >
           <div className="container">
+
             <SectionTitle
               icon={<Users size={18} />}
               label="ABOUT ME"
@@ -471,19 +548,25 @@ function App() {
             />
 
             <div className="about-grid">
+
               <div>
+
                 <p>
                   {content.about ||
                     "About me information will appear here."}
                 </p>
 
                 <div className="mini-cards">
+
                   <Mini
-                    icon={<GraduationCap />}
+                    icon={
+                      <GraduationCap />
+                    }
                     title="Education"
                     value={
                       content.personal &&
-                      content.personal.education
+                      content.personal
+                        .education
                         ? content.personal
                             .education
                         : "Education"
@@ -506,10 +589,13 @@ function App() {
                       "Professional"
                     }
                   />
+
                 </div>
+
               </div>
 
               <div className="info-card">
+
                 <h3>
                   Personal Information
                 </h3>
@@ -551,7 +637,8 @@ function App() {
                   value={
                     content.personal &&
                     content.personal.location
-                      ? content.personal.location
+                      ? content.personal
+                          .location
                       : "India"
                   }
                 />
@@ -562,12 +649,16 @@ function App() {
                   value={
                     content.contact &&
                     content.contact.linkedin
-                      ? content.contact.linkedin
+                      ? content.contact
+                          .linkedin
                       : "Not provided"
                   }
                 />
+
               </div>
+
             </div>
+
           </div>
         </section>
 
@@ -578,20 +669,27 @@ function App() {
           className="section alt"
         >
           <div className="container">
+
             <SectionTitle
               icon={
-                <BriefcaseBusiness size={18} />
+                <BriefcaseBusiness
+                  size={18}
+                />
               }
               label="EXPERIENCE"
               title="Work Experience"
             />
 
             <div className="experience-grid">
+
               <div className="timeline-card">
+
                 <div className="timeline-dot" />
 
                 <div className="role-head">
+
                   <div>
+
                     <h3>
                       {firstExperience.role ||
                         content.title}
@@ -601,15 +699,18 @@ function App() {
                       {firstExperience.company ||
                         "Annotation / Data Operations"}
                     </p>
+
                   </div>
 
                   <span className="pill">
                     {firstExperience.period ||
                       "Present"}
                   </span>
+
                 </div>
 
                 <ul>
+
                   {(
                     firstExperience.description ||
                     ""
@@ -617,18 +718,26 @@ function App() {
                     .split("\n")
                     .filter(Boolean)
                     .map(
-                      (item, index) => (
+                      (
+                        item,
+                        index
+                      ) => (
                         <li key={index}>
                           {item}
                         </li>
                       )
                     )}
+
                 </ul>
+
               </div>
 
               <div className="stats-grid">
+
                 <Stat
-                  icon={<FolderKanban />}
+                  icon={
+                    <FolderKanban />
+                  }
                   value="18+"
                   label="Projects handled concurrently"
                 />
@@ -640,7 +749,9 @@ function App() {
                 />
 
                 <Stat
-                  icon={<BarChart3 />}
+                  icon={
+                    <BarChart3 />
+                  }
                   value="100%"
                   label="Focus on on-time delivery"
                 />
@@ -650,33 +761,47 @@ function App() {
                   value="10+"
                   label="Team members supported"
                 />
+
               </div>
+
             </div>
+
           </div>
         </section>
 
         {/* SKILLS */}
 
-        <section id="skills" className="section">
+        <section
+          id="skills"
+          className="section"
+        >
           <div className="container">
+
             <SectionTitle
               icon={
-                <CheckCircle2 size={18} />
+                <CheckCircle2
+                  size={18}
+                />
               }
               label="SKILLS"
               title="My Skills"
             />
 
             <div className="skill-list">
+
               {(content.skills || []).map(
                 (skill, index) => (
                   <span key={index}>
-                    <CheckCircle2 size={16} />
+                    <CheckCircle2
+                      size={16}
+                    />
                     {skill}
                   </span>
                 )
               )}
+
             </div>
+
           </div>
         </section>
 
@@ -687,15 +812,19 @@ function App() {
           className="section alt"
         >
           <div className="container">
+
             <SectionTitle
               icon={
-                <FolderKanban size={18} />
+                <FolderKanban
+                  size={18}
+                />
               }
               label="PROJECTS"
               title="Projects Worked On"
             />
 
             <div className="projects-grid">
+
               {(content.projects || []).map(
                 (project, index) => (
                   <article
@@ -705,8 +834,11 @@ function App() {
                       index
                     }
                   >
+
                     <div className="project-icon">
-                      <FolderKanban size={20} />
+                      <FolderKanban
+                        size={20}
+                      />
                     </div>
 
                     <h3>
@@ -724,10 +856,38 @@ function App() {
                       {project.tag ||
                         "Project"}
                     </span>
+
+                    {project.url && (
+                      <a
+                        href={project.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="project-link"
+                        style={{
+                          display:
+                            "inline-flex",
+                          alignItems:
+                            "center",
+                          gap: "6px",
+                          marginTop:
+                            "14px",
+                          textDecoration:
+                            "none",
+                        }}
+                      >
+                        <ExternalLink
+                          size={16}
+                        />
+                        View Project
+                      </a>
+                    )}
+
                   </article>
                 )
               )}
+
             </div>
+
           </div>
         </section>
 
@@ -738,6 +898,7 @@ function App() {
           className="section"
         >
           <div className="container">
+
             <SectionTitle
               icon={<Award size={18} />}
               label="ACHIEVEMENTS"
@@ -745,8 +906,13 @@ function App() {
             />
 
             <div className="achievement-grid">
+
               {(content.achievements || []).map(
-                (achievement, index) => {
+                (
+                  achievement,
+                  index
+                ) => {
+
                   const title =
                     typeof achievement ===
                     "string"
@@ -770,11 +936,15 @@ function App() {
                       className="achievement"
                       key={index}
                     >
+
                       <div className="round-icon">
-                        <Award size={20} />
+                        <Award
+                          size={20}
+                        />
                       </div>
 
                       <div>
+
                         <h3>
                           {title}
                         </h3>
@@ -784,12 +954,16 @@ function App() {
                             {text}
                           </p>
                         )}
+
                       </div>
+
                     </article>
                   );
                 }
               )}
+
             </div>
+
           </div>
         </section>
 
@@ -800,7 +974,9 @@ function App() {
           className="contact-section"
         >
           <div className="container contact-grid">
+
             <div>
+
               <div className="eyebrow">
                 LET'S CONNECT
               </div>
@@ -817,44 +993,60 @@ function App() {
                 around annotation and
                 leadership.
               </p>
+
             </div>
 
             <div className="contact-details">
+
               {content.contact &&
                 content.contact.email && (
                   <div>
+
                     <Mail size={20} />
 
                     <a
                       href={
                         "mailto:" +
-                        content.contact.email
+                        content.contact
+                          .email
                       }
                     >
-                      {content.contact.email}
+                      {
+                        content.contact
+                          .email
+                      }
                     </a>
+
                   </div>
                 )}
 
               {content.contact &&
                 content.contact.phone && (
                   <div>
+
                     <Phone size={20} />
 
                     <a
                       href={
                         "tel:" +
-                        content.contact.phone
+                        content.contact
+                          .phone
                       }
                     >
-                      {content.contact.phone}
+                      {
+                        content.contact
+                          .phone
+                      }
                     </a>
+
                   </div>
                 )}
 
               {content.personal &&
-                content.personal.location && (
+                content.personal
+                  .location && (
                   <div>
+
                     <MapPin size={20} />
 
                     <span>
@@ -863,25 +1055,30 @@ function App() {
                           .location
                       }
                     </span>
+
                   </div>
                 )}
 
               {content.contact &&
                 content.contact.linkedin && (
                   <div>
+
                     <Linkedin size={20} />
 
                     <a
                       href={
-                        content.contact.linkedin
+                        content.contact
+                          .linkedin
                       }
                       target="_blank"
                       rel="noreferrer"
                     >
                       LinkedIn Profile
                     </a>
+
                   </div>
                 )}
+
             </div>
 
             <form
@@ -890,11 +1087,13 @@ function App() {
                 event.preventDefault()
               }
             >
+
               <h3>
                 Send a Message
               </h3>
 
               <div className="form-row">
+
                 <input
                   placeholder="Your Name"
                 />
@@ -903,6 +1102,7 @@ function App() {
                   type="email"
                   placeholder="Your Email"
                 />
+
               </div>
 
               <textarea
@@ -914,18 +1114,24 @@ function App() {
                 className="btn primary"
                 type="submit"
               >
-                <MessageCircle size={18} />
+                <MessageCircle
+                  size={18}
+                />
                 Send Message
               </button>
+
             </form>
+
           </div>
         </section>
+
       </main>
 
       {/* FOOTER */}
 
       <footer className="footer">
         <div className="container">
+
           <span>
             © 2026 {content.name}.
             All Rights Reserved.
@@ -934,8 +1140,10 @@ function App() {
           <span>
             Built with purpose & passion.
           </span>
+
         </div>
       </footer>
+
     </div>
   );
 }
@@ -947,12 +1155,14 @@ function SectionTitle({
 }) {
   return (
     <div className="section-title">
+
       <div className="section-label">
         {icon}
         {label}
       </div>
 
       <h2>{title}</h2>
+
     </div>
   );
 }
@@ -964,13 +1174,21 @@ function Mini({
 }) {
   return (
     <div className="mini-card">
+
       <span>{icon}</span>
 
       <div>
-        <strong>{title}</strong>
 
-        <small>{value}</small>
+        <strong>
+          {title}
+        </strong>
+
+        <small>
+          {value}
+        </small>
+
       </div>
+
     </div>
   );
 }
@@ -982,11 +1200,17 @@ function InfoRow({
 }) {
   return (
     <div className="info-row">
+
       <span>{icon}</span>
 
-      <strong>{label}</strong>
+      <strong>
+        {label}
+      </strong>
 
-      <em>{value}</em>
+      <em>
+        {value}
+      </em>
+
     </div>
   );
 }
@@ -998,18 +1222,25 @@ function Stat({
 }) {
   return (
     <div className="stat">
+
       <span>{icon}</span>
 
-      <strong>{value}</strong>
+      <strong>
+        {value}
+      </strong>
 
-      <p>{label}</p>
+      <p>
+        {label}
+      </p>
+
     </div>
   );
 }
 
 function Root() {
   const isAdmin =
-    window.location.pathname === "/admin";
+    window.location.pathname ===
+    "/admin";
 
   if (isAdmin) {
     return <Admin />;
@@ -1025,4 +1256,3 @@ ReactDOM.createRoot(
     <Root />
   </React.StrictMode>
 );
-
