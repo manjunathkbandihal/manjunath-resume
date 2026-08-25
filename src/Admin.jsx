@@ -141,6 +141,9 @@ export default function Admin() {
   const [message, setMessage] =
     useState("");
 
+  /*
+   * CHECK LOGIN SESSION
+   */
   useEffect(() => {
     let mounted = true;
 
@@ -214,6 +217,9 @@ export default function Admin() {
     };
   }, []);
 
+  /*
+   * LOAD CONTENT FROM SUPABASE
+   */
   async function loadContent() {
     try {
       setLoadingContent(true);
@@ -250,6 +256,9 @@ export default function Admin() {
     }
   }
 
+  /*
+   * LOGIN
+   */
   async function handleLogin(event) {
     event.preventDefault();
 
@@ -298,6 +307,9 @@ export default function Admin() {
     }
   }
 
+  /*
+   * LOGOUT
+   */
   async function handleLogout() {
     try {
       setError("");
@@ -325,6 +337,9 @@ export default function Admin() {
     }
   }
 
+  /*
+   * GENERIC FIELD UPDATE
+   */
   function updateField(field, value) {
     setContent((current) => ({
       ...current,
@@ -332,6 +347,9 @@ export default function Admin() {
     }));
   }
 
+  /*
+   * PERSONAL INFORMATION UPDATE
+   */
   function updatePersonal(field, value) {
     setContent((current) => ({
       ...current,
@@ -343,6 +361,9 @@ export default function Admin() {
     }));
   }
 
+  /*
+   * CONTACT UPDATE
+   */
   function updateContact(field, value) {
     setContent((current) => ({
       ...current,
@@ -354,6 +375,9 @@ export default function Admin() {
     }));
   }
 
+  /*
+   * EXPERIENCE UPDATE
+   */
   function updateExperience(field, value) {
     setContent((current) => {
       const experience = [
@@ -372,6 +396,9 @@ export default function Admin() {
     });
   }
 
+  /*
+   * SKILLS
+   */
   function updateSkills(value) {
     const skills = value
       .split(",")
@@ -381,6 +408,9 @@ export default function Admin() {
     updateField("skills", skills);
   }
 
+  /*
+   * ACHIEVEMENTS
+   */
   function updateAchievements(value) {
     const achievements = value
       .split("\n")
@@ -393,6 +423,9 @@ export default function Admin() {
     );
   }
 
+  /*
+   * PROJECTS
+   */
   function updateProjects(value) {
     const projects = value
       .split("\n")
@@ -541,6 +574,9 @@ export default function Admin() {
     }
   }
 
+  /*
+   * REMOVE PHOTO
+   */
   function removePhoto() {
     setContent((current) => ({
       ...current,
@@ -554,12 +590,6 @@ export default function Admin() {
 
   /*
    * RESUME PDF UPLOAD
-   *
-   * The PDF is uploaded to the Supabase
-   * Storage bucket named "resume".
-   *
-   * Only the public URL is stored in
-   * site_content.content.resume.
    */
   async function handleResumeUpload(event) {
     const file =
@@ -598,11 +628,6 @@ export default function Admin() {
         );
       }
 
-      /*
-       * Use a new filename every time.
-       * This prevents cache problems when
-       * replacing an existing resume.
-       */
       const fileName =
         "resume-" +
         Date.now() +
@@ -643,9 +668,6 @@ export default function Admin() {
         );
       }
 
-      /*
-       * Store ONLY the URL.
-       */
       setContent((current) => ({
         ...current,
         resume: String(publicUrl),
@@ -674,6 +696,9 @@ export default function Admin() {
     }
   }
 
+  /*
+   * REMOVE RESUME
+   */
   function removeResume() {
     setContent((current) => ({
       ...current,
@@ -687,65 +712,41 @@ export default function Admin() {
 
   /*
    * SAVE CHANGES
+   *
+   * IMPORTANT:
+   * All save logic is inside this function.
+   * This fixes the syntax/build problem from
+   * the previous Admin.jsx.
    */
   async function saveChanges() {
-  try {
-    setSaving(true);
-    setError("");
-    setMessage("");
+    try {
+      setSaving(true);
+      setError("");
+      setMessage("");
 
-    if (!session) {
-      throw new Error(
-        "You are not logged in. Please login again."
-      );
-    }
+      if (!session) {
+        throw new Error(
+          "You are not logged in. Please login again."
+        );
+      }
 
-    console.log("=== UPDATE TEST START ===");
-    console.log("Session user:", session.user?.id);
-    console.log("Session email:", session.user?.email);
+      if (uploadingPhoto) {
+        throw new Error(
+          "Please wait until the photo upload finishes."
+        );
+      }
 
-    const testResult = await supabase
-      .from("site_content")
-      .update({
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", "main")
-      .select("id, updated_at")
-      .single();
-
-    console.log("=== UPDATE TEST RESULT ===");
-    console.log(testResult);
-
-    if (testResult.error) {
-      throw new Error(
-        "UPDATE TEST failed: " +
-          testResult.error.message
-      );
-    }
-
-    setMessage(
-      "UPDATE TEST SUCCESSFUL! 🎉"
-    );
-  } catch (err) {
-    console.error(
-      "UPDATE TEST FAILED:",
-      err
-    );
-
-    setError(
-      "UPDATE TEST FAILED: " +
-        (err?.message ||
-          "Unknown error")
-    );
-  } finally {
-    setSaving(false);
-  }
-}
+      if (uploadingResume) {
+        throw new Error(
+          "Please wait until the resume upload finishes."
+        );
+      }
 
       /*
        * Create a clean JSON-safe object.
        *
-       * No File objects are sent to Supabase.
+       * Only strings, arrays and objects are sent
+       * to Supabase.
        */
       const cleanContent = {
         name:
@@ -906,7 +907,7 @@ export default function Admin() {
       };
 
       /*
-       * Validate URLs.
+       * Validate photo URL.
        */
       if (
         cleanContent.photo &&
@@ -919,6 +920,9 @@ export default function Admin() {
         );
       }
 
+      /*
+       * Validate resume URL.
+       */
       if (
         cleanContent.resume &&
         !cleanContent.resume.startsWith(
@@ -931,7 +935,7 @@ export default function Admin() {
       }
 
       /*
-       * Database update.
+       * UPDATE SUPABASE
        */
       const result = await supabase
         .from("site_content")
@@ -950,7 +954,7 @@ export default function Admin() {
       }
 
       /*
-       * Verify the saved record.
+       * VERIFY SAVE
        */
       const verify =
         await supabase
@@ -980,6 +984,10 @@ export default function Admin() {
         );
       }
 
+      /*
+       * Refresh local state with the
+       * content actually saved in Supabase.
+       */
       setContent(
         mergeContent(
           verify.data.content
@@ -1005,6 +1013,9 @@ export default function Admin() {
     }
   }
 
+  /*
+   * SESSION CHECK SCREEN
+   */
   if (checkingSession) {
     return (
       <div className="admin-page">
@@ -1028,6 +1039,9 @@ export default function Admin() {
     );
   }
 
+  /*
+   * LOGIN SCREEN
+   */
   if (!session) {
     return (
       <div className="admin-page">
@@ -1125,6 +1139,9 @@ export default function Admin() {
   const experience =
     content.experience?.[0] || {};
 
+  /*
+   * ADMIN EDITOR
+   */
   return (
     <div className="editor-page">
 
@@ -1324,45 +1341,48 @@ export default function Admin() {
             </p>
           )}
 
-          {content.resume && !uploadingResume && (
-            <div
-              style={{
-                display: "flex",
-                gap: "10px",
-                flexWrap: "wrap",
-                marginTop: "12px",
-              }}
-            >
-              <a
-                href={content.resume}
-                target="_blank"
-                rel="noreferrer"
-                className="back-home"
+          {content.resume &&
+            !uploadingResume && (
+              <div
                 style={{
-                  textDecoration: "none",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "6px",
+                  display: "flex",
+                  gap: "10px",
+                  flexWrap: "wrap",
+                  marginTop: "12px",
                 }}
               >
-                <ExternalLink size={16} />
-                View Current Resume
-              </a>
 
-              <button
-                type="button"
-                className="back-home"
-                onClick={removeResume}
-                disabled={
-                  uploadingResume ||
-                  saving ||
-                  uploadingPhoto
-                }
-              >
-                Remove Resume
-              </button>
-            </div>
-          )}
+                <a
+                  href={content.resume}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="back-home"
+                  style={{
+                    textDecoration: "none",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "6px",
+                  }}
+                >
+                  <ExternalLink size={16} />
+                  View Current Resume
+                </a>
+
+                <button
+                  type="button"
+                  className="back-home"
+                  onClick={removeResume}
+                  disabled={
+                    uploadingResume ||
+                    saving ||
+                    uploadingPhoto
+                  }
+                >
+                  Remove Resume
+                </button>
+
+              </div>
+            )}
 
           <p className="field-help">
             Upload your resume as a PDF.
