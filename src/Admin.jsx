@@ -25,6 +25,13 @@ import { supabase } from "./supabase";
 const PHOTO_BUCKET = "profile-photos";
 const RESUME_BUCKET = "resume";
 
+const emptyExperience = {
+  role: "",
+  company: "",
+  period: "",
+  description: "",
+};
+
 const emptyContent = {
   name: "Manjunath Bandihal",
   title: "Data Annotation Team Lead",
@@ -65,7 +72,9 @@ function mergeContent(saved) {
       ...emptyContent,
       personal: { ...emptyContent.personal },
       contact: { ...emptyContent.contact },
-      experience: [...emptyContent.experience],
+      experience: [
+        { ...emptyExperience },
+      ],
       skills: [],
       projects: [],
       achievements: [],
@@ -86,11 +95,41 @@ function mergeContent(saved) {
       ...(saved.contact || {}),
     },
 
+    /*
+     * ============================================================
+     * EXPERIENCE
+     * ============================================================
+     *
+     * Supports multiple experience entries.
+     *
+     * Old experience data is also supported.
+     */
     experience:
       Array.isArray(saved.experience) &&
-      saved.experience.length
-        ? saved.experience
-        : [...emptyContent.experience],
+      saved.experience.length > 0
+        ? saved.experience.map((item) => ({
+            role:
+              typeof item?.role === "string"
+                ? item.role
+                : "",
+
+            company:
+              typeof item?.company === "string"
+                ? item.company
+                : "",
+
+            period:
+              typeof item?.period === "string"
+                ? item.period
+                : "",
+
+            description:
+              typeof item?.description ===
+              "string"
+                ? item.description
+                : "",
+          }))
+        : [{ ...emptyExperience }],
 
     skills: Array.isArray(saved.skills)
       ? saved.skills
@@ -99,7 +138,7 @@ function mergeContent(saved) {
     /*
      * PROJECTS
      *
-     * Supports the new format:
+     * Supports:
      *
      * {
      *   title: "",
@@ -107,8 +146,6 @@ function mergeContent(saved) {
      *   tag: "",
      *   url: ""
      * }
-     *
-     * It also keeps old project data compatible.
      */
     projects: Array.isArray(saved.projects)
       ? saved.projects.map((project) => ({
@@ -118,7 +155,8 @@ function mergeContent(saved) {
               : "",
 
           description:
-            typeof project?.description === "string"
+            typeof project?.description ===
+            "string"
               ? project.description
               : "",
 
@@ -134,7 +172,9 @@ function mergeContent(saved) {
         }))
       : [],
 
-    achievements: Array.isArray(saved.achievements)
+    achievements: Array.isArray(
+      saved.achievements
+    )
       ? saved.achievements
       : [],
 
@@ -180,7 +220,9 @@ export default function Admin() {
     useState("");
 
   /*
+   * ============================================================
    * CHECK LOGIN SESSION
+   * ============================================================
    */
   useEffect(() => {
     let mounted = true;
@@ -256,7 +298,9 @@ export default function Admin() {
   }, []);
 
   /*
+   * ============================================================
    * LOAD CONTENT
+   * ============================================================
    */
   async function loadContent() {
     try {
@@ -295,7 +339,9 @@ export default function Admin() {
   }
 
   /*
+   * ============================================================
    * LOGIN
+   * ============================================================
    */
   async function handleLogin(event) {
     event.preventDefault();
@@ -346,7 +392,9 @@ export default function Admin() {
   }
 
   /*
+   * ============================================================
    * LOGOUT
+   * ============================================================
    */
   async function handleLogout() {
     try {
@@ -376,7 +424,9 @@ export default function Admin() {
   }
 
   /*
+   * ============================================================
    * GENERIC FIELD UPDATE
+   * ============================================================
    */
   function updateField(field, value) {
     setContent((current) => ({
@@ -386,7 +436,9 @@ export default function Admin() {
   }
 
   /*
+   * ============================================================
    * PERSONAL INFORMATION
+   * ============================================================
    */
   function updatePersonal(field, value) {
     setContent((current) => ({
@@ -400,7 +452,9 @@ export default function Admin() {
   }
 
   /*
+   * ============================================================
    * CONTACT
+   * ============================================================
    */
   function updateContact(field, value) {
     setContent((current) => ({
@@ -414,16 +468,46 @@ export default function Admin() {
   }
 
   /*
-   * EXPERIENCE
+   * ============================================================
+   * EXPERIENCE MANAGEMENT
+   * ============================================================
    */
-  function updateExperience(field, value) {
+
+  /*
+   * ADD EXPERIENCE
+   */
+  function addExperience() {
+    setContent((current) => ({
+      ...current,
+
+      experience: [
+        ...(current.experience || []),
+        {
+          ...emptyExperience,
+        },
+      ],
+    }));
+
+    setMessage(
+      "New experience added. Fill in the details and click Save Changes."
+    );
+  }
+
+  /*
+   * UPDATE EXPERIENCE
+   */
+  function updateExperience(
+    index,
+    field,
+    value
+  ) {
     setContent((current) => {
       const experience = [
         ...(current.experience || []),
       ];
 
-      experience[0] = {
-        ...(experience[0] || {}),
+      experience[index] = {
+        ...(experience[index] || {}),
         [field]: value,
       };
 
@@ -435,7 +519,41 @@ export default function Admin() {
   }
 
   /*
+   * DELETE EXPERIENCE
+   */
+  function deleteExperience(index) {
+    setContent((current) => {
+      const experience = [
+        ...(current.experience || []),
+      ];
+
+      experience.splice(index, 1);
+
+      /*
+       * Always keep at least one empty
+       * experience editor available.
+       */
+      if (experience.length === 0) {
+        experience.push({
+          ...emptyExperience,
+        });
+      }
+
+      return {
+        ...current,
+        experience,
+      };
+    });
+
+    setMessage(
+      "Experience removed. Click Save Changes to publish the change."
+    );
+  }
+
+  /*
+   * ============================================================
    * SKILLS
+   * ============================================================
    */
   function updateSkills(value) {
     const skills = value
@@ -447,7 +565,9 @@ export default function Admin() {
   }
 
   /*
+   * ============================================================
    * ACHIEVEMENTS
+   * ============================================================
    */
   function updateAchievements(value) {
     const achievements = value
@@ -494,7 +614,11 @@ export default function Admin() {
   /*
    * UPDATE PROJECT
    */
-  function updateProject(index, field, value) {
+  function updateProject(
+    index,
+    field,
+    value
+  ) {
     setContent((current) => {
       const projects = [
         ...(current.projects || []),
@@ -535,7 +659,9 @@ export default function Admin() {
   }
 
   /*
+   * ============================================================
    * PROFILE PHOTO UPLOAD
+   * ============================================================
    */
   async function handlePhotoUpload(event) {
     const file =
@@ -664,7 +790,9 @@ export default function Admin() {
   }
 
   /*
+   * ============================================================
    * RESUME PDF UPLOAD
+   * ============================================================
    */
   async function handleResumeUpload(event) {
     const file =
@@ -786,7 +914,9 @@ export default function Admin() {
   }
 
   /*
+   * ============================================================
    * SAVE CHANGES
+   * ============================================================
    */
   async function saveChanges() {
     try {
@@ -855,6 +985,13 @@ export default function Admin() {
               : "",
         },
 
+        /*
+         * ========================================================
+         * EXPERIENCE
+         * ========================================================
+         *
+         * Save ALL experience entries.
+         */
         experience:
           Array.isArray(
             content.experience
@@ -864,25 +1001,25 @@ export default function Admin() {
                   role:
                     typeof item?.role ===
                     "string"
-                      ? item.role
+                      ? item.role.trim()
                       : "",
 
                   company:
                     typeof item?.company ===
                     "string"
-                      ? item.company
+                      ? item.company.trim()
                       : "",
 
                   period:
                     typeof item?.period ===
                     "string"
-                      ? item.period
+                      ? item.period.trim()
                       : "",
 
                   description:
                     typeof item?.description ===
                     "string"
-                      ? item.description
+                      ? item.description.trim()
                       : "",
                 })
               )
@@ -1102,7 +1239,9 @@ export default function Admin() {
   }
 
   /*
+   * ============================================================
    * SESSION CHECK SCREEN
+   * ============================================================
    */
   if (checkingSession) {
     return (
@@ -1128,7 +1267,9 @@ export default function Admin() {
   }
 
   /*
+   * ============================================================
    * LOGIN SCREEN
+   * ============================================================
    */
   if (!session) {
     return (
@@ -1224,11 +1365,15 @@ export default function Admin() {
     );
   }
 
-  const experience =
-    content.experience?.[0] || {};
+  const experiences =
+    Array.isArray(content.experience)
+      ? content.experience
+      : [];
 
   /*
+   * ============================================================
    * ADMIN EDITOR
+   * ============================================================
    */
   return (
     <div className="editor-page">
@@ -1281,7 +1426,9 @@ export default function Admin() {
           </div>
         )}
 
-        {/* PROFILE */}
+        {/* =====================================================
+            PROFILE
+            ===================================================== */}
 
         <section className="editor-card">
 
@@ -1395,7 +1542,9 @@ export default function Admin() {
 
         </section>
 
-        {/* RESUME */}
+        {/* =====================================================
+            RESUME
+            ===================================================== */}
 
         <section className="editor-card">
 
@@ -1485,7 +1634,9 @@ export default function Admin() {
 
         </section>
 
-        {/* PERSONAL INFORMATION */}
+        {/* =====================================================
+            PERSONAL INFORMATION
+            ===================================================== */}
 
         <section className="editor-card">
 
@@ -1537,7 +1688,9 @@ export default function Admin() {
 
         </section>
 
-        {/* CONTACT */}
+        {/* =====================================================
+            CONTACT
+            ===================================================== */}
 
         <section className="editor-card">
 
@@ -1611,88 +1764,231 @@ export default function Admin() {
 
         </section>
 
-        {/* EXPERIENCE */}
+        {/* =====================================================
+            EXPERIENCE MANAGEMENT
+            ===================================================== */}
 
         <section className="editor-card">
 
           <div className="editor-card-title">
+
             <Briefcase size={20} />
 
             <h2>
               Experience
             </h2>
+
           </div>
 
-          <label>
-            Job Role
-          </label>
+          <p className="field-help">
+            Add all your professional
+            experiences below. You can add
+            multiple jobs and manage them
+            individually.
+          </p>
 
-          <input
-            value={
-              experience.role || ""
-            }
-            onChange={(event) =>
-              updateExperience(
-                "role",
-                event.target.value
-              )
-            }
-          />
+          {experiences.map(
+            (experience, index) => (
+              <div
+                key={index}
+                style={{
+                  border:
+                    "1px solid rgba(127, 127, 127, 0.25)",
+                  borderRadius: "14px",
+                  padding: "18px",
+                  marginTop: "18px",
+                }}
+              >
 
-          <label>
-            Company
-          </label>
+                {/* EXPERIENCE HEADER */}
 
-          <input
-            value={
-              experience.company || ""
-            }
-            onChange={(event) =>
-              updateExperience(
-                "company",
-                event.target.value
-              )
-            }
-          />
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent:
+                      "space-between",
+                    alignItems: "center",
+                    gap: "12px",
+                    marginBottom: "16px",
+                  }}
+                >
 
-          <label>
-            Period
-          </label>
+                  <div>
 
-          <input
-            placeholder="Example: 2023 - Present"
-            value={
-              experience.period || ""
-            }
-            onChange={(event) =>
-              updateExperience(
-                "period",
-                event.target.value
-              )
-            }
-          />
+                    <h3
+                      style={{
+                        margin: 0,
+                      }}
+                    >
+                      Experience{" "}
+                      {index + 1}
+                    </h3>
 
-          <label>
-            Description
-          </label>
+                    {experience.role && (
+                      <p
+                        className="field-help"
+                        style={{
+                          marginTop: "5px",
+                        }}
+                      >
+                        {experience.role}
+                        {experience.company
+                          ? ` • ${experience.company}`
+                          : ""}
+                      </p>
+                    )}
 
-          <textarea
-            rows="7"
-            value={
-              experience.description ||
-              ""
-            }
-            onChange={(event) =>
-              updateExperience(
-                "description",
-                event.target.value
-              )
-            }
-          />
+                  </div>
+
+                  <button
+                    type="button"
+                    className="back-home"
+                    onClick={() =>
+                      deleteExperience(
+                        index
+                      )
+                    }
+                    disabled={saving}
+                    style={{
+                      display:
+                        "inline-flex",
+                      alignItems:
+                        "center",
+                      gap: "6px",
+                    }}
+                  >
+                    <Trash2 size={16} />
+
+                    Delete
+                  </button>
+
+                </div>
+
+                {/* JOB ROLE */}
+
+                <label>
+                  Job Role
+                </label>
+
+                <input
+                  type="text"
+                  placeholder="Example: Data Annotation Team Lead"
+                  value={
+                    experience.role ||
+                    ""
+                  }
+                  onChange={(event) =>
+                    updateExperience(
+                      index,
+                      "role",
+                      event.target.value
+                    )
+                  }
+                />
+
+                {/* COMPANY */}
+
+                <label>
+                  Company
+                </label>
+
+                <input
+                  type="text"
+                  placeholder="Example: ABC Company"
+                  value={
+                    experience.company ||
+                    ""
+                  }
+                  onChange={(event) =>
+                    updateExperience(
+                      index,
+                      "company",
+                      event.target.value
+                    )
+                  }
+                />
+
+                {/* PERIOD */}
+
+                <label>
+                  Period
+                </label>
+
+                <input
+                  type="text"
+                  placeholder="Example: 2023 - Present"
+                  value={
+                    experience.period ||
+                    ""
+                  }
+                  onChange={(event) =>
+                    updateExperience(
+                      index,
+                      "period",
+                      event.target.value
+                    )
+                  }
+                />
+
+                {/* DESCRIPTION */}
+
+                <label>
+                  Description
+                </label>
+
+                <p className="field-help">
+                  Add one responsibility or
+                  achievement per line.
+                </p>
+
+                <textarea
+                  rows="8"
+                  placeholder={
+                    "Led annotation teams across multiple projects.\nManaged daily targets and deadlines.\nEnsured high-quality annotations through reviews."
+                  }
+                  value={
+                    experience.description ||
+                    ""
+                  }
+                  onChange={(event) =>
+                    updateExperience(
+                      index,
+                      "description",
+                      event.target.value
+                    )
+                  }
+                />
+
+              </div>
+            )
+          )}
+
+          {/* ADD EXPERIENCE BUTTON */}
+
+          <button
+            type="button"
+            className="save-btn"
+            onClick={addExperience}
+            disabled={saving}
+            style={{
+              marginTop: "18px",
+              display:
+                "inline-flex",
+              alignItems:
+                "center",
+              gap: "8px",
+            }}
+          >
+            <Plus size={18} />
+
+            Add Experience
+          </button>
 
         </section>
 
-        {/* SKILLS */}
+        {/* =====================================================
+            SKILLS
+            ===================================================== */}
 
         <section className="editor-card">
 
@@ -1751,7 +2047,8 @@ export default function Admin() {
               <div
                 key={index}
                 style={{
-                  border: "1px solid rgba(127, 127, 127, 0.25)",
+                  border:
+                    "1px solid rgba(127, 127, 127, 0.25)",
                   borderRadius: "14px",
                   padding: "18px",
                   marginTop: "16px",
@@ -1761,7 +2058,8 @@ export default function Admin() {
                 <div
                   style={{
                     display: "flex",
-                    justifyContent: "space-between",
+                    justifyContent:
+                      "space-between",
                     alignItems: "center",
                     gap: "12px",
                     marginBottom: "16px",
@@ -1784,12 +2082,15 @@ export default function Admin() {
                     }
                     disabled={saving}
                     style={{
-                      display: "inline-flex",
-                      alignItems: "center",
+                      display:
+                        "inline-flex",
+                      alignItems:
+                        "center",
                       gap: "6px",
                     }}
                   >
                     <Trash2 size={16} />
+
                     Delete
                   </button>
 
@@ -1822,7 +2123,8 @@ export default function Admin() {
                   rows="5"
                   placeholder="Describe what you built, what problem it solves and your role."
                   value={
-                    project.description || ""
+                    project.description ||
+                    ""
                   }
                   onChange={(event) =>
                     updateProject(
@@ -1879,13 +2181,17 @@ export default function Admin() {
                     className="back-home"
                     style={{
                       marginTop: "10px",
-                      textDecoration: "none",
-                      display: "inline-flex",
-                      alignItems: "center",
+                      textDecoration:
+                        "none",
+                      display:
+                        "inline-flex",
+                      alignItems:
+                        "center",
                       gap: "6px",
                     }}
                   >
                     <ExternalLink size={16} />
+
                     Test Project Link
                   </a>
                 )}
@@ -1894,14 +2200,16 @@ export default function Admin() {
             )
           )}
 
-          {(content.projects || []).length === 0 && (
+          {(content.projects || []).length ===
+            0 && (
             <div
               style={{
                 padding: "24px",
                 marginTop: "16px",
                 borderRadius: "12px",
                 textAlign: "center",
-                border: "1px dashed rgba(127, 127, 127, 0.4)",
+                border:
+                  "1px dashed rgba(127, 127, 127, 0.4)",
               }}
             >
               <p className="field-help">
@@ -1917,18 +2225,23 @@ export default function Admin() {
             disabled={saving}
             style={{
               marginTop: "18px",
-              display: "inline-flex",
-              alignItems: "center",
+              display:
+                "inline-flex",
+              alignItems:
+                "center",
               gap: "8px",
             }}
           >
             <Plus size={18} />
+
             Add Project
           </button>
 
         </section>
 
-        {/* ACHIEVEMENTS */}
+        {/* =====================================================
+            ACHIEVEMENTS
+            ===================================================== */}
 
         <section className="editor-card">
 
@@ -1975,7 +2288,9 @@ export default function Admin() {
 
         </section>
 
-        {/* SAVE */}
+        {/* =====================================================
+            SAVE
+            ===================================================== */}
 
         <div className="save-area">
 
@@ -2005,4 +2320,3 @@ export default function Admin() {
     </div>
   );
 }
-
