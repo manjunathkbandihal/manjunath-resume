@@ -1,3 +1,6 @@
+# Admin.jsx
+
+
 import React, { useEffect, useState } from "react";
 import {
   LogIn,
@@ -38,6 +41,13 @@ const emptyProject = {
   description: "",
   tag: "",
   url: "",
+};
+
+const emptyAchievement = {
+  title: "",
+  description: "",
+  year: "",
+  organization: "",
 };
 
 const emptyStat = {
@@ -97,6 +107,39 @@ const emptyContent = {
   },
 };
 
+function normalizeAchievement(item) {
+  if (typeof item === "string") {
+    return {
+      title: item.trim(),
+      description: "",
+      year: "",
+      organization: "",
+    };
+  }
+
+  return {
+    title:
+      typeof item?.title === "string"
+        ? item.title
+        : "",
+
+    description:
+      typeof item?.description === "string"
+        ? item.description
+        : "",
+
+    year:
+      typeof item?.year === "string"
+        ? item.year
+        : "",
+
+    organization:
+      typeof item?.organization === "string"
+        ? item.organization
+        : "",
+  };
+}
+
 function mergeContent(saved) {
   if (!saved) {
     return {
@@ -107,7 +150,9 @@ function mergeContent(saved) {
       projects: [],
       skills: [],
       achievements: [],
-      stats: defaultStats.map((item) => ({ ...item })),
+      stats: defaultStats.map((item) => ({
+        ...item,
+      })),
     };
   }
 
@@ -133,14 +178,17 @@ function mergeContent(saved) {
               typeof item?.role === "string"
                 ? item.role
                 : "",
+
             company:
               typeof item?.company === "string"
                 ? item.company
                 : "",
+
             period:
               typeof item?.period === "string"
                 ? item.period
                 : "",
+
             description:
               typeof item?.description === "string"
                 ? item.description
@@ -158,14 +206,17 @@ function mergeContent(saved) {
             typeof project?.title === "string"
               ? project.title
               : "",
+
           description:
             typeof project?.description === "string"
               ? project.description
               : "",
+
           tag:
             typeof project?.tag === "string"
               ? project.tag
               : "",
+
           url:
             typeof project?.url === "string"
               ? project.url
@@ -174,7 +225,7 @@ function mergeContent(saved) {
       : [],
 
     achievements: Array.isArray(saved.achievements)
-      ? saved.achievements
+      ? saved.achievements.map(normalizeAchievement)
       : [],
 
     stats:
@@ -185,12 +236,15 @@ function mergeContent(saved) {
               typeof stat?.value === "string"
                 ? stat.value
                 : "",
+
             label:
               typeof stat?.label === "string"
                 ? stat.label
                 : "",
           }))
-        : defaultStats.map((item) => ({ ...item })),
+        : defaultStats.map((item) => ({
+            ...item,
+          })),
 
     resume:
       typeof saved.resume === "string"
@@ -569,15 +623,60 @@ export default function Admin() {
 
   /* ACHIEVEMENTS */
 
-  function updateAchievements(value) {
-    const achievements = value
-      .split("\n")
-      .map((item) => item.trim())
-      .filter(Boolean);
+  function addAchievement() {
+    setContent((current) => ({
+      ...current,
+      achievements: [
+        ...(current.achievements || []),
+        { ...emptyAchievement },
+      ],
+    }));
 
-    updateField(
-      "achievements",
-      achievements
+    setMessage(
+      "New achievement added. Fill in the details and click Save Changes."
+    );
+  }
+
+  function updateAchievement(
+    index,
+    field,
+    value
+  ) {
+    setContent((current) => {
+      const achievements = [
+        ...(current.achievements || []),
+      ].map(normalizeAchievement);
+
+      achievements[index] = {
+        ...(achievements[index] || {
+          ...emptyAchievement,
+        }),
+        [field]: value,
+      };
+
+      return {
+        ...current,
+        achievements,
+      };
+    });
+  }
+
+  function deleteAchievement(index) {
+    setContent((current) => {
+      const achievements = [
+        ...(current.achievements || []),
+      ];
+
+      achievements.splice(index, 1);
+
+      return {
+        ...current,
+        achievements,
+      };
+    });
+
+    setMessage(
+      "Achievement removed. Click Save Changes to publish the change."
     );
   }
 
@@ -1003,28 +1102,27 @@ export default function Admin() {
         achievements:
           Array.isArray(content.achievements)
             ? content.achievements
-                .map((item) => {
-                  if (
-                    typeof item === "string"
-                  ) {
-                    return item.trim();
-                  }
+                .map(normalizeAchievement)
+                .map((achievement) => ({
+                  title:
+                    achievement.title.trim(),
 
-                  return {
-                    title:
-                      typeof item?.title ===
-                      "string"
-                        ? item.title.trim()
-                        : "",
+                  description:
+                    achievement.description.trim(),
 
-                    description:
-                      typeof item?.description ===
-                      "string"
-                        ? item.description.trim()
-                        : "",
-                  };
-                })
-                .filter(Boolean)
+                  year:
+                    achievement.year.trim(),
+
+                  organization:
+                    achievement.organization.trim(),
+                }))
+                .filter(
+                  (achievement) =>
+                    achievement.title ||
+                    achievement.description ||
+                    achievement.year ||
+                    achievement.organization
+                )
             : [],
 
         stats:
@@ -1290,6 +1388,13 @@ export default function Admin() {
   const stats =
     Array.isArray(content.stats)
       ? content.stats
+      : [];
+
+  const achievements =
+    Array.isArray(content.achievements)
+      ? content.achievements.map(
+          normalizeAchievement
+        )
       : [];
 
   return (
@@ -1869,9 +1974,7 @@ export default function Admin() {
                 </button>
               </div>
 
-              <label>
-                Stat Value
-              </label>
+              <label>Stat Value</label>
 
               <input
                 type="text"
@@ -2161,31 +2264,186 @@ export default function Admin() {
             <h2>Achievements</h2>
           </div>
 
-          <label>Achievements</label>
-
           <p className="field-help">
-            One achievement per line.
+            Manage your professional achievements.
+            Each achievement can have a title,
+            description, year and organization.
+            Existing achievements saved as simple
+            text are automatically supported.
           </p>
 
-          <textarea
-            rows="7"
-            value={(content.achievements || [])
-              .map((item) => {
-                if (
-                  typeof item === "string"
-                ) {
-                  return item;
-                }
+          {achievements.map(
+            (achievement, index) => (
+              <div
+                key={index}
+                style={{
+                  border:
+                    "1px solid rgba(127, 127, 127, 0.25)",
+                  borderRadius: "14px",
+                  padding: "18px",
+                  marginTop: "16px",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent:
+                      "space-between",
+                    alignItems: "center",
+                    gap: "12px",
+                    marginBottom: "16px",
+                  }}
+                >
+                  <div>
+                    <h3 style={{ margin: 0 }}>
+                      Achievement {index + 1}
+                    </h3>
 
-                return item.title || "";
-              })
-              .join("\n")}
-            onChange={(event) =>
-              updateAchievements(
-                event.target.value
-              )
-            }
-          />
+                    {achievement.title && (
+                      <p
+                        className="field-help"
+                        style={{
+                          marginTop: "5px",
+                        }}
+                      >
+                        {achievement.title}
+                      </p>
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    className="back-home"
+                    onClick={() =>
+                      deleteAchievement(index)
+                    }
+                    disabled={saving}
+                    style={{
+                      display:
+                        "inline-flex",
+                      alignItems:
+                        "center",
+                      gap: "6px",
+                    }}
+                  >
+                    <Trash2 size={16} />
+                    Delete
+                  </button>
+                </div>
+
+                <label>
+                  Achievement Title
+                </label>
+
+                <input
+                  type="text"
+                  placeholder="Example: Best Performer"
+                  value={
+                    achievement.title || ""
+                  }
+                  onChange={(event) =>
+                    updateAchievement(
+                      index,
+                      "title",
+                      event.target.value
+                    )
+                  }
+                />
+
+                <label>
+                  Description
+                </label>
+
+                <textarea
+                  rows="5"
+                  placeholder="Describe the achievement, recognition or result."
+                  value={
+                    achievement.description ||
+                    ""
+                  }
+                  onChange={(event) =>
+                    updateAchievement(
+                      index,
+                      "description",
+                      event.target.value
+                    )
+                  }
+                />
+
+                <label>
+                  Year
+                </label>
+
+                <input
+                  type="text"
+                  placeholder="Example: 2026"
+                  value={
+                    achievement.year || ""
+                  }
+                  onChange={(event) =>
+                    updateAchievement(
+                      index,
+                      "year",
+                      event.target.value
+                    )
+                  }
+                />
+
+                <label>
+                  Organization / Context
+                </label>
+
+                <input
+                  type="text"
+                  placeholder="Example: Data Annotation Team"
+                  value={
+                    achievement.organization ||
+                    ""
+                  }
+                  onChange={(event) =>
+                    updateAchievement(
+                      index,
+                      "organization",
+                      event.target.value
+                    )
+                  }
+                />
+              </div>
+            )
+          )}
+
+          {achievements.length === 0 && (
+            <div
+              style={{
+                padding: "24px",
+                marginTop: "16px",
+                borderRadius: "12px",
+                textAlign: "center",
+                border:
+                  "1px dashed rgba(127, 127, 127, 0.4)",
+              }}
+            >
+              <p className="field-help">
+                No achievements added yet.
+              </p>
+            </div>
+          )}
+
+          <button
+            type="button"
+            className="save-btn"
+            onClick={addAchievement}
+            disabled={saving}
+            style={{
+              marginTop: "18px",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "8px",
+            }}
+          >
+            <Plus size={18} />
+            Add Achievement
+          </button>
         </section>
 
         {/* SAVE */}
