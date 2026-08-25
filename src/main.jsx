@@ -37,6 +37,7 @@ const defaultContent = {
   name: "Manjunath Bandihal",
   title: "Data Annotation Team Lead",
   photo: "",
+  resume: "",
   about:
     "Dedicated and result-driven professional with experience in data annotation, segmentation annotation, quality control, team coordination and project management.",
 
@@ -149,6 +150,11 @@ function mergeContent(saved) {
       saved.achievements.length > 0
         ? saved.achievements
         : defaultContent.achievements,
+
+    resume:
+      typeof saved.resume === "string"
+        ? saved.resume
+        : defaultContent.resume,
   };
 }
 
@@ -338,14 +344,26 @@ function App() {
               </p>
 
               <div className="hero-actions">
-                <a
-                  className="btn primary"
-                  href="/Manjunath-Bandihal-Resume.pdf"
-                  download
-                >
-                  <Download size={18} />
-                  Download Resume
-                </a>
+                {content.resume ? (
+                  <a
+                    className="btn primary"
+                    href={content.resume}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    <Download size={18} />
+                    Download Resume
+                  </a>
+                ) : (
+                  <a
+                    className="btn primary"
+                    href="/Manjunath-Bandihal-Resume.pdf"
+                    download
+                  >
+                    <Download size={18} />
+                    Download Resume
+                  </a>
+                )}
 
                 {content.contact &&
                   content.contact.linkedin && (
@@ -1007,3 +1025,4 @@ ReactDOM.createRoot(
     <Root />
   </React.StrictMode>
 );
+
