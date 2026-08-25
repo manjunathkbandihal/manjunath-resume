@@ -39,6 +39,7 @@ const defaultContent = {
   title: "Data Annotation Team Lead",
   photo: "",
   resume: "",
+
   about:
     "Dedicated and result-driven professional with experience in data annotation, segmentation annotation, quality control, team coordination and project management.",
 
@@ -76,6 +77,7 @@ const defaultContent = {
       tag: "Segmentation",
       url: "",
     },
+
     {
       title: "hase2_july_data_1",
       description:
@@ -83,6 +85,7 @@ const defaultContent = {
       tag: "QA & Correction",
       url: "",
     },
+
     {
       title: "Object Annotation Projects",
       description:
@@ -90,6 +93,7 @@ const defaultContent = {
       tag: "Object Annotation",
       url: "",
     },
+
     {
       title: "Multiple Concurrent Projects",
       description:
@@ -113,6 +117,38 @@ const defaultContent = {
   },
 };
 
+/*
+ * ============================================================
+ * EXPERIENCE NORMALIZER
+ * ============================================================
+ *
+ * Keeps compatibility with your existing Supabase data.
+ */
+
+function normalizeExperience(item) {
+  return {
+    role:
+      typeof item?.role === "string"
+        ? item.role
+        : "",
+
+    company:
+      typeof item?.company === "string"
+        ? item.company
+        : "",
+
+    period:
+      typeof item?.period === "string"
+        ? item.period
+        : "",
+
+    description:
+      typeof item?.description === "string"
+        ? item.description
+        : "",
+  };
+}
+
 function mergeContent(saved) {
   if (!saved) {
     return defaultContent;
@@ -132,10 +168,21 @@ function mergeContent(saved) {
       ...(saved.contact || {}),
     },
 
+    /*
+     * EXPERIENCE
+     *
+     * IMPORTANT:
+     * We now keep ALL experience entries.
+     *
+     * The order saved from Admin is preserved.
+     */
+
     experience:
       Array.isArray(saved.experience) &&
       saved.experience.length > 0
-        ? saved.experience
+        ? saved.experience.map(
+            normalizeExperience
+          )
         : defaultContent.experience,
 
     skills:
@@ -149,12 +196,14 @@ function mergeContent(saved) {
       saved.projects.length > 0
         ? saved.projects.map((project) => ({
             title:
-              typeof project?.title === "string"
+              typeof project?.title ===
+              "string"
                 ? project.title
                 : "",
 
             description:
-              typeof project?.description === "string"
+              typeof project?.description ===
+              "string"
                 ? project.description
                 : "",
 
@@ -189,7 +238,8 @@ function mergeContent(saved) {
 }
 
 function App() {
-  const [menuOpen, setMenuOpen] = React.useState(false);
+  const [menuOpen, setMenuOpen] =
+    React.useState(false);
 
   const [content, setContent] =
     React.useState(defaultContent);
@@ -262,12 +312,14 @@ function App() {
     return (
       <div className="site">
         <section className="hero">
+
           <div
             className="container"
             style={{
               textAlign: "center",
             }}
           >
+
             <div className="eyebrow">
               LOADING PROFILE
             </div>
@@ -280,24 +332,43 @@ function App() {
             <p className="hero-text">
               Loading website...
             </p>
+
           </div>
+
         </section>
       </div>
     );
   }
 
-  const firstExperience =
-    content.experience &&
-    content.experience.length > 0
-      ? content.experience[0]
-      : {};
+  /*
+   * ============================================================
+   * EXPERIENCE DATA
+   * ============================================================
+   */
+
+  const experiences =
+    Array.isArray(content.experience)
+      ? content.experience.filter(
+          (experience) =>
+            experience &&
+            (
+              experience.role ||
+              experience.company ||
+              experience.period ||
+              experience.description
+            )
+        )
+      : [];
 
   return (
     <div className="site">
 
-      {/* HEADER */}
+      {/* ======================================================
+          HEADER
+          ====================================================== */}
 
       <header className="header">
+
         <div className="nav container">
 
           <button
@@ -327,6 +398,7 @@ function App() {
                 : "nav-links"
             }
           >
+
             {navItems.map((item) => (
               <button
                 key={item}
@@ -339,6 +411,7 @@ function App() {
                 {item}
               </button>
             ))}
+
           </nav>
 
           <button
@@ -348,24 +421,30 @@ function App() {
             }
             aria-label="Toggle menu"
           >
+
             {menuOpen ? (
               <X size={24} />
             ) : (
               <Menu size={24} />
             )}
+
           </button>
 
         </div>
+
       </header>
 
       <main>
 
-        {/* HERO */}
+        {/* ====================================================
+            HERO
+            ==================================================== */}
 
         <section
           id="home"
           className="hero"
         >
+
           <div className="container hero-grid">
 
             <div className="hero-copy">
@@ -376,6 +455,7 @@ function App() {
               </div>
 
               <h1>
+
                 {content.name
                   ? content.name
                       .split(" ")[0]
@@ -391,6 +471,7 @@ function App() {
                         .toUpperCase()
                     : "BANDIHAL"}
                 </span>
+
               </h1>
 
               <p className="hero-text">
@@ -483,6 +564,7 @@ function App() {
                     overflow: "hidden",
                   }}
                 >
+
                   <img
                     src={content.photo}
                     alt={
@@ -499,6 +581,7 @@ function App() {
                         "inherit",
                     }}
                   />
+
                 </div>
               ) : (
                 <div className="portrait-placeholder">
@@ -531,14 +614,18 @@ function App() {
             </div>
 
           </div>
+
         </section>
 
-        {/* ABOUT */}
+        {/* ====================================================
+            ABOUT
+            ==================================================== */}
 
         <section
           id="about"
           className="section"
         >
+
           <div className="container">
 
             <SectionTitle
@@ -660,14 +747,18 @@ function App() {
             </div>
 
           </div>
+
         </section>
 
-        {/* EXPERIENCE */}
+        {/* ====================================================
+            EXPERIENCE
+            ==================================================== */}
 
         <section
           id="experience"
           className="section alt"
         >
+
           <div className="container">
 
             <SectionTitle
@@ -682,55 +773,135 @@ function App() {
 
             <div className="experience-grid">
 
-              <div className="timeline-card">
+              {/* =================================================
+                  ALL EXPERIENCE ENTRIES
+                  ================================================= */}
 
-                <div className="timeline-dot" />
+              <div>
 
-                <div className="role-head">
+                {experiences.length > 0 ? (
+                  experiences.map(
+                    (
+                      experience,
+                      index
+                    ) => (
 
-                  <div>
+                      <div
+                        className="timeline-card"
+                        key={
+                          `${experience.role}-${experience.company}-${index}`
+                        }
+                        style={{
+                          marginBottom:
+                            index <
+                            experiences.length -
+                              1
+                              ? "24px"
+                              : "0",
+                        }}
+                      >
 
-                    <h3>
-                      {firstExperience.role ||
-                        content.title}
-                    </h3>
+                        <div className="timeline-dot" />
 
-                    <p>
-                      {firstExperience.company ||
-                        "Annotation / Data Operations"}
-                    </p>
+                        <div className="role-head">
+
+                          <div>
+
+                            <h3>
+                              {experience.role ||
+                                "Professional Experience"}
+                            </h3>
+
+                            <p>
+                              {experience.company ||
+                                "Annotation / Data Operations"}
+                            </p>
+
+                          </div>
+
+                          <span className="pill">
+                            {experience.period ||
+                              "Present"}
+                          </span>
+
+                        </div>
+
+                        {experience.description && (
+                          <ul>
+
+                            {experience.description
+                              .split("\n")
+                              .map(
+                                (
+                                  item
+                                ) =>
+                                  item.trim()
+                              )
+                              .filter(Boolean)
+                              .map(
+                                (
+                                  item,
+                                  descriptionIndex
+                                ) => (
+                                  <li
+                                    key={
+                                      descriptionIndex
+                                    }
+                                  >
+                                    {item}
+                                  </li>
+                                )
+                              )}
+
+                          </ul>
+                        )}
+
+                      </div>
+
+                    )
+                  )
+                ) : (
+                  <div className="timeline-card">
+
+                    <div className="timeline-dot" />
+
+                    <div className="role-head">
+
+                      <div>
+
+                        <h3>
+                          {content.title ||
+                            "Professional Experience"}
+                        </h3>
+
+                        <p>
+                          Annotation / Data Operations
+                        </p>
+
+                      </div>
+
+                      <span className="pill">
+                        Present
+                      </span>
+
+                    </div>
+
+                    <ul>
+                      <li>
+                        Professional experience
+                        information will appear
+                        here.
+                      </li>
+                    </ul>
 
                   </div>
-
-                  <span className="pill">
-                    {firstExperience.period ||
-                      "Present"}
-                  </span>
-
-                </div>
-
-                <ul>
-
-                  {(
-                    firstExperience.description ||
-                    ""
-                  )
-                    .split("\n")
-                    .filter(Boolean)
-                    .map(
-                      (
-                        item,
-                        index
-                      ) => (
-                        <li key={index}>
-                          {item}
-                        </li>
-                      )
-                    )}
-
-                </ul>
+                )}
 
               </div>
+
+              {/* =================================================
+                  PROFESSIONAL STATS
+                  ================================================= */}
 
               <div className="stats-grid">
 
@@ -767,14 +938,18 @@ function App() {
             </div>
 
           </div>
+
         </section>
 
-        {/* SKILLS */}
+        {/* ====================================================
+            SKILLS
+            ==================================================== */}
 
         <section
           id="skills"
           className="section"
         >
+
           <div className="container">
 
             <SectionTitle
@@ -791,26 +966,35 @@ function App() {
 
               {(content.skills || []).map(
                 (skill, index) => (
+
                   <span key={index}>
+
                     <CheckCircle2
                       size={16}
                     />
+
                     {skill}
+
                   </span>
+
                 )
               )}
 
             </div>
 
           </div>
+
         </section>
 
-        {/* PROJECTS */}
+        {/* ====================================================
+            PROJECTS
+            ==================================================== */}
 
         <section
           id="projects"
           className="section alt"
         >
+
           <div className="container">
 
             <SectionTitle
@@ -827,6 +1011,7 @@ function App() {
 
               {(content.projects || []).map(
                 (project, index) => (
+
                   <article
                     className="project-card"
                     key={
@@ -875,28 +1060,36 @@ function App() {
                             "none",
                         }}
                       >
+
                         <ExternalLink
                           size={16}
                         />
+
                         View Project
+
                       </a>
                     )}
 
                   </article>
+
                 )
               )}
 
             </div>
 
           </div>
+
         </section>
 
-        {/* ACHIEVEMENTS */}
+        {/* ====================================================
+            ACHIEVEMENTS
+            ==================================================== */}
 
         <section
           id="achievements"
           className="section"
         >
+
           <div className="container">
 
             <SectionTitle
@@ -938,9 +1131,11 @@ function App() {
                     >
 
                       <div className="round-icon">
+
                         <Award
                           size={20}
                         />
+
                       </div>
 
                       <div>
@@ -965,14 +1160,18 @@ function App() {
             </div>
 
           </div>
+
         </section>
 
-        {/* CONTACT */}
+        {/* ====================================================
+            CONTACT
+            ==================================================== */}
 
         <section
           id="contact"
           className="contact-section"
         >
+
           <div className="container contact-grid">
 
             <div>
@@ -1114,22 +1313,29 @@ function App() {
                 className="btn primary"
                 type="submit"
               >
+
                 <MessageCircle
                   size={18}
                 />
+
                 Send Message
+
               </button>
 
             </form>
 
           </div>
+
         </section>
 
       </main>
 
-      {/* FOOTER */}
+      {/* ======================================================
+          FOOTER
+          ====================================================== */}
 
       <footer className="footer">
+
         <div className="container">
 
           <span>
@@ -1142,6 +1348,7 @@ function App() {
           </span>
 
         </div>
+
       </footer>
 
     </div>
