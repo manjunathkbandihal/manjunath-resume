@@ -16,6 +16,8 @@ import {
   Camera,
   FileText,
   ExternalLink,
+  Plus,
+  Trash2,
 } from "lucide-react";
 
 import { supabase } from "./supabase";
@@ -45,7 +47,9 @@ const emptyContent = {
   ],
 
   skills: [],
+
   projects: [],
+
   achievements: [],
 
   contact: {
@@ -92,8 +96,42 @@ function mergeContent(saved) {
       ? saved.skills
       : [],
 
+    /*
+     * PROJECTS
+     *
+     * Supports the new format:
+     *
+     * {
+     *   title: "",
+     *   description: "",
+     *   tag: "",
+     *   url: ""
+     * }
+     *
+     * It also keeps old project data compatible.
+     */
     projects: Array.isArray(saved.projects)
-      ? saved.projects
+      ? saved.projects.map((project) => ({
+          title:
+            typeof project?.title === "string"
+              ? project.title
+              : "",
+
+          description:
+            typeof project?.description === "string"
+              ? project.description
+              : "",
+
+          tag:
+            typeof project?.tag === "string"
+              ? project.tag
+              : "",
+
+          url:
+            typeof project?.url === "string"
+              ? project.url
+              : "",
+        }))
       : [],
 
     achievements: Array.isArray(saved.achievements)
@@ -218,7 +256,7 @@ export default function Admin() {
   }, []);
 
   /*
-   * LOAD CONTENT FROM SUPABASE
+   * LOAD CONTENT
    */
   async function loadContent() {
     try {
@@ -348,7 +386,7 @@ export default function Admin() {
   }
 
   /*
-   * PERSONAL INFORMATION UPDATE
+   * PERSONAL INFORMATION
    */
   function updatePersonal(field, value) {
     setContent((current) => ({
@@ -362,7 +400,7 @@ export default function Admin() {
   }
 
   /*
-   * CONTACT UPDATE
+   * CONTACT
    */
   function updateContact(field, value) {
     setContent((current) => ({
@@ -376,7 +414,7 @@ export default function Admin() {
   }
 
   /*
-   * EXPERIENCE UPDATE
+   * EXPERIENCE
    */
   function updateExperience(field, value) {
     setContent((current) => {
@@ -424,38 +462,75 @@ export default function Admin() {
   }
 
   /*
-   * PROJECTS
+   * ============================================================
+   * PROJECT MANAGEMENT
+   * ============================================================
    */
-  function updateProjects(value) {
-    const projects = value
-      .split("\n")
-      .map((line) => line.trim())
-      .filter(Boolean)
-      .map((line) => {
-        const separator =
-          line.indexOf(":");
 
-        if (separator === -1) {
-          return {
-            title: line,
-            description: "",
-          };
-        }
+  /*
+   * ADD PROJECT
+   */
+  function addProject() {
+    setContent((current) => ({
+      ...current,
 
-        return {
-          title: line
-            .slice(0, separator)
-            .trim(),
+      projects: [
+        ...(current.projects || []),
 
-          description: line
-            .slice(separator + 1)
-            .trim(),
-        };
-      });
+        {
+          title: "",
+          description: "",
+          tag: "",
+          url: "",
+        },
+      ],
+    }));
 
-    updateField(
-      "projects",
-      projects
+    setMessage(
+      "New project added. Fill in the details and click Save Changes."
+    );
+  }
+
+  /*
+   * UPDATE PROJECT
+   */
+  function updateProject(index, field, value) {
+    setContent((current) => {
+      const projects = [
+        ...(current.projects || []),
+      ];
+
+      projects[index] = {
+        ...(projects[index] || {}),
+        [field]: value,
+      };
+
+      return {
+        ...current,
+        projects,
+      };
+    });
+  }
+
+  /*
+   * DELETE PROJECT
+   */
+  function deleteProject(index) {
+    setContent((current) => {
+      const projects = [
+        ...(current.projects || []),
+      ];
+
+      projects.splice(index, 1);
+
+      return {
+        ...current,
+        projects,
+      };
+    });
+
+    setMessage(
+      "Project removed. Click Save Changes to publish the change."
     );
   }
 
@@ -712,11 +787,6 @@ export default function Admin() {
 
   /*
    * SAVE CHANGES
-   *
-   * IMPORTANT:
-   * All save logic is inside this function.
-   * This fixes the syntax/build problem from
-   * the previous Admin.jsx.
    */
   async function saveChanges() {
     try {
@@ -743,10 +813,7 @@ export default function Admin() {
       }
 
       /*
-       * Create a clean JSON-safe object.
-       *
-       * Only strings, arrays and objects are sent
-       * to Supabase.
+       * CLEAN JSON-SAFE CONTENT
        */
       const cleanContent = {
         name:
@@ -830,6 +897,9 @@ export default function Admin() {
               )
             : [],
 
+        /*
+         * PROJECTS
+         */
         projects:
           Array.isArray(content.projects)
             ? content.projects.map(
@@ -837,19 +907,25 @@ export default function Admin() {
                   title:
                     typeof project?.title ===
                     "string"
-                      ? project.title
+                      ? project.title.trim()
                       : "",
 
                   description:
                     typeof project?.description ===
                     "string"
-                      ? project.description
+                      ? project.description.trim()
                       : "",
 
                   tag:
                     typeof project?.tag ===
                     "string"
-                      ? project.tag
+                      ? project.tag.trim()
+                      : "",
+
+                  url:
+                    typeof project?.url ===
+                    "string"
+                      ? project.url.trim()
                       : "",
                 })
               )
@@ -907,7 +983,7 @@ export default function Admin() {
       };
 
       /*
-       * Validate photo URL.
+       * VALIDATE PHOTO URL
        */
       if (
         cleanContent.photo &&
@@ -921,7 +997,7 @@ export default function Admin() {
       }
 
       /*
-       * Validate resume URL.
+       * VALIDATE RESUME URL
        */
       if (
         cleanContent.resume &&
@@ -932,6 +1008,22 @@ export default function Admin() {
         throw new Error(
           "The resume URL is invalid."
         );
+      }
+
+      /*
+       * VALIDATE PROJECT URLS
+       */
+      for (
+        const project of cleanContent.projects
+      ) {
+        if (
+          project.url &&
+          !project.url.startsWith("http")
+        ) {
+          throw new Error(
+            `Project "${project.title || "Untitled"}" has an invalid URL.`
+          );
+        }
       }
 
       /*
@@ -984,10 +1076,6 @@ export default function Admin() {
         );
       }
 
-      /*
-       * Refresh local state with the
-       * content actually saved in Supabase.
-       */
       setContent(
         mergeContent(
           verify.data.content
@@ -1636,48 +1724,207 @@ export default function Admin() {
 
         </section>
 
-        {/* PROJECTS */}
+        {/* =====================================================
+            PROJECTS MANAGEMENT
+            ===================================================== */}
 
         <section className="editor-card">
 
           <div className="editor-card-title">
+
             <FolderKanban size={20} />
 
             <h2>
               Projects
             </h2>
+
           </div>
 
-          <label>
-            Projects
-          </label>
-
           <p className="field-help">
-            One project per line.
-            Format:
-            Project Name: Description
+            Add your professional projects below.
+            Each project can have a title,
+            description, technology/tag and project URL.
           </p>
 
-          <textarea
-            rows="8"
-            value={
-              (content.projects || [])
-                .map((project) => {
-                  return (
-                    (project.title || "") +
-                    ": " +
-                    (project.description ||
-                      "")
-                  );
-                })
-                .join("\n")
-            }
-            onChange={(event) =>
-              updateProjects(
-                event.target.value
-              )
-            }
-          />
+          {(content.projects || []).map(
+            (project, index) => (
+              <div
+                key={index}
+                style={{
+                  border: "1px solid rgba(127, 127, 127, 0.25)",
+                  borderRadius: "14px",
+                  padding: "18px",
+                  marginTop: "16px",
+                }}
+              >
+
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    gap: "12px",
+                    marginBottom: "16px",
+                  }}
+                >
+
+                  <h3
+                    style={{
+                      margin: 0,
+                    }}
+                  >
+                    Project {index + 1}
+                  </h3>
+
+                  <button
+                    type="button"
+                    className="back-home"
+                    onClick={() =>
+                      deleteProject(index)
+                    }
+                    disabled={saving}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "6px",
+                    }}
+                  >
+                    <Trash2 size={16} />
+                    Delete
+                  </button>
+
+                </div>
+
+                <label>
+                  Project Title
+                </label>
+
+                <input
+                  type="text"
+                  placeholder="Example: AnnotatePro Team Dashboard"
+                  value={
+                    project.title || ""
+                  }
+                  onChange={(event) =>
+                    updateProject(
+                      index,
+                      "title",
+                      event.target.value
+                    )
+                  }
+                />
+
+                <label>
+                  Description
+                </label>
+
+                <textarea
+                  rows="5"
+                  placeholder="Describe what you built, what problem it solves and your role."
+                  value={
+                    project.description || ""
+                  }
+                  onChange={(event) =>
+                    updateProject(
+                      index,
+                      "description",
+                      event.target.value
+                    )
+                  }
+                />
+
+                <label>
+                  Technology / Tag
+                </label>
+
+                <input
+                  type="text"
+                  placeholder="Example: React, Vite, Supabase"
+                  value={
+                    project.tag || ""
+                  }
+                  onChange={(event) =>
+                    updateProject(
+                      index,
+                      "tag",
+                      event.target.value
+                    )
+                  }
+                />
+
+                <label>
+                  Project URL
+                </label>
+
+                <input
+                  type="url"
+                  placeholder="https://your-project.vercel.app"
+                  value={
+                    project.url || ""
+                  }
+                  onChange={(event) =>
+                    updateProject(
+                      index,
+                      "url",
+                      event.target.value
+                    )
+                  }
+                />
+
+                {project.url && (
+                  <a
+                    href={project.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="back-home"
+                    style={{
+                      marginTop: "10px",
+                      textDecoration: "none",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "6px",
+                    }}
+                  >
+                    <ExternalLink size={16} />
+                    Test Project Link
+                  </a>
+                )}
+
+              </div>
+            )
+          )}
+
+          {(content.projects || []).length === 0 && (
+            <div
+              style={{
+                padding: "24px",
+                marginTop: "16px",
+                borderRadius: "12px",
+                textAlign: "center",
+                border: "1px dashed rgba(127, 127, 127, 0.4)",
+              }}
+            >
+              <p className="field-help">
+                No projects added yet.
+              </p>
+            </div>
+          )}
+
+          <button
+            type="button"
+            className="save-btn"
+            onClick={addProject}
+            disabled={saving}
+            style={{
+              marginTop: "18px",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "8px",
+            }}
+          >
+            <Plus size={18} />
+            Add Project
+          </button>
 
         </section>
 
@@ -1742,16 +1989,19 @@ export default function Admin() {
               uploadingResume
             }
           >
+
             <Save size={20} />
 
             {saving
               ? "Saving..."
               : "Save Changes"}
+
           </button>
 
         </div>
 
       </main>
+
     </div>
   );
 }
