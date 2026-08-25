@@ -689,28 +689,58 @@ export default function Admin() {
    * SAVE CHANGES
    */
   async function saveChanges() {
-    try {
-      setSaving(true);
-      setError("");
-      setMessage("");
+  try {
+    setSaving(true);
+    setError("");
+    setMessage("");
 
-      if (!session) {
-        throw new Error(
-          "You are not logged in. Please login again."
-        );
-      }
+    if (!session) {
+      throw new Error(
+        "You are not logged in. Please login again."
+      );
+    }
 
-      if (uploadingPhoto) {
-        throw new Error(
-          "Please wait until the photo upload finishes."
-        );
-      }
+    console.log("=== UPDATE TEST START ===");
+    console.log("Session user:", session.user?.id);
+    console.log("Session email:", session.user?.email);
 
-      if (uploadingResume) {
-        throw new Error(
-          "Please wait until the resume upload finishes."
-        );
-      }
+    const testResult = await supabase
+      .from("site_content")
+      .update({
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", "main")
+      .select("id, updated_at")
+      .single();
+
+    console.log("=== UPDATE TEST RESULT ===");
+    console.log(testResult);
+
+    if (testResult.error) {
+      throw new Error(
+        "UPDATE TEST failed: " +
+          testResult.error.message
+      );
+    }
+
+    setMessage(
+      "UPDATE TEST SUCCESSFUL! 🎉"
+    );
+  } catch (err) {
+    console.error(
+      "UPDATE TEST FAILED:",
+      err
+    );
+
+    setError(
+      "UPDATE TEST FAILED: " +
+        (err?.message ||
+          "Unknown error")
+    );
+  } finally {
+    setSaving(false);
+  }
+}
 
       /*
        * Create a clean JSON-safe object.
