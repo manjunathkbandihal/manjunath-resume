@@ -1,3 +1,6 @@
+# main.jsx
+
+
 import React from "react";
 import ReactDOM from "react-dom/client";
 
@@ -100,10 +103,30 @@ const defaultContent = {
   ],
 
   achievements: [
-    "Best Performer",
-    "Quality Improvement",
-    "Team Leadership",
-    "Process Improvement",
+    {
+      title: "Best Performer",
+      description: "",
+      year: "",
+      organization: "",
+    },
+    {
+      title: "Quality Improvement",
+      description: "",
+      year: "",
+      organization: "",
+    },
+    {
+      title: "Team Leadership",
+      description: "",
+      year: "",
+      organization: "",
+    },
+    {
+      title: "Process Improvement",
+      description: "",
+      year: "",
+      organization: "",
+    },
   ],
 
   stats: [
@@ -131,6 +154,39 @@ const defaultContent = {
     linkedin: "",
   },
 };
+
+function normalizeAchievement(item) {
+  if (typeof item === "string") {
+    return {
+      title: item,
+      description: "",
+      year: "",
+      organization: "",
+    };
+  }
+
+  return {
+    title:
+      typeof item?.title === "string"
+        ? item.title
+        : "",
+
+    description:
+      typeof item?.description === "string"
+        ? item.description
+        : "",
+
+    year:
+      typeof item?.year === "string"
+        ? item.year
+        : "",
+
+    organization:
+      typeof item?.organization === "string"
+        ? item.organization
+        : "",
+  };
+}
 
 function mergeContent(saved) {
   if (!saved) {
@@ -211,7 +267,9 @@ function mergeContent(saved) {
 
     achievements:
       Array.isArray(saved.achievements)
-        ? saved.achievements
+        ? saved.achievements.map(
+            normalizeAchievement
+          )
         : defaultContent.achievements,
 
     stats:
@@ -350,6 +408,13 @@ function App() {
   const stats =
     Array.isArray(content.stats)
       ? content.stats
+      : [];
+
+  const achievements =
+    Array.isArray(content.achievements)
+      ? content.achievements.map(
+          normalizeAchievement
+        )
       : [];
 
   return (
@@ -523,8 +588,6 @@ function App() {
               </div>
 
             </div>
-
-            {/* PROFILE PHOTO */}
 
             <div className="portrait-wrap">
 
@@ -721,8 +784,6 @@ function App() {
 
             <div className="experience-grid">
 
-              {/* DYNAMIC EXPERIENCE TIMELINE */}
-
               <div className="timeline-card">
 
                 {experiences.length > 0 ? (
@@ -830,8 +891,6 @@ function App() {
                 )}
 
               </div>
-
-              {/* PROFESSIONAL STATS */}
 
               <div className="stats-grid">
 
@@ -999,58 +1058,87 @@ function App() {
 
             <div className="achievement-grid">
 
-              {(content.achievements || []).map(
+              {achievements.map(
                 (
                   achievement,
                   index
-                ) => {
+                ) => (
+                  <article
+                    className="achievement achievement-animated"
+                    key={
+                      achievement.title ||
+                      index
+                    }
+                    style={{
+                      "--achievement-index":
+                        index,
+                    }}
+                  >
 
-                  const title =
-                    typeof achievement ===
-                    "string"
-                      ? achievement
-                      : achievement?.title ||
-                        "Achievement";
+                    <div className="round-icon achievement-icon-animated">
+                      <Award
+                        size={20}
+                      />
+                    </div>
 
-                  const text =
-                    typeof achievement ===
-                    "string"
-                      ? ""
-                      : achievement?.description ||
-                        "";
+                    <div className="achievement-content">
 
-                  return (
-                    <article
-                      className="achievement"
-                      key={index}
-                    >
+                      <h3>
+                        {achievement.title ||
+                          "Achievement"}
+                      </h3>
 
-                      <div className="round-icon">
-                        <Award
-                          size={20}
-                        />
-                      </div>
+                      {achievement.description && (
+                        <p>
+                          {
+                            achievement.description
+                          }
+                        </p>
+                      )}
 
-                      <div>
+                      {(achievement.year ||
+                        achievement.organization) && (
+                        <div className="achievement-meta">
 
-                        <h3>
-                          {title}
-                        </h3>
+                          {achievement.year && (
+                            <span>
+                              {
+                                achievement.year
+                              }
+                            </span>
+                          )}
 
-                        {text && (
-                          <p>
-                            {text}
-                          </p>
-                        )}
+                          {achievement.organization && (
+                            <span>
+                              {
+                                achievement.organization
+                              }
+                            </span>
+                          )}
 
-                      </div>
+                        </div>
+                      )}
 
-                    </article>
-                  );
-                }
+                    </div>
+
+                  </article>
+                )
               )}
 
             </div>
+
+            {achievements.length === 0 && (
+              <div
+                className="achievement-empty"
+              >
+                <Award size={28} />
+
+                <p>
+                  Achievements will appear
+                  here.
+                </p>
+              </div>
+            )}
 
           </div>
         </section>
@@ -1190,8 +1278,6 @@ function App() {
 
       </main>
 
-      {/* FOOTER */}
-
       <footer className="footer">
         <div className="container">
 
@@ -1319,3 +1405,4 @@ ReactDOM.createRoot(
     <Root />
   </React.StrictMode>
 );
+
