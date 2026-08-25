@@ -14,16 +14,20 @@ import {
   MapPin,
   GraduationCap,
   Camera,
+  FileText,
+  ExternalLink,
 } from "lucide-react";
 
 import { supabase } from "./supabase";
 
 const PHOTO_BUCKET = "profile-photos";
+const RESUME_BUCKET = "resume";
 
 const emptyContent = {
   name: "Manjunath Bandihal",
   title: "Data Annotation Team Lead",
   photo: "",
+  resume: "",
   about: "",
 
   personal: {
@@ -41,9 +45,7 @@ const emptyContent = {
   ],
 
   skills: [],
-
   projects: [],
-
   achievements: [],
 
   contact: {
@@ -97,6 +99,11 @@ function mergeContent(saved) {
     achievements: Array.isArray(saved.achievements)
       ? saved.achievements
       : [],
+
+    resume:
+      typeof saved.resume === "string"
+        ? saved.resume
+        : "",
   };
 }
 
@@ -123,6 +130,9 @@ export default function Admin() {
     useState(false);
 
   const [uploadingPhoto, setUploadingPhoto] =
+    useState(false);
+
+  const [uploadingResume, setUploadingResume] =
     useState(false);
 
   const [error, setError] =
@@ -418,11 +428,6 @@ export default function Admin() {
 
   /*
    * PROFILE PHOTO UPLOAD
-   *
-   * Important:
-   * We upload the actual image to Supabase Storage.
-   * Only the resulting public URL is saved inside
-   * site_content.content.photo.
    */
   async function handlePhotoUpload(event) {
     const file =
@@ -474,9 +479,6 @@ export default function Admin() {
         "." +
         extension;
 
-      /*
-       * Upload image to Supabase Storage.
-       */
       const uploadResult =
         await supabase.storage
           .from(PHOTO_BUCKET)
@@ -497,9 +499,6 @@ export default function Admin() {
         );
       }
 
-      /*
-       * Get public URL.
-       */
       const publicUrlResult =
         supabase.storage
           .from(PHOTO_BUCKET)
@@ -514,11 +513,6 @@ export default function Admin() {
         );
       }
 
-      /*
-       * IMPORTANT:
-       * Save ONLY the URL in React state.
-       * Never save the File object or Base64 data.
-       */
       setContent((current) => ({
         ...current,
         photo: String(publicUrl),
@@ -559,13 +553,140 @@ export default function Admin() {
   }
 
   /*
+   * RESUME PDF UPLOAD
+   *
+   * The PDF is uploaded to the Supabase
+   * Storage bucket named "resume".
+   *
+   * Only the public URL is stored in
+   * site_content.content.resume.
+   */
+  async function handleResumeUpload(event) {
+    const file =
+      event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    try {
+      setError("");
+      setMessage("");
+      setUploadingResume(true);
+
+      if (!session) {
+        throw new Error(
+          "You are not logged in. Please login again."
+        );
+      }
+
+      if (
+        file.type !==
+        "application/pdf"
+      ) {
+        throw new Error(
+          "Please select a PDF resume file."
+        );
+      }
+
+      const maxSize =
+        10 * 1024 * 1024;
+
+      if (file.size > maxSize) {
+        throw new Error(
+          "Resume must be smaller than 10 MB."
+        );
+      }
+
+      /*
+       * Use a new filename every time.
+       * This prevents cache problems when
+       * replacing an existing resume.
+       */
+      const fileName =
+        "resume-" +
+        Date.now() +
+        ".pdf";
+
+      const uploadResult =
+        await supabase.storage
+          .from(RESUME_BUCKET)
+          .upload(
+            fileName,
+            file,
+            {
+              cacheControl: "3600",
+              upsert: true,
+              contentType:
+                "application/pdf",
+            }
+          );
+
+      if (uploadResult.error) {
+        throw new Error(
+          "Resume storage upload failed: " +
+            uploadResult.error.message
+        );
+      }
+
+      const publicUrlResult =
+        supabase.storage
+          .from(RESUME_BUCKET)
+          .getPublicUrl(fileName);
+
+      const publicUrl =
+        publicUrlResult?.data?.publicUrl;
+
+      if (!publicUrl) {
+        throw new Error(
+          "Resume uploaded, but Supabase did not return a public URL."
+        );
+      }
+
+      /*
+       * Store ONLY the URL.
+       */
+      setContent((current) => ({
+        ...current,
+        resume: String(publicUrl),
+      }));
+
+      setMessage(
+        "Resume uploaded successfully. Now click Save Changes."
+      );
+    } catch (err) {
+      console.error(
+        "Resume upload failed:",
+        err
+      );
+
+      setError(
+        "Resume upload failed: " +
+          (err?.message ||
+            "Unknown error")
+      );
+    } finally {
+      setUploadingResume(false);
+
+      if (event.target) {
+        event.target.value = "";
+      }
+    }
+  }
+
+  function removeResume() {
+    setContent((current) => ({
+      ...current,
+      resume: "",
+    }));
+
+    setMessage(
+      "Resume removed from the profile. Click Save Changes to publish the change."
+    );
+  }
+
+  /*
    * SAVE CHANGES
-   *
-   * Before sending the database request, we create
-   * a clean JSON-safe copy of the content.
-   *
-   * This prevents File objects, Blob objects or
-   * other non-JSON values from being sent to Supabase.
    */
   async function saveChanges() {
     try {
@@ -585,167 +706,177 @@ export default function Admin() {
         );
       }
 
-      /*
-       * Create a JSON-safe copy.
-       */
-      const cleanContent =
-        JSON.parse(
-          JSON.stringify({
-            name:
-              typeof content.name === "string"
-                ? content.name
-                : "",
-
-            title:
-              typeof content.title === "string"
-                ? content.title
-                : "",
-
-            photo:
-              typeof content.photo === "string"
-                ? content.photo
-                : "",
-
-            about:
-              typeof content.about === "string"
-                ? content.about
-                : "",
-
-            personal: {
-              location:
-                typeof content.personal
-                  ?.location === "string"
-                  ? content.personal.location
-                  : "",
-
-              education:
-                typeof content.personal
-                  ?.education === "string"
-                  ? content.personal.education
-                  : "",
-            },
-
-            experience:
-              Array.isArray(
-                content.experience
-              )
-                ? content.experience.map(
-                    (item) => ({
-                      role:
-                        typeof item?.role ===
-                        "string"
-                          ? item.role
-                          : "",
-
-                      company:
-                        typeof item?.company ===
-                        "string"
-                          ? item.company
-                          : "",
-
-                      period:
-                        typeof item?.period ===
-                        "string"
-                          ? item.period
-                          : "",
-
-                      description:
-                        typeof item?.description ===
-                        "string"
-                          ? item.description
-                          : "",
-                    })
-                  )
-                : [],
-
-            skills:
-              Array.isArray(content.skills)
-                ? content.skills.filter(
-                    (item) =>
-                      typeof item ===
-                      "string"
-                  )
-                : [],
-
-            projects:
-              Array.isArray(content.projects)
-                ? content.projects.map(
-                    (project) => ({
-                      title:
-                        typeof project?.title ===
-                        "string"
-                          ? project.title
-                          : "",
-
-                      description:
-                        typeof project?.description ===
-                        "string"
-                          ? project.description
-                          : "",
-
-                      tag:
-                        typeof project?.tag ===
-                        "string"
-                          ? project.tag
-                          : "",
-                    })
-                  )
-                : [],
-
-            achievements:
-              Array.isArray(
-                content.achievements
-              )
-                ? content.achievements
-                    .map((item) => {
-                      if (
-                        typeof item ===
-                        "string"
-                      ) {
-                        return item;
-                      }
-
-                      return {
-                        title:
-                          typeof item?.title ===
-                          "string"
-                            ? item.title
-                            : "",
-
-                        description:
-                          typeof item?.description ===
-                          "string"
-                            ? item.description
-                            : "",
-                      };
-                    })
-                    .filter(Boolean)
-                : [],
-
-            contact: {
-              email:
-                typeof content.contact
-                  ?.email === "string"
-                  ? content.contact.email
-                  : "",
-
-              phone:
-                typeof content.contact
-                  ?.phone === "string"
-                  ? content.contact.phone
-                  : "",
-
-              linkedin:
-                typeof content.contact
-                  ?.linkedin === "string"
-                  ? content.contact.linkedin
-                  : "",
-            },
-          })
+      if (uploadingResume) {
+        throw new Error(
+          "Please wait until the resume upload finishes."
         );
+      }
 
       /*
-       * Extra photo validation.
+       * Create a clean JSON-safe object.
+       *
+       * No File objects are sent to Supabase.
+       */
+      const cleanContent = {
+        name:
+          typeof content.name === "string"
+            ? content.name
+            : "",
+
+        title:
+          typeof content.title === "string"
+            ? content.title
+            : "",
+
+        photo:
+          typeof content.photo === "string"
+            ? content.photo
+            : "",
+
+        resume:
+          typeof content.resume === "string"
+            ? content.resume
+            : "",
+
+        about:
+          typeof content.about === "string"
+            ? content.about
+            : "",
+
+        personal: {
+          location:
+            typeof content.personal
+              ?.location === "string"
+              ? content.personal.location
+              : "",
+
+          education:
+            typeof content.personal
+              ?.education === "string"
+              ? content.personal.education
+              : "",
+        },
+
+        experience:
+          Array.isArray(
+            content.experience
+          )
+            ? content.experience.map(
+                (item) => ({
+                  role:
+                    typeof item?.role ===
+                    "string"
+                      ? item.role
+                      : "",
+
+                  company:
+                    typeof item?.company ===
+                    "string"
+                      ? item.company
+                      : "",
+
+                  period:
+                    typeof item?.period ===
+                    "string"
+                      ? item.period
+                      : "",
+
+                  description:
+                    typeof item?.description ===
+                    "string"
+                      ? item.description
+                      : "",
+                })
+              )
+            : [],
+
+        skills:
+          Array.isArray(content.skills)
+            ? content.skills.filter(
+                (item) =>
+                  typeof item ===
+                  "string"
+              )
+            : [],
+
+        projects:
+          Array.isArray(content.projects)
+            ? content.projects.map(
+                (project) => ({
+                  title:
+                    typeof project?.title ===
+                    "string"
+                      ? project.title
+                      : "",
+
+                  description:
+                    typeof project?.description ===
+                    "string"
+                      ? project.description
+                      : "",
+
+                  tag:
+                    typeof project?.tag ===
+                    "string"
+                      ? project.tag
+                      : "",
+                })
+              )
+            : [],
+
+        achievements:
+          Array.isArray(
+            content.achievements
+          )
+            ? content.achievements
+                .map((item) => {
+                  if (
+                    typeof item ===
+                    "string"
+                  ) {
+                    return item;
+                  }
+
+                  return {
+                    title:
+                      typeof item?.title ===
+                      "string"
+                        ? item.title
+                        : "",
+
+                    description:
+                      typeof item?.description ===
+                      "string"
+                        ? item.description
+                        : "",
+                  };
+                })
+                .filter(Boolean)
+            : [],
+
+        contact: {
+          email:
+            typeof content.contact
+              ?.email === "string"
+              ? content.contact.email
+              : "",
+
+          phone:
+            typeof content.contact
+              ?.phone === "string"
+              ? content.contact.phone
+              : "",
+
+          linkedin:
+            typeof content.contact
+              ?.linkedin === "string"
+              ? content.contact.linkedin
+              : "",
+        },
+      };
+
+      /*
+       * Validate URLs.
        */
       if (
         cleanContent.photo &&
@@ -758,8 +889,19 @@ export default function Admin() {
         );
       }
 
+      if (
+        cleanContent.resume &&
+        !cleanContent.resume.startsWith(
+          "http"
+        )
+      ) {
+        throw new Error(
+          "The resume URL is invalid."
+        );
+      }
+
       /*
-       * Send the clean JSON object to Supabase.
+       * Database update.
        */
       const result = await supabase
         .from("site_content")
@@ -778,12 +920,14 @@ export default function Admin() {
       }
 
       /*
-       * Verify that the row can be read after saving.
+       * Verify the saved record.
        */
       const verify =
         await supabase
           .from("site_content")
-          .select("content, updated_at")
+          .select(
+            "content, updated_at"
+          )
           .eq("id", "main")
           .maybeSingle();
 
@@ -1040,7 +1184,8 @@ export default function Admin() {
             onChange={handlePhotoUpload}
             disabled={
               uploadingPhoto ||
-              saving
+              saving ||
+              uploadingResume
             }
           />
 
@@ -1057,7 +1202,8 @@ export default function Admin() {
               onClick={removePhoto}
               disabled={
                 uploadingPhoto ||
-                saving
+                saving ||
+                uploadingResume
               }
             >
               Remove Photo
@@ -1111,6 +1257,93 @@ export default function Admin() {
               )
             }
           />
+
+        </section>
+
+        {/* RESUME */}
+
+        <section className="editor-card">
+
+          <div className="editor-card-title">
+            <FileText size={20} />
+
+            <h2>
+              Resume / CV
+            </h2>
+          </div>
+
+          <label>
+            <FileText size={14} />
+            Upload Resume PDF
+          </label>
+
+          <input
+            type="file"
+            accept="application/pdf,.pdf"
+            onChange={handleResumeUpload}
+            disabled={
+              uploadingResume ||
+              saving ||
+              uploadingPhoto
+            }
+          />
+
+          {uploadingResume && (
+            <p className="field-help">
+              Uploading resume to Supabase Storage...
+            </p>
+          )}
+
+          {content.resume && !uploadingResume && (
+            <div
+              style={{
+                display: "flex",
+                gap: "10px",
+                flexWrap: "wrap",
+                marginTop: "12px",
+              }}
+            >
+              <a
+                href={content.resume}
+                target="_blank"
+                rel="noreferrer"
+                className="back-home"
+                style={{
+                  textDecoration: "none",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                }}
+              >
+                <ExternalLink size={16} />
+                View Current Resume
+              </a>
+
+              <button
+                type="button"
+                className="back-home"
+                onClick={removeResume}
+                disabled={
+                  uploadingResume ||
+                  saving ||
+                  uploadingPhoto
+                }
+              >
+                Remove Resume
+              </button>
+            </div>
+          )}
+
+          <p className="field-help">
+            Upload your resume as a PDF.
+            Maximum size: 10 MB.
+          </p>
+
+          {!content.resume && (
+            <p className="field-help">
+              No resume uploaded yet.
+            </p>
+          )}
 
         </section>
 
@@ -1455,7 +1688,8 @@ export default function Admin() {
             disabled={
               saving ||
               loadingContent ||
-              uploadingPhoto
+              uploadingPhoto ||
+              uploadingResume
             }
           >
             <Save size={20} />
