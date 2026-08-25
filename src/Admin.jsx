@@ -18,8 +18,7 @@ import {
   ExternalLink,
   Plus,
   Trash2,
-  ArrowUp,
-  ArrowDown,
+  BarChart3,
 } from "lucide-react";
 
 import { supabase } from "./supabase";
@@ -33,6 +32,37 @@ const emptyExperience = {
   period: "",
   description: "",
 };
+
+const emptyProject = {
+  title: "",
+  description: "",
+  tag: "",
+  url: "",
+};
+
+const emptyStat = {
+  value: "",
+  label: "",
+};
+
+const defaultStats = [
+  {
+    value: "18+",
+    label: "Projects handled concurrently",
+  },
+  {
+    value: "90%",
+    label: "Reduction in escalations",
+  },
+  {
+    value: "100%",
+    label: "Focus on on-time delivery",
+  },
+  {
+    value: "10+",
+    label: "Team members supported",
+  },
+];
 
 const emptyContent = {
   name: "Manjunath Bandihal",
@@ -48,10 +78,7 @@ const emptyContent = {
 
   experience: [
     {
-      role: "",
-      company: "",
-      period: "",
-      description: "",
+      ...emptyExperience,
     },
   ],
 
@@ -61,6 +88,8 @@ const emptyContent = {
 
   achievements: [],
 
+  stats: defaultStats,
+
   contact: {
     email: "",
     phone: "",
@@ -68,48 +97,17 @@ const emptyContent = {
   },
 };
 
-function normalizeExperience(item) {
-  return {
-    role:
-      typeof item?.role === "string"
-        ? item.role
-        : "",
-
-    company:
-      typeof item?.company === "string"
-        ? item.company
-        : "",
-
-    period:
-      typeof item?.period === "string"
-        ? item.period
-        : "",
-
-    description:
-      typeof item?.description === "string"
-        ? item.description
-        : "",
-  };
-}
-
 function mergeContent(saved) {
   if (!saved) {
     return {
       ...emptyContent,
-      personal: {
-        ...emptyContent.personal,
-      },
-      contact: {
-        ...emptyContent.contact,
-      },
-      experience: [
-        {
-          ...emptyExperience,
-        },
-      ],
-      skills: [],
+      personal: { ...emptyContent.personal },
+      contact: { ...emptyContent.contact },
+      experience: [{ ...emptyExperience }],
       projects: [],
+      skills: [],
       achievements: [],
+      stats: defaultStats.map((item) => ({ ...item })),
     };
   }
 
@@ -130,14 +128,25 @@ function mergeContent(saved) {
     experience:
       Array.isArray(saved.experience) &&
       saved.experience.length > 0
-        ? saved.experience.map(
-            normalizeExperience
-          )
-        : [
-            {
-              ...emptyExperience,
-            },
-          ],
+        ? saved.experience.map((item) => ({
+            role:
+              typeof item?.role === "string"
+                ? item.role
+                : "",
+            company:
+              typeof item?.company === "string"
+                ? item.company
+                : "",
+            period:
+              typeof item?.period === "string"
+                ? item.period
+                : "",
+            description:
+              typeof item?.description === "string"
+                ? item.description
+                : "",
+          }))
+        : [{ ...emptyExperience }],
 
     skills: Array.isArray(saved.skills)
       ? saved.skills
@@ -149,18 +158,14 @@ function mergeContent(saved) {
             typeof project?.title === "string"
               ? project.title
               : "",
-
           description:
-            typeof project?.description ===
-            "string"
+            typeof project?.description === "string"
               ? project.description
               : "",
-
           tag:
             typeof project?.tag === "string"
               ? project.tag
               : "",
-
           url:
             typeof project?.url === "string"
               ? project.url
@@ -168,15 +173,33 @@ function mergeContent(saved) {
         }))
       : [],
 
-    achievements: Array.isArray(
-      saved.achievements
-    )
+    achievements: Array.isArray(saved.achievements)
       ? saved.achievements
       : [],
+
+    stats:
+      Array.isArray(saved.stats) &&
+      saved.stats.length > 0
+        ? saved.stats.map((stat) => ({
+            value:
+              typeof stat?.value === "string"
+                ? stat.value
+                : "",
+            label:
+              typeof stat?.label === "string"
+                ? stat.label
+                : "",
+          }))
+        : defaultStats.map((item) => ({ ...item })),
 
     resume:
       typeof saved.resume === "string"
         ? saved.resume
+        : "",
+
+    photo:
+      typeof saved.photo === "string"
+        ? saved.photo
         : "",
   };
 }
@@ -215,12 +238,6 @@ export default function Admin() {
   const [message, setMessage] =
     useState("");
 
-  /*
-   * ============================================================
-   * CHECK LOGIN SESSION
-   * ============================================================
-   */
-
   useEffect(() => {
     let mounted = true;
 
@@ -235,9 +252,7 @@ export default function Admin() {
           throw result.error;
         }
 
-        if (!mounted) {
-          return;
-        }
+        if (!mounted) return;
 
         const currentSession =
           result.data?.session || null;
@@ -271,9 +286,7 @@ export default function Admin() {
     const authListener =
       supabase.auth.onAuthStateChange(
         (_event, newSession) => {
-          if (!mounted) {
-            return;
-          }
+          if (!mounted) return;
 
           setSession(newSession);
 
@@ -289,16 +302,9 @@ export default function Admin() {
 
     return () => {
       mounted = false;
-
       authListener?.data?.subscription?.unsubscribe();
     };
   }, []);
-
-  /*
-   * ============================================================
-   * LOAD CONTENT
-   * ============================================================
-   */
 
   async function loadContent() {
     try {
@@ -328,19 +334,12 @@ export default function Admin() {
 
       setError(
         "Unable to load website content: " +
-          (err?.message ||
-            "Unknown error")
+          (err?.message || "Unknown error")
       );
     } finally {
       setLoadingContent(false);
     }
   }
-
-  /*
-   * ============================================================
-   * LOGIN
-   * ============================================================
-   */
 
   async function handleLogin(event) {
     event.preventDefault();
@@ -373,7 +372,6 @@ export default function Admin() {
       }
 
       setSession(result.data.session);
-
       await loadContent();
     } catch (err) {
       console.error(
@@ -382,19 +380,12 @@ export default function Admin() {
       );
 
       setError(
-        err?.message ||
-          "Login failed."
+        err?.message || "Login failed."
       );
     } finally {
       setLoggingIn(false);
     }
   }
-
-  /*
-   * ============================================================
-   * LOGOUT
-   * ============================================================
-   */
 
   async function handleLogout() {
     try {
@@ -417,17 +408,10 @@ export default function Admin() {
       );
 
       setError(
-        err?.message ||
-          "Logout failed."
+        err?.message || "Logout failed."
       );
     }
   }
-
-  /*
-   * ============================================================
-   * GENERIC FIELD UPDATE
-   * ============================================================
-   */
 
   function updateField(field, value) {
     setContent((current) => ({
@@ -436,16 +420,9 @@ export default function Admin() {
     }));
   }
 
-  /*
-   * ============================================================
-   * PERSONAL INFORMATION
-   * ============================================================
-   */
-
   function updatePersonal(field, value) {
     setContent((current) => ({
       ...current,
-
       personal: {
         ...(current.personal || {}),
         [field]: value,
@@ -453,16 +430,9 @@ export default function Admin() {
     }));
   }
 
-  /*
-   * ============================================================
-   * CONTACT
-   * ============================================================
-   */
-
   function updateContact(field, value) {
     setContent((current) => ({
       ...current,
-
       contact: {
         ...(current.contact || {}),
         [field]: value,
@@ -470,21 +440,14 @@ export default function Admin() {
     }));
   }
 
-  /*
-   * ============================================================
-   * EXPERIENCE MANAGEMENT
-   * ============================================================
-   */
+  /* EXPERIENCE */
 
   function addExperience() {
     setContent((current) => ({
       ...current,
-
       experience: [
         ...(current.experience || []),
-        {
-          ...emptyExperience,
-        },
+        { ...emptyExperience },
       ],
     }));
 
@@ -540,80 +503,60 @@ export default function Admin() {
     );
   }
 
-  /*
-   * MOVE EXPERIENCE UP
-   */
+  /* STATS */
 
-  function moveExperienceUp(index) {
-    if (index <= 0) {
-      return;
-    }
+  function addStat() {
+    setContent((current) => ({
+      ...current,
+      stats: [
+        ...(current.stats || []),
+        { ...emptyStat },
+      ],
+    }));
 
+    setMessage(
+      "New stat added. Fill in the value and description, then save."
+    );
+  }
+
+  function updateStat(index, field, value) {
     setContent((current) => {
-      const experience = [
-        ...(current.experience || []),
+      const stats = [
+        ...(current.stats || []),
       ];
 
-      [
-        experience[index - 1],
-        experience[index],
-      ] = [
-        experience[index],
-        experience[index - 1],
-      ];
+      stats[index] = {
+        ...(stats[index] || {}),
+        [field]: value,
+      };
 
       return {
         ...current,
-        experience,
+        stats,
+      };
+    });
+  }
+
+  function deleteStat(index) {
+    setContent((current) => {
+      const stats = [
+        ...(current.stats || []),
+      ];
+
+      stats.splice(index, 1);
+
+      return {
+        ...current,
+        stats,
       };
     });
 
     setMessage(
-      "Experience order changed. Click Save Changes to publish the change."
+      "Stat removed. Click Save Changes to publish the change."
     );
   }
 
-  /*
-   * MOVE EXPERIENCE DOWN
-   */
-
-  function moveExperienceDown(index) {
-    setContent((current) => {
-      const experience = [
-        ...(current.experience || []),
-      ];
-
-      if (
-        index < 0 ||
-        index >= experience.length - 1
-      ) {
-        return current;
-      }
-
-      [
-        experience[index],
-        experience[index + 1],
-      ] = [
-        experience[index + 1],
-        experience[index],
-      ];
-
-      return {
-        ...current,
-        experience,
-      };
-    });
-
-    setMessage(
-      "Experience order changed. Click Save Changes to publish the change."
-    );
-  }
-
-  /*
-   * ============================================================
-   * SKILLS
-   * ============================================================
-   */
+  /* SKILLS */
 
   function updateSkills(value) {
     const skills = value
@@ -624,11 +567,7 @@ export default function Admin() {
     updateField("skills", skills);
   }
 
-  /*
-   * ============================================================
-   * ACHIEVEMENTS
-   * ============================================================
-   */
+  /* ACHIEVEMENTS */
 
   function updateAchievements(value) {
     const achievements = value
@@ -642,25 +581,14 @@ export default function Admin() {
     );
   }
 
-  /*
-   * ============================================================
-   * PROJECT MANAGEMENT
-   * ============================================================
-   */
+  /* PROJECTS */
 
   function addProject() {
     setContent((current) => ({
       ...current,
-
       projects: [
         ...(current.projects || []),
-
-        {
-          title: "",
-          description: "",
-          tag: "",
-          url: "",
-        },
+        { ...emptyProject },
       ],
     }));
 
@@ -710,19 +638,13 @@ export default function Admin() {
     );
   }
 
-  /*
-   * ============================================================
-   * PROFILE PHOTO UPLOAD
-   * ============================================================
-   */
+  /* PHOTO */
 
   async function handlePhotoUpload(event) {
     const file =
       event.target.files?.[0];
 
-    if (!file) {
-      return;
-    }
+    if (!file) return;
 
     try {
       setError("");
@@ -741,10 +663,7 @@ export default function Admin() {
         );
       }
 
-      const maxSize =
-        5 * 1024 * 1024;
-
-      if (file.size > maxSize) {
+      if (file.size > 5 * 1024 * 1024) {
         throw new Error(
           "Photo must be smaller than 5 MB."
         );
@@ -816,8 +735,7 @@ export default function Admin() {
 
       setError(
         "Photo upload failed: " +
-          (err?.message ||
-            "Unknown error")
+          (err?.message || "Unknown error")
       );
     } finally {
       setUploadingPhoto(false);
@@ -839,19 +757,13 @@ export default function Admin() {
     );
   }
 
-  /*
-   * ============================================================
-   * RESUME PDF UPLOAD
-   * ============================================================
-   */
+  /* RESUME */
 
   async function handleResumeUpload(event) {
     const file =
       event.target.files?.[0];
 
-    if (!file) {
-      return;
-    }
+    if (!file) return;
 
     try {
       setError("");
@@ -864,19 +776,13 @@ export default function Admin() {
         );
       }
 
-      if (
-        file.type !==
-        "application/pdf"
-      ) {
+      if (file.type !== "application/pdf") {
         throw new Error(
           "Please select a PDF resume file."
         );
       }
 
-      const maxSize =
-        10 * 1024 * 1024;
-
-      if (file.size > maxSize) {
+      if (file.size > 10 * 1024 * 1024) {
         throw new Error(
           "Resume must be smaller than 10 MB."
         );
@@ -938,8 +844,7 @@ export default function Admin() {
 
       setError(
         "Resume upload failed: " +
-          (err?.message ||
-            "Unknown error")
+          (err?.message || "Unknown error")
       );
     } finally {
       setUploadingResume(false);
@@ -961,11 +866,7 @@ export default function Admin() {
     );
   }
 
-  /*
-   * ============================================================
-   * SAVE CHANGES
-   * ============================================================
-   */
+  /* SAVE */
 
   async function saveChanges() {
     try {
@@ -991,33 +892,6 @@ export default function Admin() {
         );
       }
 
-      /*
-       * CLEAN EXPERIENCE DATA
-       *
-       * Empty experience cards are ignored when saving,
-       * except that the editor itself always keeps one card.
-       */
-
-      const cleanExperience =
-        Array.isArray(content.experience)
-          ? content.experience
-              .map(normalizeExperience)
-              .map((item) => ({
-                role: item.role.trim(),
-                company: item.company.trim(),
-                period: item.period.trim(),
-                description:
-                  item.description.trim(),
-              }))
-              .filter(
-                (item) =>
-                  item.role ||
-                  item.company ||
-                  item.period ||
-                  item.description
-              )
-          : [];
-
       const cleanContent = {
         name:
           typeof content.name === "string"
@@ -1041,30 +915,48 @@ export default function Admin() {
 
         about:
           typeof content.about === "string"
-            ? content.about.trim()
+            ? content.about
             : "",
 
         personal: {
           location:
-            typeof content.personal
-              ?.location === "string"
+            typeof content.personal?.location ===
+            "string"
               ? content.personal.location.trim()
               : "",
 
           education:
-            typeof content.personal
-              ?.education === "string"
+            typeof content.personal?.education ===
+            "string"
               ? content.personal.education.trim()
               : "",
         },
 
-        /*
-         * EXPERIENCE
-         *
-         * Order is preserved exactly as shown
-         * in the Admin panel.
-         */
-        experience: cleanExperience,
+        experience:
+          Array.isArray(content.experience)
+            ? content.experience.map((item) => ({
+                role:
+                  typeof item?.role === "string"
+                    ? item.role.trim()
+                    : "",
+
+                company:
+                  typeof item?.company === "string"
+                    ? item.company.trim()
+                    : "",
+
+                period:
+                  typeof item?.period === "string"
+                    ? item.period.trim()
+                    : "",
+
+                description:
+                  typeof item?.description ===
+                  "string"
+                    ? item.description.trim()
+                    : "",
+              }))
+            : [],
 
         skills:
           Array.isArray(content.skills)
@@ -1073,9 +965,7 @@ export default function Admin() {
                   (item) =>
                     typeof item === "string"
                 )
-                .map((item) =>
-                  item.trim()
-                )
+                .map((item) => item.trim())
                 .filter(Boolean)
             : [],
 
@@ -1111,14 +1001,11 @@ export default function Admin() {
             : [],
 
         achievements:
-          Array.isArray(
-            content.achievements
-          )
+          Array.isArray(content.achievements)
             ? content.achievements
                 .map((item) => {
                   if (
-                    typeof item ===
-                    "string"
+                    typeof item === "string"
                   ) {
                     return item.trim();
                   }
@@ -1140,64 +1027,69 @@ export default function Admin() {
                 .filter(Boolean)
             : [],
 
+        stats:
+          Array.isArray(content.stats)
+            ? content.stats
+                .map((stat) => ({
+                  value:
+                    typeof stat?.value ===
+                    "string"
+                      ? stat.value.trim()
+                      : "",
+
+                  label:
+                    typeof stat?.label ===
+                    "string"
+                      ? stat.label.trim()
+                      : "",
+                }))
+                .filter(
+                  (stat) =>
+                    stat.value ||
+                    stat.label
+                )
+            : [],
+
         contact: {
           email:
-            typeof content.contact
-              ?.email === "string"
+            typeof content.contact?.email ===
+            "string"
               ? content.contact.email.trim()
               : "",
 
           phone:
-            typeof content.contact
-              ?.phone === "string"
+            typeof content.contact?.phone ===
+            "string"
               ? content.contact.phone.trim()
               : "",
 
           linkedin:
-            typeof content.contact
-              ?.linkedin === "string"
+            typeof content.contact?.linkedin ===
+            "string"
               ? content.contact.linkedin.trim()
               : "",
         },
       };
 
-      /*
-       * VALIDATE PHOTO URL
-       */
-
       if (
         cleanContent.photo &&
-        !cleanContent.photo.startsWith(
-          "http"
-        )
+        !cleanContent.photo.startsWith("http")
       ) {
         throw new Error(
           "The profile photo URL is invalid."
         );
       }
 
-      /*
-       * VALIDATE RESUME URL
-       */
-
       if (
         cleanContent.resume &&
-        !cleanContent.resume.startsWith(
-          "http"
-        )
+        !cleanContent.resume.startsWith("http")
       ) {
         throw new Error(
           "The resume URL is invalid."
         );
       }
 
-      /*
-       * VALIDATE PROJECT URLS
-       */
-
-      for (
-        const project of cleanContent.projects
-      ) {
+      for (const project of cleanContent.projects) {
         if (
           project.url &&
           !project.url.startsWith("http")
@@ -1208,24 +1100,17 @@ export default function Admin() {
         }
       }
 
-      /*
-       * VALIDATE LINKEDIN
-       */
-
-      if (
-        cleanContent.contact.linkedin &&
-        !cleanContent.contact.linkedin.startsWith(
-          "http"
-        )
-      ) {
-        throw new Error(
-          "LinkedIn URL must start with http or https."
-        );
+      if (cleanContent.contact.linkedin) {
+        if (
+          !cleanContent.contact.linkedin.startsWith(
+            "http"
+          )
+        ) {
+          throw new Error(
+            "The LinkedIn URL is invalid."
+          );
+        }
       }
-
-      /*
-       * UPDATE SUPABASE
-       */
 
       const result = await supabase
         .from("site_content")
@@ -1242,10 +1127,6 @@ export default function Admin() {
             result.error.message
         );
       }
-
-      /*
-       * VERIFY SAVE
-       */
 
       const verify =
         await supabase
@@ -1292,55 +1173,36 @@ export default function Admin() {
 
       setError(
         "Save failed: " +
-          (err?.message ||
-            "Unknown error")
+          (err?.message || "Unknown error")
       );
     } finally {
       setSaving(false);
     }
   }
 
-  /*
-   * ============================================================
-   * SESSION CHECK SCREEN
-   * ============================================================
-   */
-
   if (checkingSession) {
     return (
       <div className="admin-page">
         <div className="admin-card">
-
           <div className="admin-spinner">
             Loading...
           </div>
 
-          <h2>
-            Checking login...
-          </h2>
+          <h2>Checking login...</h2>
 
           <p>
             Please wait while we connect
             to your account.
           </p>
-
         </div>
       </div>
     );
   }
 
-  /*
-   * ============================================================
-   * LOGIN SCREEN
-   * ============================================================
-   */
-
   if (!session) {
     return (
       <div className="admin-page">
-
         <div className="admin-login-card">
-
           <div className="admin-logo">
             MB
           </div>
@@ -1349,9 +1211,7 @@ export default function Admin() {
             PRIVATE ADMIN AREA
           </div>
 
-          <h1>
-            Welcome Back
-          </h1>
+          <h1>Welcome Back</h1>
 
           <p className="admin-subtitle">
             Login to edit your resume
@@ -1362,10 +1222,7 @@ export default function Admin() {
             onSubmit={handleLogin}
             className="admin-login-form"
           >
-
-            <label>
-              Email
-            </label>
+            <label>Email</label>
 
             <input
               type="email"
@@ -1379,9 +1236,7 @@ export default function Admin() {
               autoComplete="email"
             />
 
-            <label>
-              Password
-            </label>
+            <label>Password</label>
 
             <input
               type="password"
@@ -1412,7 +1267,6 @@ export default function Admin() {
                 ? "Logging in..."
                 : "Login"}
             </button>
-
           </form>
 
           <button
@@ -1423,7 +1277,6 @@ export default function Admin() {
           >
             ← Back to Website
           </button>
-
         </div>
       </div>
     );
@@ -1434,31 +1287,24 @@ export default function Admin() {
       ? content.experience
       : [];
 
-  /*
-   * ============================================================
-   * ADMIN EDITOR
-   * ============================================================
-   */
+  const stats =
+    Array.isArray(content.stats)
+      ? content.stats
+      : [];
 
   return (
     <div className="editor-page">
-
       <header className="editor-header">
-
         <div>
-
           <div className="editor-label">
             ADMIN PANEL
           </div>
 
-          <h1>
-            Edit My Website
-          </h1>
+          <h1>Edit My Website</h1>
 
           <p>
             {session.user?.email}
           </p>
-
         </div>
 
         <button
@@ -1468,11 +1314,9 @@ export default function Admin() {
           <LogOut size={18} />
           Logout
         </button>
-
       </header>
 
       <main className="editor-container">
-
         {loadingContent && (
           <div className="admin-info">
             Loading your website content...
@@ -1491,22 +1335,15 @@ export default function Admin() {
           </div>
         )}
 
-        {/* =====================================================
-            PROFILE
-            ===================================================== */}
+        {/* PROFILE */}
 
         <section className="editor-card">
-
           <div className="editor-card-title">
             <User size={20} />
-
-            <h2>
-              Profile
-            </h2>
+            <h2>Profile</h2>
           </div>
 
           <div className="profile-preview">
-
             {content.photo ? (
               <img
                 src={content.photo}
@@ -1517,7 +1354,6 @@ export default function Admin() {
                 MB
               </div>
             )}
-
           </div>
 
           <label>
@@ -1558,13 +1394,11 @@ export default function Admin() {
           )}
 
           <p className="field-help">
-            Select a JPG, PNG, WEBP or GIF
-            image. Maximum size: 5 MB.
+            JPG, PNG, WEBP or GIF. Maximum
+            size: 5 MB.
           </p>
 
-          <label>
-            Full Name
-          </label>
+          <label>Full Name</label>
 
           <input
             value={content.name || ""}
@@ -1576,9 +1410,7 @@ export default function Admin() {
             }
           />
 
-          <label>
-            Professional Title
-          </label>
+          <label>Professional Title</label>
 
           <input
             value={content.title || ""}
@@ -1590,9 +1422,7 @@ export default function Admin() {
             }
           />
 
-          <label>
-            About Me
-          </label>
+          <label>About Me</label>
 
           <textarea
             rows="7"
@@ -1604,21 +1434,14 @@ export default function Admin() {
               )
             }
           />
-
         </section>
 
-        {/* =====================================================
-            RESUME
-            ===================================================== */}
+        {/* RESUME */}
 
         <section className="editor-card">
-
           <div className="editor-card-title">
             <FileText size={20} />
-
-            <h2>
-              Resume / CV
-            </h2>
+            <h2>Resume / CV</h2>
           </div>
 
           <label>
@@ -1653,7 +1476,6 @@ export default function Admin() {
                   marginTop: "12px",
                 }}
               >
-
                 <a
                   href={content.resume}
                   target="_blank"
@@ -1682,7 +1504,6 @@ export default function Admin() {
                 >
                   Remove Resume
                 </button>
-
               </div>
             )}
 
@@ -1696,21 +1517,14 @@ export default function Admin() {
               No resume uploaded yet.
             </p>
           )}
-
         </section>
 
-        {/* =====================================================
-            PERSONAL INFORMATION
-            ===================================================== */}
+        {/* PERSONAL */}
 
         <section className="editor-card">
-
           <div className="editor-card-title">
             <User size={20} />
-
-            <h2>
-              Personal Information
-            </h2>
+            <h2>Personal Information</h2>
           </div>
 
           <label>
@@ -1750,21 +1564,14 @@ export default function Admin() {
               )
             }
           />
-
         </section>
 
-        {/* =====================================================
-            CONTACT
-            ===================================================== */}
+        {/* CONTACT */}
 
         <section className="editor-card">
-
           <div className="editor-card-title">
             <Mail size={20} />
-
-            <h2>
-              Contact Information
-            </h2>
+            <h2>Contact Information</h2>
           </div>
 
           <label>
@@ -1826,29 +1633,21 @@ export default function Admin() {
               )
             }
           />
-
         </section>
 
-        {/* =====================================================
-            EXPERIENCE MANAGEMENT
-            ===================================================== */}
+        {/* EXPERIENCE */}
 
         <section className="editor-card">
-
           <div className="editor-card-title">
-
             <Briefcase size={20} />
-
-            <h2>
-              Experience
-            </h2>
-
+            <h2>Experience</h2>
           </div>
 
           <p className="field-help">
-            Manage your complete work history.
-            The order below is the same order
-            that will appear on your public website.
+            Add and manage all your
+            professional experiences. The
+            order here is the order shown
+            on your website.
           </p>
 
           {experiences.map(
@@ -1863,156 +1662,63 @@ export default function Admin() {
                   marginTop: "18px",
                 }}
               >
-
-                {/* EXPERIENCE HEADER */}
-
                 <div
                   style={{
                     display: "flex",
                     justifyContent:
                       "space-between",
-                    alignItems: "flex-start",
+                    alignItems: "center",
                     gap: "12px",
                     marginBottom: "16px",
-                    flexWrap: "wrap",
                   }}
                 >
-
                   <div>
-
-                    <h3
-                      style={{
-                        margin: 0,
-                      }}
-                    >
-                      Experience{" "}
-                      {index + 1}
+                    <h3 style={{ margin: 0 }}>
+                      Experience {index + 1}
                     </h3>
 
-                    <p
-                      className="field-help"
-                      style={{
-                        marginTop: "5px",
-                        marginBottom: 0,
-                      }}
-                    >
-                      {experience.role ||
-                        "New experience"}
-
-                      {experience.company
-                        ? ` • ${experience.company}`
-                        : ""}
-
-                      {experience.period
-                        ? ` • ${experience.period}`
-                        : ""}
-                    </p>
-
+                    {experience.role && (
+                      <p
+                        className="field-help"
+                        style={{
+                          marginTop: "5px",
+                        }}
+                      >
+                        {experience.role}
+                        {experience.company
+                          ? ` • ${experience.company}`
+                          : ""}
+                      </p>
+                    )}
                   </div>
 
-                  <div
+                  <button
+                    type="button"
+                    className="back-home"
+                    onClick={() =>
+                      deleteExperience(index)
+                    }
+                    disabled={saving}
                     style={{
-                      display: "flex",
+                      display:
+                        "inline-flex",
+                      alignItems:
+                        "center",
                       gap: "6px",
-                      flexWrap: "wrap",
                     }}
                   >
-
-                    {/* MOVE UP */}
-
-                    <button
-                      type="button"
-                      className="back-home"
-                      onClick={() =>
-                        moveExperienceUp(
-                          index
-                        )
-                      }
-                      disabled={
-                        saving ||
-                        index === 0
-                      }
-                      title="Move experience up"
-                      style={{
-                        display:
-                          "inline-flex",
-                        alignItems:
-                          "center",
-                        gap: "5px",
-                      }}
-                    >
-                      <ArrowUp size={15} />
-                      Up
-                    </button>
-
-                    {/* MOVE DOWN */}
-
-                    <button
-                      type="button"
-                      className="back-home"
-                      onClick={() =>
-                        moveExperienceDown(
-                          index
-                        )
-                      }
-                      disabled={
-                        saving ||
-                        index ===
-                          experiences.length -
-                            1
-                      }
-                      title="Move experience down"
-                      style={{
-                        display:
-                          "inline-flex",
-                        alignItems:
-                          "center",
-                        gap: "5px",
-                      }}
-                    >
-                      <ArrowDown size={15} />
-                      Down
-                    </button>
-
-                    {/* DELETE */}
-
-                    <button
-                      type="button"
-                      className="back-home"
-                      onClick={() =>
-                        deleteExperience(
-                          index
-                        )
-                      }
-                      disabled={saving}
-                      style={{
-                        display:
-                          "inline-flex",
-                        alignItems:
-                          "center",
-                        gap: "6px",
-                      }}
-                    >
-                      <Trash2 size={16} />
-                      Delete
-                    </button>
-
-                  </div>
-
+                    <Trash2 size={16} />
+                    Delete
+                  </button>
                 </div>
 
-                {/* JOB ROLE */}
-
-                <label>
-                  Job Role
-                </label>
+                <label>Job Role</label>
 
                 <input
                   type="text"
                   placeholder="Example: Data Annotation Team Lead"
                   value={
-                    experience.role ||
-                    ""
+                    experience.role || ""
                   }
                   onChange={(event) =>
                     updateExperience(
@@ -2023,11 +1729,7 @@ export default function Admin() {
                   }
                 />
 
-                {/* COMPANY */}
-
-                <label>
-                  Company
-                </label>
+                <label>Company</label>
 
                 <input
                   type="text"
@@ -2045,18 +1747,13 @@ export default function Admin() {
                   }
                 />
 
-                {/* PERIOD */}
-
-                <label>
-                  Period
-                </label>
+                <label>Period</label>
 
                 <input
                   type="text"
                   placeholder="Example: 2023 - Present"
                   value={
-                    experience.period ||
-                    ""
+                    experience.period || ""
                   }
                   onChange={(event) =>
                     updateExperience(
@@ -2067,11 +1764,7 @@ export default function Admin() {
                   }
                 />
 
-                {/* DESCRIPTION */}
-
-                <label>
-                  Description
-                </label>
+                <label>Description</label>
 
                 <p className="field-help">
                   Add one responsibility or
@@ -2081,7 +1774,7 @@ export default function Admin() {
                 <textarea
                   rows="8"
                   placeholder={
-                    "Led annotation teams across multiple projects.\nManaged daily targets and deadlines.\nEnsured high-quality annotations through reviews."
+                    "Led annotation teams across multiple projects.\nManaged daily targets and deadlines.\nEnsured high-quality annotations."
                   }
                   value={
                     experience.description ||
@@ -2095,59 +1788,9 @@ export default function Admin() {
                     )
                   }
                 />
-
-                {/* EXPERIENCE PREVIEW */}
-
-                {(experience.role ||
-                  experience.company ||
-                  experience.period ||
-                  experience.description) && (
-                  <div
-                    style={{
-                      marginTop: "18px",
-                      padding: "14px",
-                      borderRadius: "10px",
-                      background:
-                        "rgba(127, 127, 127, 0.07)",
-                    }}
-                  >
-
-                    <strong>
-                      Website Preview
-                    </strong>
-
-                    <p
-                      style={{
-                        margin:
-                          "8px 0 3px",
-                      }}
-                    >
-                      {experience.role ||
-                        "Job Role"}
-                    </p>
-
-                    <p
-                      className="field-help"
-                      style={{
-                        margin: 0,
-                      }}
-                    >
-                      {experience.company ||
-                        "Company"}
-
-                      {experience.period
-                        ? ` • ${experience.period}`
-                        : ""}
-                    </p>
-
-                  </div>
-                )}
-
               </div>
             )
           )}
-
-          {/* ADD EXPERIENCE */}
 
           <button
             type="button"
@@ -2156,74 +1799,180 @@ export default function Admin() {
             disabled={saving}
             style={{
               marginTop: "18px",
-              display:
-                "inline-flex",
-              alignItems:
-                "center",
+              display: "inline-flex",
+              alignItems: "center",
               gap: "8px",
             }}
           >
             <Plus size={18} />
-
             Add Experience
           </button>
-
         </section>
 
-        {/* =====================================================
-            SKILLS
-            ===================================================== */}
+        {/* PROFESSIONAL STATS */}
 
         <section className="editor-card">
-
           <div className="editor-card-title">
-            <Code size={20} />
-
-            <h2>
-              Skills
-            </h2>
+            <BarChart3 size={20} />
+            <h2>Professional Stats</h2>
           </div>
 
-          <label>
-            Skills
-          </label>
+          <p className="field-help">
+            These statistics are displayed in
+            the Experience section of your
+            website. Edit the value and
+            description whenever you need.
+          </p>
+
+          {stats.map((stat, index) => (
+            <div
+              key={index}
+              style={{
+                border:
+                  "1px solid rgba(127, 127, 127, 0.25)",
+                borderRadius: "14px",
+                padding: "18px",
+                marginTop: "16px",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent:
+                    "space-between",
+                  alignItems: "center",
+                  gap: "12px",
+                  marginBottom: "16px",
+                }}
+              >
+                <h3 style={{ margin: 0 }}>
+                  Stat {index + 1}
+                </h3>
+
+                <button
+                  type="button"
+                  className="back-home"
+                  onClick={() =>
+                    deleteStat(index)
+                  }
+                  disabled={saving}
+                  style={{
+                    display:
+                      "inline-flex",
+                    alignItems:
+                      "center",
+                    gap: "6px",
+                  }}
+                >
+                  <Trash2 size={16} />
+                  Delete
+                </button>
+              </div>
+
+              <label>
+                Stat Value
+              </label>
+
+              <input
+                type="text"
+                placeholder="Example: 18+"
+                value={stat.value || ""}
+                onChange={(event) =>
+                  updateStat(
+                    index,
+                    "value",
+                    event.target.value
+                  )
+                }
+              />
+
+              <label>
+                Stat Description
+              </label>
+
+              <input
+                type="text"
+                placeholder="Example: Projects handled concurrently"
+                value={stat.label || ""}
+                onChange={(event) =>
+                  updateStat(
+                    index,
+                    "label",
+                    event.target.value
+                  )
+                }
+              />
+            </div>
+          ))}
+
+          {stats.length === 0 && (
+            <div
+              style={{
+                padding: "24px",
+                marginTop: "16px",
+                borderRadius: "12px",
+                textAlign: "center",
+                border:
+                  "1px dashed rgba(127, 127, 127, 0.4)",
+              }}
+            >
+              <p className="field-help">
+                No professional stats added.
+              </p>
+            </div>
+          )}
+
+          <button
+            type="button"
+            className="save-btn"
+            onClick={addStat}
+            disabled={saving}
+            style={{
+              marginTop: "18px",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "8px",
+            }}
+          >
+            <Plus size={18} />
+            Add Stat
+          </button>
+        </section>
+
+        {/* SKILLS */}
+
+        <section className="editor-card">
+          <div className="editor-card-title">
+            <Code size={20} />
+            <h2>Skills</h2>
+          </div>
+
+          <label>Skills</label>
 
           <textarea
             rows="5"
             placeholder="Data Annotation, QA, Team Management, Segmentation..."
-            value={
-              (content.skills || [])
-                .join(", ")
-            }
+            value={(content.skills || []).join(
+              ", "
+            )}
             onChange={(event) =>
               updateSkills(
                 event.target.value
               )
             }
           />
-
         </section>
 
-        {/* =====================================================
-            PROJECTS MANAGEMENT
-            ===================================================== */}
+        {/* PROJECTS */}
 
         <section className="editor-card">
-
           <div className="editor-card-title">
-
             <FolderKanban size={20} />
-
-            <h2>
-              Projects
-            </h2>
-
+            <h2>Projects</h2>
           </div>
 
           <p className="field-help">
-            Add your professional projects below.
-            Each project can have a title,
-            description, technology/tag and project URL.
+            Add your professional projects.
           </p>
 
           {(content.projects || []).map(
@@ -2238,7 +1987,6 @@ export default function Admin() {
                   marginTop: "16px",
                 }}
               >
-
                 <div
                   style={{
                     display: "flex",
@@ -2249,12 +1997,7 @@ export default function Admin() {
                     marginBottom: "16px",
                   }}
                 >
-
-                  <h3
-                    style={{
-                      margin: 0,
-                    }}
-                  >
+                  <h3 style={{ margin: 0 }}>
                     Project {index + 1}
                   </h3>
 
@@ -2274,10 +2017,8 @@ export default function Admin() {
                     }}
                   >
                     <Trash2 size={16} />
-
                     Delete
                   </button>
-
                 </div>
 
                 <label>
@@ -2326,9 +2067,7 @@ export default function Admin() {
                 <input
                   type="text"
                   placeholder="Example: React, Vite, Supabase"
-                  value={
-                    project.tag || ""
-                  }
+                  value={project.tag || ""}
                   onChange={(event) =>
                     updateProject(
                       index,
@@ -2345,9 +2084,7 @@ export default function Admin() {
                 <input
                   type="url"
                   placeholder="https://your-project.vercel.app"
-                  value={
-                    project.url || ""
-                  }
+                  value={project.url || ""}
                   onChange={(event) =>
                     updateProject(
                       index,
@@ -2375,17 +2112,14 @@ export default function Admin() {
                     }}
                   >
                     <ExternalLink size={16} />
-
                     Test Project Link
                   </a>
                 )}
-
               </div>
             )
           )}
 
-          {(content.projects || []).length ===
-            0 && (
+          {content.projects?.length === 0 && (
             <div
               style={{
                 padding: "24px",
@@ -2409,37 +2143,25 @@ export default function Admin() {
             disabled={saving}
             style={{
               marginTop: "18px",
-              display:
-                "inline-flex",
-              alignItems:
-                "center",
+              display: "inline-flex",
+              alignItems: "center",
               gap: "8px",
             }}
           >
             <Plus size={18} />
-
             Add Project
           </button>
-
         </section>
 
-        {/* =====================================================
-            ACHIEVEMENTS
-            ===================================================== */}
+        {/* ACHIEVEMENTS */}
 
         <section className="editor-card">
-
           <div className="editor-card-title">
             <Award size={20} />
-
-            <h2>
-              Achievements
-            </h2>
+            <h2>Achievements</h2>
           </div>
 
-          <label>
-            Achievements
-          </label>
+          <label>Achievements</label>
 
           <p className="field-help">
             One achievement per line.
@@ -2447,37 +2169,28 @@ export default function Admin() {
 
           <textarea
             rows="7"
-            value={
-              (content.achievements || [])
-                .map((item) => {
-                  if (
-                    typeof item ===
-                    "string"
-                  ) {
-                    return item;
-                  }
+            value={(content.achievements || [])
+              .map((item) => {
+                if (
+                  typeof item === "string"
+                ) {
+                  return item;
+                }
 
-                  return (
-                    item.title || ""
-                  );
-                })
-                .join("\n")
-            }
+                return item.title || "";
+              })
+              .join("\n")}
             onChange={(event) =>
               updateAchievements(
                 event.target.value
               )
             }
           />
-
         </section>
 
-        {/* =====================================================
-            SAVE
-            ===================================================== */}
+        {/* SAVE */}
 
         <div className="save-area">
-
           <button
             className="save-btn"
             onClick={saveChanges}
@@ -2488,19 +2201,14 @@ export default function Admin() {
               uploadingResume
             }
           >
-
             <Save size={20} />
 
             {saving
               ? "Saving..."
               : "Save Changes"}
-
           </button>
-
         </div>
-
       </main>
-
     </div>
   );
 }
