@@ -18,6 +18,8 @@ import {
   ExternalLink,
   Plus,
   Trash2,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 
 import { supabase } from "./supabase";
@@ -66,14 +68,44 @@ const emptyContent = {
   },
 };
 
+function normalizeExperience(item) {
+  return {
+    role:
+      typeof item?.role === "string"
+        ? item.role
+        : "",
+
+    company:
+      typeof item?.company === "string"
+        ? item.company
+        : "",
+
+    period:
+      typeof item?.period === "string"
+        ? item.period
+        : "",
+
+    description:
+      typeof item?.description === "string"
+        ? item.description
+        : "",
+  };
+}
+
 function mergeContent(saved) {
   if (!saved) {
     return {
       ...emptyContent,
-      personal: { ...emptyContent.personal },
-      contact: { ...emptyContent.contact },
+      personal: {
+        ...emptyContent.personal,
+      },
+      contact: {
+        ...emptyContent.contact,
+      },
       experience: [
-        { ...emptyExperience },
+        {
+          ...emptyExperience,
+        },
       ],
       skills: [],
       projects: [],
@@ -95,58 +127,22 @@ function mergeContent(saved) {
       ...(saved.contact || {}),
     },
 
-    /*
-     * ============================================================
-     * EXPERIENCE
-     * ============================================================
-     *
-     * Supports multiple experience entries.
-     *
-     * Old experience data is also supported.
-     */
     experience:
       Array.isArray(saved.experience) &&
       saved.experience.length > 0
-        ? saved.experience.map((item) => ({
-            role:
-              typeof item?.role === "string"
-                ? item.role
-                : "",
-
-            company:
-              typeof item?.company === "string"
-                ? item.company
-                : "",
-
-            period:
-              typeof item?.period === "string"
-                ? item.period
-                : "",
-
-            description:
-              typeof item?.description ===
-              "string"
-                ? item.description
-                : "",
-          }))
-        : [{ ...emptyExperience }],
+        ? saved.experience.map(
+            normalizeExperience
+          )
+        : [
+            {
+              ...emptyExperience,
+            },
+          ],
 
     skills: Array.isArray(saved.skills)
       ? saved.skills
       : [],
 
-    /*
-     * PROJECTS
-     *
-     * Supports:
-     *
-     * {
-     *   title: "",
-     *   description: "",
-     *   tag: "",
-     *   url: ""
-     * }
-     */
     projects: Array.isArray(saved.projects)
       ? saved.projects.map((project) => ({
           title:
@@ -224,6 +220,7 @@ export default function Admin() {
    * CHECK LOGIN SESSION
    * ============================================================
    */
+
   useEffect(() => {
     let mounted = true;
 
@@ -302,6 +299,7 @@ export default function Admin() {
    * LOAD CONTENT
    * ============================================================
    */
+
   async function loadContent() {
     try {
       setLoadingContent(true);
@@ -343,6 +341,7 @@ export default function Admin() {
    * LOGIN
    * ============================================================
    */
+
   async function handleLogin(event) {
     event.preventDefault();
 
@@ -396,6 +395,7 @@ export default function Admin() {
    * LOGOUT
    * ============================================================
    */
+
   async function handleLogout() {
     try {
       setError("");
@@ -428,6 +428,7 @@ export default function Admin() {
    * GENERIC FIELD UPDATE
    * ============================================================
    */
+
   function updateField(field, value) {
     setContent((current) => ({
       ...current,
@@ -440,6 +441,7 @@ export default function Admin() {
    * PERSONAL INFORMATION
    * ============================================================
    */
+
   function updatePersonal(field, value) {
     setContent((current) => ({
       ...current,
@@ -456,6 +458,7 @@ export default function Admin() {
    * CONTACT
    * ============================================================
    */
+
   function updateContact(field, value) {
     setContent((current) => ({
       ...current,
@@ -473,9 +476,6 @@ export default function Admin() {
    * ============================================================
    */
 
-  /*
-   * ADD EXPERIENCE
-   */
   function addExperience() {
     setContent((current) => ({
       ...current,
@@ -493,9 +493,6 @@ export default function Admin() {
     );
   }
 
-  /*
-   * UPDATE EXPERIENCE
-   */
   function updateExperience(
     index,
     field,
@@ -518,9 +515,6 @@ export default function Admin() {
     });
   }
 
-  /*
-   * DELETE EXPERIENCE
-   */
   function deleteExperience(index) {
     setContent((current) => {
       const experience = [
@@ -529,10 +523,6 @@ export default function Admin() {
 
       experience.splice(index, 1);
 
-      /*
-       * Always keep at least one empty
-       * experience editor available.
-       */
       if (experience.length === 0) {
         experience.push({
           ...emptyExperience,
@@ -551,10 +541,80 @@ export default function Admin() {
   }
 
   /*
+   * MOVE EXPERIENCE UP
+   */
+
+  function moveExperienceUp(index) {
+    if (index <= 0) {
+      return;
+    }
+
+    setContent((current) => {
+      const experience = [
+        ...(current.experience || []),
+      ];
+
+      [
+        experience[index - 1],
+        experience[index],
+      ] = [
+        experience[index],
+        experience[index - 1],
+      ];
+
+      return {
+        ...current,
+        experience,
+      };
+    });
+
+    setMessage(
+      "Experience order changed. Click Save Changes to publish the change."
+    );
+  }
+
+  /*
+   * MOVE EXPERIENCE DOWN
+   */
+
+  function moveExperienceDown(index) {
+    setContent((current) => {
+      const experience = [
+        ...(current.experience || []),
+      ];
+
+      if (
+        index < 0 ||
+        index >= experience.length - 1
+      ) {
+        return current;
+      }
+
+      [
+        experience[index],
+        experience[index + 1],
+      ] = [
+        experience[index + 1],
+        experience[index],
+      ];
+
+      return {
+        ...current,
+        experience,
+      };
+    });
+
+    setMessage(
+      "Experience order changed. Click Save Changes to publish the change."
+    );
+  }
+
+  /*
    * ============================================================
    * SKILLS
    * ============================================================
    */
+
   function updateSkills(value) {
     const skills = value
       .split(",")
@@ -569,6 +629,7 @@ export default function Admin() {
    * ACHIEVEMENTS
    * ============================================================
    */
+
   function updateAchievements(value) {
     const achievements = value
       .split("\n")
@@ -587,9 +648,6 @@ export default function Admin() {
    * ============================================================
    */
 
-  /*
-   * ADD PROJECT
-   */
   function addProject() {
     setContent((current) => ({
       ...current,
@@ -611,9 +669,6 @@ export default function Admin() {
     );
   }
 
-  /*
-   * UPDATE PROJECT
-   */
   function updateProject(
     index,
     field,
@@ -636,9 +691,6 @@ export default function Admin() {
     });
   }
 
-  /*
-   * DELETE PROJECT
-   */
   function deleteProject(index) {
     setContent((current) => {
       const projects = [
@@ -663,6 +715,7 @@ export default function Admin() {
    * PROFILE PHOTO UPLOAD
    * ============================================================
    */
+
   async function handlePhotoUpload(event) {
     const file =
       event.target.files?.[0];
@@ -775,9 +828,6 @@ export default function Admin() {
     }
   }
 
-  /*
-   * REMOVE PHOTO
-   */
   function removePhoto() {
     setContent((current) => ({
       ...current,
@@ -794,6 +844,7 @@ export default function Admin() {
    * RESUME PDF UPLOAD
    * ============================================================
    */
+
   async function handleResumeUpload(event) {
     const file =
       event.target.files?.[0];
@@ -899,9 +950,6 @@ export default function Admin() {
     }
   }
 
-  /*
-   * REMOVE RESUME
-   */
   function removeResume() {
     setContent((current) => ({
       ...current,
@@ -918,6 +966,7 @@ export default function Admin() {
    * SAVE CHANGES
    * ============================================================
    */
+
   async function saveChanges() {
     try {
       setSaving(true);
@@ -943,17 +992,41 @@ export default function Admin() {
       }
 
       /*
-       * CLEAN JSON-SAFE CONTENT
+       * CLEAN EXPERIENCE DATA
+       *
+       * Empty experience cards are ignored when saving,
+       * except that the editor itself always keeps one card.
        */
+
+      const cleanExperience =
+        Array.isArray(content.experience)
+          ? content.experience
+              .map(normalizeExperience)
+              .map((item) => ({
+                role: item.role.trim(),
+                company: item.company.trim(),
+                period: item.period.trim(),
+                description:
+                  item.description.trim(),
+              }))
+              .filter(
+                (item) =>
+                  item.role ||
+                  item.company ||
+                  item.period ||
+                  item.description
+              )
+          : [];
+
       const cleanContent = {
         name:
           typeof content.name === "string"
-            ? content.name
+            ? content.name.trim()
             : "",
 
         title:
           typeof content.title === "string"
-            ? content.title
+            ? content.title.trim()
             : "",
 
         photo:
@@ -968,75 +1041,44 @@ export default function Admin() {
 
         about:
           typeof content.about === "string"
-            ? content.about
+            ? content.about.trim()
             : "",
 
         personal: {
           location:
             typeof content.personal
               ?.location === "string"
-              ? content.personal.location
+              ? content.personal.location.trim()
               : "",
 
           education:
             typeof content.personal
               ?.education === "string"
-              ? content.personal.education
+              ? content.personal.education.trim()
               : "",
         },
 
         /*
-         * ========================================================
          * EXPERIENCE
-         * ========================================================
          *
-         * Save ALL experience entries.
+         * Order is preserved exactly as shown
+         * in the Admin panel.
          */
-        experience:
-          Array.isArray(
-            content.experience
-          )
-            ? content.experience.map(
-                (item) => ({
-                  role:
-                    typeof item?.role ===
-                    "string"
-                      ? item.role.trim()
-                      : "",
-
-                  company:
-                    typeof item?.company ===
-                    "string"
-                      ? item.company.trim()
-                      : "",
-
-                  period:
-                    typeof item?.period ===
-                    "string"
-                      ? item.period.trim()
-                      : "",
-
-                  description:
-                    typeof item?.description ===
-                    "string"
-                      ? item.description.trim()
-                      : "",
-                })
-              )
-            : [],
+        experience: cleanExperience,
 
         skills:
           Array.isArray(content.skills)
-            ? content.skills.filter(
-                (item) =>
-                  typeof item ===
-                  "string"
-              )
+            ? content.skills
+                .filter(
+                  (item) =>
+                    typeof item === "string"
+                )
+                .map((item) =>
+                  item.trim()
+                )
+                .filter(Boolean)
             : [],
 
-        /*
-         * PROJECTS
-         */
         projects:
           Array.isArray(content.projects)
             ? content.projects.map(
@@ -1078,20 +1120,20 @@ export default function Admin() {
                     typeof item ===
                     "string"
                   ) {
-                    return item;
+                    return item.trim();
                   }
 
                   return {
                     title:
                       typeof item?.title ===
                       "string"
-                        ? item.title
+                        ? item.title.trim()
                         : "",
 
                     description:
                       typeof item?.description ===
                       "string"
-                        ? item.description
+                        ? item.description.trim()
                         : "",
                   };
                 })
@@ -1102,19 +1144,19 @@ export default function Admin() {
           email:
             typeof content.contact
               ?.email === "string"
-              ? content.contact.email
+              ? content.contact.email.trim()
               : "",
 
           phone:
             typeof content.contact
               ?.phone === "string"
-              ? content.contact.phone
+              ? content.contact.phone.trim()
               : "",
 
           linkedin:
             typeof content.contact
               ?.linkedin === "string"
-              ? content.contact.linkedin
+              ? content.contact.linkedin.trim()
               : "",
         },
       };
@@ -1122,6 +1164,7 @@ export default function Admin() {
       /*
        * VALIDATE PHOTO URL
        */
+
       if (
         cleanContent.photo &&
         !cleanContent.photo.startsWith(
@@ -1136,6 +1179,7 @@ export default function Admin() {
       /*
        * VALIDATE RESUME URL
        */
+
       if (
         cleanContent.resume &&
         !cleanContent.resume.startsWith(
@@ -1150,6 +1194,7 @@ export default function Admin() {
       /*
        * VALIDATE PROJECT URLS
        */
+
       for (
         const project of cleanContent.projects
       ) {
@@ -1164,8 +1209,24 @@ export default function Admin() {
       }
 
       /*
+       * VALIDATE LINKEDIN
+       */
+
+      if (
+        cleanContent.contact.linkedin &&
+        !cleanContent.contact.linkedin.startsWith(
+          "http"
+        )
+      ) {
+        throw new Error(
+          "LinkedIn URL must start with http or https."
+        );
+      }
+
+      /*
        * UPDATE SUPABASE
        */
+
       const result = await supabase
         .from("site_content")
         .update({
@@ -1185,6 +1246,7 @@ export default function Admin() {
       /*
        * VERIFY SAVE
        */
+
       const verify =
         await supabase
           .from("site_content")
@@ -1243,6 +1305,7 @@ export default function Admin() {
    * SESSION CHECK SCREEN
    * ============================================================
    */
+
   if (checkingSession) {
     return (
       <div className="admin-page">
@@ -1271,6 +1334,7 @@ export default function Admin() {
    * LOGIN SCREEN
    * ============================================================
    */
+
   if (!session) {
     return (
       <div className="admin-page">
@@ -1375,6 +1439,7 @@ export default function Admin() {
    * ADMIN EDITOR
    * ============================================================
    */
+
   return (
     <div className="editor-page">
 
@@ -1781,10 +1846,9 @@ export default function Admin() {
           </div>
 
           <p className="field-help">
-            Add all your professional
-            experiences below. You can add
-            multiple jobs and manage them
-            individually.
+            Manage your complete work history.
+            The order below is the same order
+            that will appear on your public website.
           </p>
 
           {experiences.map(
@@ -1807,9 +1871,10 @@ export default function Admin() {
                     display: "flex",
                     justifyContent:
                       "space-between",
-                    alignItems: "center",
+                    alignItems: "flex-start",
                     gap: "12px",
                     marginBottom: "16px",
+                    flexWrap: "wrap",
                   }}
                 >
 
@@ -1824,43 +1889,115 @@ export default function Admin() {
                       {index + 1}
                     </h3>
 
-                    {experience.role && (
-                      <p
-                        className="field-help"
-                        style={{
-                          marginTop: "5px",
-                        }}
-                      >
-                        {experience.role}
-                        {experience.company
-                          ? ` • ${experience.company}`
-                          : ""}
-                      </p>
-                    )}
+                    <p
+                      className="field-help"
+                      style={{
+                        marginTop: "5px",
+                        marginBottom: 0,
+                      }}
+                    >
+                      {experience.role ||
+                        "New experience"}
+
+                      {experience.company
+                        ? ` • ${experience.company}`
+                        : ""}
+
+                      {experience.period
+                        ? ` • ${experience.period}`
+                        : ""}
+                    </p>
 
                   </div>
 
-                  <button
-                    type="button"
-                    className="back-home"
-                    onClick={() =>
-                      deleteExperience(
-                        index
-                      )
-                    }
-                    disabled={saving}
+                  <div
                     style={{
-                      display:
-                        "inline-flex",
-                      alignItems:
-                        "center",
+                      display: "flex",
                       gap: "6px",
+                      flexWrap: "wrap",
                     }}
                   >
-                    <Trash2 size={16} />
 
-                    Delete
-                  </button>
+                    {/* MOVE UP */}
+
+                    <button
+                      type="button"
+                      className="back-home"
+                      onClick={() =>
+                        moveExperienceUp(
+                          index
+                        )
+                      }
+                      disabled={
+                        saving ||
+                        index === 0
+                      }
+                      title="Move experience up"
+                      style={{
+                        display:
+                          "inline-flex",
+                        alignItems:
+                          "center",
+                        gap: "5px",
+                      }}
+                    >
+                      <ArrowUp size={15} />
+                      Up
+                    </button>
+
+                    {/* MOVE DOWN */}
+
+                    <button
+                      type="button"
+                      className="back-home"
+                      onClick={() =>
+                        moveExperienceDown(
+                          index
+                        )
+                      }
+                      disabled={
+                        saving ||
+                        index ===
+                          experiences.length -
+                            1
+                      }
+                      title="Move experience down"
+                      style={{
+                        display:
+                          "inline-flex",
+                        alignItems:
+                          "center",
+                        gap: "5px",
+                      }}
+                    >
+                      <ArrowDown size={15} />
+                      Down
+                    </button>
+
+                    {/* DELETE */}
+
+                    <button
+                      type="button"
+                      className="back-home"
+                      onClick={() =>
+                        deleteExperience(
+                          index
+                        )
+                      }
+                      disabled={saving}
+                      style={{
+                        display:
+                          "inline-flex",
+                        alignItems:
+                          "center",
+                        gap: "6px",
+                      }}
+                    >
+                      <Trash2 size={16} />
+                      Delete
+                    </button>
+
+                  </div>
 
                 </div>
 
@@ -1959,11 +2096,58 @@ export default function Admin() {
                   }
                 />
 
+                {/* EXPERIENCE PREVIEW */}
+
+                {(experience.role ||
+                  experience.company ||
+                  experience.period ||
+                  experience.description) && (
+                  <div
+                    style={{
+                      marginTop: "18px",
+                      padding: "14px",
+                      borderRadius: "10px",
+                      background:
+                        "rgba(127, 127, 127, 0.07)",
+                    }}
+                  >
+
+                    <strong>
+                      Website Preview
+                    </strong>
+
+                    <p
+                      style={{
+                        margin:
+                          "8px 0 3px",
+                      }}
+                    >
+                      {experience.role ||
+                        "Job Role"}
+                    </p>
+
+                    <p
+                      className="field-help"
+                      style={{
+                        margin: 0,
+                      }}
+                    >
+                      {experience.company ||
+                        "Company"}
+
+                      {experience.period
+                        ? ` • ${experience.period}`
+                        : ""}
+                    </p>
+
+                  </div>
+                )}
+
               </div>
             )
           )}
 
-          {/* ADD EXPERIENCE BUTTON */}
+          {/* ADD EXPERIENCE */}
 
           <button
             type="button"
