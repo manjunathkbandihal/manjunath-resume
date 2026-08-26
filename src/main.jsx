@@ -315,6 +315,10 @@ function App() {
   const [loading, setLoading] =
     React.useState(true);
 
+  // Controls Read More / Read Less separately for each experience
+  const [expandedExperience, setExpandedExperience] =
+    React.useState({});
+
   React.useEffect(() => {
     let mounted = true;
 
@@ -375,6 +379,13 @@ function App() {
         behavior: "smooth",
       });
     }
+  };
+
+  const toggleExperience = (index) => {
+    setExpandedExperience((previous) => ({
+      ...previous,
+      [index]: !previous[index],
+    }));
   };
 
   if (loading) {
@@ -793,77 +804,95 @@ function App() {
 
                 {experiences.length > 0 ? (
                   experiences.map(
-                    (experience, index) => (
-                      <div
-                        className="experience-item"
-                        key={index}
-                        style={{
-                          position: "relative",
-                          paddingLeft: "28px",
-                          paddingBottom:
-                            index ===
-                            experiences.length -
-                              1
-                              ? "0"
-                              : "32px",
-                          marginBottom:
-                            index ===
-                            experiences.length -
-                              1
-                              ? "0"
-                              : "32px",
-                          borderLeft:
-                            index ===
-                            experiences.length -
-                              1
-                              ? "none"
-                              : "2px solid rgba(127,127,127,0.25)",
-                        }}
-                      >
+                    (experience, index) => {
 
+                      const descriptionItems =
+                        (
+                          experience.description ||
+                          ""
+                        )
+                          .split("\n")
+                          .filter(Boolean);
+
+                      const isExpanded =
+                        !!expandedExperience[index];
+
+                      const visibleItems =
+                        isExpanded
+                          ? descriptionItems
+                          : descriptionItems.slice(
+                              0,
+                              3
+                            );
+
+                      const hasMore =
+                        descriptionItems.length > 3;
+
+                      return (
                         <div
-                          className="timeline-dot"
+                          className="experience-item"
+                          key={index}
                           style={{
-                            position:
-                              "absolute",
-                            left: "-7px",
-                            top: "3px",
+                            position: "relative",
+                            paddingLeft: "28px",
+                            paddingBottom:
+                              index ===
+                              experiences.length -
+                                1
+                                ? "0"
+                                : "32px",
+                            marginBottom:
+                              index ===
+                              experiences.length -
+                                1
+                                ? "0"
+                                : "32px",
+                            borderLeft:
+                              index ===
+                              experiences.length -
+                                1
+                                ? "none"
+                                : "2px solid rgba(127,127,127,0.25)",
                           }}
-                        />
+                        >
 
-                        <div className="role-head">
+                          <div
+                            className="timeline-dot"
+                            style={{
+                              position:
+                                "absolute",
+                              left: "-7px",
+                              top: "3px",
+                            }}
+                          />
 
-                          <div>
+                          <div className="role-head">
 
-                            <h3>
-                              {experience.role ||
-                                content.title ||
-                                "Professional Role"}
-                            </h3>
+                            <div>
 
-                            <p>
-                              {experience.company ||
-                                "Annotation / Data Operations"}
-                            </p>
+                              <h3>
+                                {experience.role ||
+                                  content.title ||
+                                  "Professional Role"}
+                              </h3>
+
+                              <p>
+                                {experience.company ||
+                                  "Annotation / Data Operations"}
+                              </p>
+
+                            </div>
+
+                            <span className="pill">
+                              {experience.period ||
+                                "Present"}
+                            </span>
 
                           </div>
 
-                          <span className="pill">
-                            {experience.period ||
-                              "Present"}
-                          </span>
+                          <ul>
 
-                        </div>
-
-                        <ul>
-
-                          {(
-                            experience.description ||
-                            ""
-                          )
-                            .split("\n")
-                            .filter(Boolean)
-                            .map(
+                            {visibleItems.map(
                               (
                                 item,
                                 itemIndex
@@ -878,10 +907,37 @@ function App() {
                               )
                             )}
 
-                        </ul>
+                          </ul>
 
-                      </div>
-                    )
+                          {hasMore && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                toggleExperience(
+                                  index
+                                )
+                              }
+                              style={{
+                                marginTop:
+                                  "8px",
+                                padding: 0,
+                                border: "none",
+                                background:
+                                  "transparent",
+                                cursor: "pointer",
+                                font: "inherit",
+                                fontWeight: 600,
+                              }}
+                            >
+                              {isExpanded
+                                ? "Read Less"
+                                : "Read More"}
+                            </button>
+                          )}
+
+                        </div>
+                      );
+                    }
                   )
                 ) : (
                   <div>
