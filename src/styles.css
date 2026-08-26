@@ -26,686 +26,303 @@ button,a,input,textarea{font:inherit}button{cursor:pointer}a{text-decoration:non
 @media(max-width:900px){.hero-grid,.about-grid,.experience-grid,.contact-grid{grid-template-columns:1fr}.hero{padding:70px 0}.portrait-wrap{order:-1}.portrait-placeholder{width:260px}.projects-grid{grid-template-columns:1fr 1fr}.achievement-grid{grid-template-columns:1fr 1fr}.nav-links{gap:14px}.mini-cards{grid-template-columns:1fr}.timeline-dot{display:none}}
 @media(max-width:680px){.nav{height:64px}.menu-btn{display:block}.nav-links{display:none;position:absolute;top:64px;left:0;right:0;background:#06101b;padding:15px 4%;flex-direction:column;border-top:1px solid #1c2a35}.nav-links.open{display:flex}.nav-links button{text-align:left;padding:11px}.hero{min-height:auto;padding:60px 0}.hero h1{font-size:48px}.hero-text{font-size:13px}.hero-actions .btn{width:100%}.contact-chips span{flex:1}.section{padding:60px 0}.projects-grid,.achievement-grid,.stats-grid{grid-template-columns:1fr}.section-title h2{font-size:28px}.form-row{grid-template-columns:1fr}.footer .container{flex-direction:column;gap:8px}.info-row{grid-template-columns:24px 65px 1fr}.brand{font-size:15px}}
 
-/* =========================================================
-   BETTER ADMIN DASHBOARD UI
-   ========================================================= */
+/* =========================================
+   ADMIN PANEL
+   Matches the main website theme
+========================================= */
 
 .admin-page {
   min-height: 100vh;
   background:
     radial-gradient(
-      circle at 15% 15%,
-      rgba(55, 200, 120, 0.1),
-      transparent 28%
-    ),
-    radial-gradient(
-      circle at 85% 5%,
+      circle at 75% 20%,
       #0d2b29 0,
-      #06101b 34%,
-      #030a12 72%
+      #06101b 38%,
+      #030a12 80%
     );
   color: #fff;
-
   display: flex;
   align-items: center;
   justify-content: center;
-
-  padding: 40px 4%;
+  padding: 30px 4%;
 }
-
-/* =========================================================
-   LOGIN
-   ========================================================= */
 
 .admin-login-card {
-  width: min(460px, 100%);
-
-  background: rgba(13, 25, 37, 0.94);
-
-  border: 1px solid rgba(120, 150, 165, 0.22);
-
-  border-radius: 22px;
-
-  padding: 38px;
-
-  box-shadow:
-    0 30px 90px rgba(0, 0, 0, 0.42);
-
-  backdrop-filter: blur(18px);
-}
-
-.admin-login-card::before {
-  content: "";
-
-  display: block;
-
-  width: 70px;
-  height: 4px;
-
-  border-radius: 999px;
-
-  background: #37c878;
-
-  margin-bottom: 28px;
+  width: min(440px, 100%);
+  background: rgba(13, 25, 37, 0.95);
+  border: 1px solid #243442;
+  border-radius: 14px;
+  padding: 35px;
+  box-shadow: 0 20px 70px rgba(0, 0, 0, 0.35);
 }
 
 .admin-logo {
-  width: 64px;
-  height: 64px;
-
+  width: 58px;
+  height: 58px;
   display: grid;
   place-items: center;
-
-  border-radius: 18px;
-
-  background:
-    linear-gradient(
-      145deg,
-      #e9f8f0,
-      #bff0d2
-    );
-
+  border-radius: 50%;
+  background: #e9f8f0;
   color: #159154;
-
   font-weight: 800;
-  font-size: 19px;
-
-  margin-bottom: 20px;
-
-  box-shadow:
-    0 12px 30px rgba(55, 200, 120, 0.14);
+  font-size: 18px;
+  margin-bottom: 25px;
 }
 
 .admin-login-card h1 {
-  font-size: 36px;
-
-  margin: 8px 0;
-
-  letter-spacing: -0.04em;
+  font-size: 34px;
+  margin: 10px 0;
+  letter-spacing: -0.03em;
 }
 
 .admin-subtitle {
   color: #aebac3;
-
   font-size: 13px;
-
   line-height: 1.7;
-
-  margin: 0 0 26px;
+  margin-bottom: 25px;
 }
 
 .admin-login-form {
-  margin-top: 18px;
+  margin-top: 20px;
 }
 
 .admin-login-form label,
 .editor-card label {
-  display: flex;
-
-  align-items: center;
-
-  gap: 7px;
-
+  display: block;
   color: #cbd4db;
-
   font-size: 12px;
-
   font-weight: 700;
-
-  margin: 16px 0 8px;
+  margin: 15px 0 7px;
 }
 
 .admin-login-form input,
 .editor-card input,
 .editor-card textarea {
-  width: 100%;
-
   background: #07121e;
-
   border: 1px solid #2a3a48;
-
   color: #fff;
-
-  border-radius: 10px;
-
-  padding: 13px 14px;
-
-  transition:
-    border-color 0.2s ease,
-    box-shadow 0.2s ease,
-    transform 0.2s ease;
-
-  box-sizing: border-box;
-}
-
-.admin-login-form input::placeholder,
-.editor-card input::placeholder,
-.editor-card textarea::placeholder {
-  color: #667783;
 }
 
 .admin-login-form input:focus,
 .editor-card input:focus,
 .editor-card textarea:focus {
-  outline: none;
-
   border-color: #37c878;
-
-  box-shadow:
-    0 0 0 3px rgba(55, 200, 120, 0.12);
-}
-
-.admin-login-btn,
-.save-btn {
-  display: inline-flex;
-
-  align-items: center;
-
-  justify-content: center;
-
-  gap: 8px;
-
-  border: 0;
-
-  border-radius: 10px;
-
-  background:
-    linear-gradient(
-      135deg,
-      #37c878,
-      #20a85f
-    );
-
-  color: #06140c;
-
-  font-weight: 800;
-
-  font-size: 13px;
-
-  box-shadow:
-    0 10px 25px rgba(55, 200, 120, 0.14);
-
-  transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease,
-    filter 0.2s ease;
+  box-shadow: 0 0 0 2px rgba(55, 200, 120, 0.12);
 }
 
 .admin-login-btn {
   width: 100%;
-
-  margin-top: 16px;
-
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 15px;
   padding: 14px 18px;
+  border: 0;
+  border-radius: 6px;
+  background: #37c878;
+  color: #06140c;
+  font-weight: 800;
+  font-size: 13px;
 }
 
-.admin-login-btn:hover,
-.save-btn:hover {
-  transform: translateY(-2px);
-
-  filter: brightness(1.05);
-
-  box-shadow:
-    0 14px 30px rgba(55, 200, 120, 0.2);
+.admin-login-btn:hover {
+  background: #56da8d;
 }
 
-.admin-login-btn:disabled,
-.save-btn:disabled,
-.logout-btn:disabled {
-  opacity: 0.6;
-
+.admin-login-btn:disabled {
+  opacity: 0.65;
   cursor: not-allowed;
-
-  transform: none;
 }
 
 .back-home {
+  width: 100%;
   border: 0;
-
   background: transparent;
-
   color: #8e9ba5;
-
-  padding: 10px 0 0;
-
+  padding: 15px 0 0;
   font-size: 12px;
-
-  transition: color 0.2s ease;
 }
 
 .back-home:hover {
   color: #37c878;
 }
 
-/* =========================================================
-   ADMIN EDITOR
-   ========================================================= */
+/* Editor */
 
 .editor-page {
   min-height: 100vh;
-
   background:
     radial-gradient(
-      circle at 82% 0%,
-      rgba(55, 200, 120, 0.08),
-      transparent 26%
-    ),
-    linear-gradient(
-      180deg,
-      #06101b 0%,
-      #030a12 100%
+      circle at 80% 0%,
+      #0d2b29 0,
+      #06101b 28%,
+      #030a12 70%
     );
-
   color: #fff;
 }
 
 .editor-header {
   position: sticky;
-
   top: 0;
-
-  z-index: 50;
-
+  z-index: 20;
   display: flex;
-
   align-items: center;
-
   justify-content: space-between;
-
-  gap: 24px;
-
-  padding: 18px clamp(20px, 4vw, 60px);
-
-  background:
-    rgba(6, 16, 27, 0.88);
-
-  border-bottom:
-    1px solid rgba(120, 150, 165, 0.16);
-
-  backdrop-filter: blur(18px);
-
-  box-shadow:
-    0 10px 35px rgba(0, 0, 0, 0.14);
+  gap: 20px;
+  padding: 22px 4%;
+  background: rgba(6, 16, 27, 0.96);
+  border-bottom: 1px solid #182a35;
+  backdrop-filter: blur(12px);
 }
 
 .editor-header h1 {
-  margin: 5px 0;
-
-  font-size:
-    clamp(23px, 3vw, 31px);
-
-  letter-spacing: -0.04em;
+  margin: 7px 0;
+  font-size: 30px;
+  letter-spacing: -0.03em;
 }
 
 .editor-header p {
   margin: 0;
-
   color: #83909a;
-
   font-size: 11px;
 }
 
 .editor-label {
   color: #37c878;
-
-  font-size: 10px;
-
+  font-size: 11px;
   font-weight: 800;
-
-  letter-spacing: 0.13em;
+  letter-spacing: 0.08em;
 }
 
 .logout-btn {
-  flex: 0 0 auto;
-
-  display: inline-flex;
-
+  display: flex;
   align-items: center;
-
   gap: 8px;
-
-  border:
-    1px solid #334653;
-
-  background:
-    rgba(13, 25, 37, 0.7);
-
+  border: 1px solid #53606d;
+  background: transparent;
   color: #fff;
-
   padding: 10px 14px;
-
-  border-radius: 10px;
-
+  border-radius: 6px;
   font-size: 12px;
-
   font-weight: 700;
-
-  transition: all 0.2s ease;
 }
 
 .logout-btn:hover {
   border-color: #37c878;
-
   color: #37c878;
-
-  background:
-    rgba(55, 200, 120, 0.06);
 }
 
 .editor-container {
-  width: min(980px, 92%);
-
+  width: min(900px, 92%);
   margin: auto;
-
-  padding: 38px 0 110px;
+  padding: 45px 0 80px;
 }
-
-/* =========================================================
-   STATUS MESSAGES
-   ========================================================= */
-
-.admin-error,
-.admin-success,
-.admin-info {
-  position: relative;
-
-  overflow: hidden;
-
-  padding: 14px 16px;
-
-  margin-bottom: 18px;
-
-  border-radius: 12px;
-
-  font-size: 12px;
-
-  line-height: 1.55;
-}
-
-.admin-error {
-  border:
-    1px solid rgba(255, 120, 120, 0.25);
-
-  background:
-    rgba(90, 20, 25, 0.55);
-
-  color: #ffabab;
-}
-
-.admin-success {
-  border:
-    1px solid rgba(55, 200, 120, 0.25);
-
-  background:
-    rgba(11, 41, 35, 0.75);
-
-  color: #7be09e;
-}
-
-.admin-info {
-  border:
-    1px solid rgba(120, 150, 165, 0.18);
-
-  background:
-    rgba(13, 25, 37, 0.8);
-
-  color: #aebac3;
-}
-
-/* =========================================================
-   EDITOR CARDS
-   ========================================================= */
 
 .editor-card {
-  position: relative;
-
-  background:
-    linear-gradient(
-      145deg,
-      rgba(13, 25, 37, 0.98),
-      rgba(8, 18, 29, 0.98)
-    );
-
-  border:
-    1px solid rgba(120, 150, 165, 0.17);
-
-  border-radius: 18px;
-
-  padding:
-    clamp(22px, 3vw, 30px);
-
+  background: #0d1925;
+  border: 1px solid #243442;
+  border-radius: 14px;
+  padding: 28px;
   margin-bottom: 20px;
-
-  box-shadow:
-    0 15px 45px rgba(0, 0, 0, 0.16);
-
-  transition:
-    border-color 0.25s ease,
-    box-shadow 0.25s ease,
-    transform 0.25s ease;
-}
-
-.editor-card:hover {
-  border-color:
-    rgba(55, 200, 120, 0.22);
-
-  box-shadow:
-    0 18px 55px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
 }
 
 .editor-card-title {
   display: flex;
-
   align-items: center;
-
-  gap: 11px;
-
-  margin-bottom: 22px;
-
-  padding-bottom: 15px;
-
-  border-bottom:
-    1px solid rgba(120, 150, 165, 0.13);
+  gap: 10px;
+  margin-bottom: 20px;
 }
 
 .editor-card-title svg {
-  width: 20px;
-  height: 20px;
-
   color: #37c878;
-
-  flex: 0 0 auto;
 }
 
 .editor-card-title h2 {
   margin: 0;
-
   font-size: 18px;
+}
 
-  letter-spacing: -0.02em;
+.editor-card input,
+.editor-card textarea {
+  margin-bottom: 5px;
 }
 
 .field-help {
   color: #83909a;
-
   font-size: 11px;
-
-  line-height: 1.65;
-
-  margin: -7px 0 13px;
+  line-height: 1.6;
+  margin: -8px 0 12px;
 }
-
-.editor-card textarea {
-  min-height: 100px;
-
-  line-height: 1.65;
-
-  resize: vertical;
-}
-
-/* =========================================================
-   NESTED EXPERIENCE / PROJECT / ACHIEVEMENT CARDS
-   ========================================================= */
-
-.editor-card > div[style*="border"] {
-  border-color:
-    rgba(120, 150, 165, 0.16) !important;
-
-  background:
-    rgba(6, 16, 27, 0.45);
-
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.015);
-}
-
-.editor-card > div[style*="border"] h3 {
-  color: #f4f7f8;
-
-  letter-spacing: -0.015em;
-}
-
-.editor-card > div[style*="border"] input,
-.editor-card > div[style*="border"] textarea {
-  background: #06101b;
-}
-
-/* =========================================================
-   PROFILE
-   ========================================================= */
-
-.profile-preview {
-  display: flex;
-
-  align-items: center;
-
-  gap: 18px;
-
-  margin-bottom: 18px;
-}
-
-.profile-preview img,
-.profile-placeholder {
-  width: 118px;
-  height: 118px;
-
-  border-radius: 24px;
-
-  object-fit: cover;
-
-  border:
-    2px solid #37c878;
-
-  box-shadow:
-    0 14px 35px rgba(0, 0, 0, 0.22);
-}
-
-.profile-placeholder {
-  display: grid;
-
-  place-items: center;
-
-  background:
-    radial-gradient(
-      circle,
-      #153d34,
-      #091a1d 60%,
-      #06101b
-    );
-
-  color: #37c878;
-
-  font-size: 29px;
-
-  font-weight: 800;
-}
-
-/* =========================================================
-   FILE UPLOAD
-   ========================================================= */
-
-.editor-card input[type="file"] {
-  cursor: pointer;
-
-  padding: 10px;
-
-  border-style: dashed;
-}
-
-.editor-card
-  input[type="file"]::file-selector-button {
-  border: 0;
-
-  border-radius: 8px;
-
-  padding: 9px 12px;
-
-  margin-right: 10px;
-
-  background: #e9f8f0;
-
-  color: #159154;
-
-  font-weight: 800;
-
-  cursor: pointer;
-}
-
-/* =========================================================
-   SAVE AREA
-   ========================================================= */
 
 .save-area {
-  position: sticky;
-
-  bottom: 18px;
-
-  z-index: 30;
-
   display: flex;
-
   justify-content: flex-end;
-
   padding-top: 10px;
-
-  pointer-events: none;
 }
 
-.save-area .save-btn {
-  pointer-events: auto;
-
-  min-width: 180px;
-
-  padding: 15px 22px;
-
-  border:
-    1px solid rgba(255, 255, 255, 0.08);
-
-  box-shadow:
-    0 16px 45px rgba(0, 0, 0, 0.38),
-    0 8px 25px rgba(55, 200, 120, 0.16);
+.save-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 22px;
+  border: 0;
+  border-radius: 6px;
+  background: #37c878;
+  color: #06140c;
+  font-size: 13px;
+  font-weight: 800;
 }
 
-/* =========================================================
-   LOADING
-   ========================================================= */
+.save-btn:hover {
+  background: #56da8d;
+}
+
+.save-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.admin-error {
+  padding: 12px 14px;
+  margin: 15px 0;
+  border: 1px solid #6d3434;
+  background: #291417;
+  border-radius: 7px;
+  color: #ff9b9b;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.admin-success {
+  padding: 12px 14px;
+  margin-bottom: 20px;
+  border: 1px solid #236544;
+  background: #0b2923;
+  border-radius: 7px;
+  color: #7be09e;
+  font-size: 12px;
+}
+
+.admin-info {
+  padding: 12px 14px;
+  margin-bottom: 20px;
+  border: 1px solid #273541;
+  background: #0d1925;
+  border-radius: 7px;
+  color: #aebac3;
+  font-size: 12px;
+}
 
 .admin-card {
   width: min(440px, 100%);
-
-  background:
-    rgba(13, 25, 37, 0.95);
-
-  border:
-    1px solid rgba(120, 150, 165, 0.2);
-
-  border-radius: 20px;
-
-  padding: 36px;
-
+  background: #0d1925;
+  border: 1px solid #243442;
+  border-radius: 14px;
+  padding: 35px;
   text-align: center;
-
-  box-shadow:
-    0 25px 80px rgba(0, 0, 0, 0.35);
 }
 
 .admin-card h2 {
@@ -714,65 +331,124 @@ button,a,input,textarea{font:inherit}button{cursor:pointer}a{text-decoration:non
 
 .admin-card p {
   color: #8e9ba5;
-
   font-size: 12px;
 }
 
 .admin-spinner {
-  width: 42px;
-  height: 42px;
-
-  margin: 0 auto;
-
-  border:
-    3px solid rgba(55, 200, 120, 0.18);
-
-  border-top-color: #37c878;
-
-  border-radius: 50%;
-
-  color: transparent;
-
-  animation:
-    adminSpin 0.8s linear infinite;
+  color: #37c878;
+  font-weight: 800;
 }
 
-@keyframes adminSpin {
-  to {
-    transform: rotate(360deg);
+/* Mobile */
+
+@media (max-width: 680px) {
+
+  .admin-page {
+    padding: 20px 4%;
   }
+
+  .admin-login-card {
+    padding: 27px 22px;
+  }
+
+  .admin-login-card h1 {
+    font-size: 29px;
+  }
+
+  .editor-header {
+    align-items: flex-start;
+    padding: 18px 4%;
+  }
+
+  .editor-header h1 {
+    font-size: 23px;
+  }
+
+  .editor-header p {
+    max-width: 190px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .logout-btn {
+    padding: 9px 11px;
+  }
+
+  .logout-btn svg {
+    width: 16px;
+  }
+
+  .editor-container {
+    width: 92%;
+    padding: 28px 0 60px;
+  }
+
+  .editor-card {
+    padding: 21px;
+  }
+
+  .editor-card-title h2 {
+    font-size: 16px;
+  }
+
+  .save-area {
+    position: sticky;
+    bottom: 12px;
+    z-index: 10;
+  }
+
+  .save-btn {
+    width: 100%;
+  }
+}
+.profile-preview {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.profile-preview img,
+.profile-placeholder {
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #37c878;
+}
+
+.profile-placeholder {
+  display: grid;
+  place-items: center;
+  background: radial-gradient(
+    circle,
+    #153d34,
+    #091a1d 60%,
+    #06101b
+  );
+  color: #37c878;
+  font-size: 28px;
+  font-weight: 800;
 }
 
 /* =========================================================
-   KEY ACHIEVEMENTS
+   KEY ACHIEVEMENTS ANIMATION
    ========================================================= */
 
 .achievement-animated {
   opacity: 0;
-
-  transform:
-    translateY(28px);
-
-  animation:
-    achievementFadeUp
-    0.7s
-    ease
-    forwards;
-
-  animation-delay:
-    calc(
-      var(--achievement-index, 0)
-      * 120ms
-    );
-
+  transform: translateY(28px);
+  animation: achievementFadeUp 0.7s ease forwards;
+  animation-delay: calc(
+    var(--achievement-index, 0) * 120ms
+  );
   transition:
     transform 0.3s ease,
     box-shadow 0.3s ease;
 }
 
 .achievement-animated:hover {
-  transform:
-    translateY(-7px);
+  transform: translateY(-7px);
 }
 
 .achievement-icon-animated {
@@ -783,9 +459,7 @@ button,a,input,textarea{font:inherit}button{cursor:pointer}a{text-decoration:non
 
 .achievement-animated:hover
   .achievement-icon-animated {
-  transform:
-    rotate(-8deg)
-    scale(1.08);
+  transform: rotate(-8deg) scale(1.08);
 }
 
 .achievement-content {
@@ -794,49 +468,30 @@ button,a,input,textarea{font:inherit}button{cursor:pointer}a{text-decoration:non
 
 .achievement-meta {
   display: flex;
-
   flex-wrap: wrap;
-
   gap: 8px;
-
   margin-top: 12px;
 }
 
 .achievement-meta span {
   display: inline-flex;
-
   align-items: center;
-
   padding: 5px 10px;
-
   border-radius: 999px;
-
   font-size: 12px;
-
   font-weight: 600;
-
-  background:
-    rgba(127, 127, 127, 0.1);
+  background: rgba(127, 127, 127, 0.1);
 }
 
 .achievement-empty {
   display: flex;
-
   flex-direction: column;
-
   align-items: center;
-
   justify-content: center;
-
   min-height: 160px;
-
   text-align: center;
-
   border-radius: 16px;
-
-  border:
-    1px dashed rgba(127, 127, 127, 0.3);
-
+  border: 1px dashed rgba(127, 127, 127, 0.3);
   opacity: 0.7;
 }
 
@@ -847,304 +502,295 @@ button,a,input,textarea{font:inherit}button{cursor:pointer}a{text-decoration:non
 @keyframes achievementFadeUp {
   from {
     opacity: 0;
-
-    transform:
-      translateY(28px);
+    transform: translateY(28px);
   }
 
   to {
     opacity: 1;
-
-    transform:
-      translateY(0);
+    transform: translateY(0);
   }
 }
 
-/* =========================================================
-   RESPONSIVE
-   ========================================================= */
-
-@media (max-width: 760px) {
-  .admin-page {
-    padding: 22px 4%;
+@media (prefers-reduced-motion: reduce) {
+  .achievement-animated {
+    opacity: 1;
+    transform: none;
+    animation: none;
   }
 
-  .admin-login-card {
-    padding: 28px 22px;
-
-    border-radius: 18px;
+  .achievement-animated:hover {
+    transform: none;
   }
 
-  .admin-login-card h1 {
-    font-size: 30px;
+  .achievement-icon-animated {
+    transition: none;
+  }
+}
+
+/* =========================================
+   ADMIN CONTROL CENTER
+   Restores the sidebar + dashboard cards
+   used by Admin.jsx
+========================================= */
+
+.admin-shell {
+  width: min(1320px, 96%);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 245px minmax(0, 1fr);
+  gap: 22px;
+  align-items: start;
+  padding: 26px 0 70px;
+}
+
+.admin-sidebar {
+  position: sticky;
+  top: 92px;
+  min-height: calc(100vh - 118px);
+  background: rgba(13, 25, 37, 0.92);
+  border: 1px solid #243442;
+  border-radius: 16px;
+  padding: 18px 12px;
+  box-shadow: 0 12px 40px rgba(0,0,0,.18);
+}
+
+.sidebar-title {
+  padding: 5px 10px 17px;
+  border-bottom: 1px solid #243442;
+  margin-bottom: 12px;
+}
+
+.sidebar-title span {
+  display: block;
+  color: #37c878;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .12em;
+}
+
+.sidebar-title small {
+  display: block;
+  margin-top: 5px;
+  color: #83909a;
+  font-size: 11px;
+}
+
+.admin-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.admin-nav-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 11px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  color: #91a0aa;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  transition: .2s ease;
+}
+
+.admin-nav-item svg {
+  flex: 0 0 auto;
+}
+
+.admin-nav-item:hover {
+  background: rgba(55,200,120,.06);
+  color: #dce5e9;
+}
+
+.admin-nav-item.active {
+  background: rgba(55,200,120,.11);
+  border-color: rgba(55,200,120,.14);
+  color: #5bdd91;
+  font-weight: 800;
+}
+
+.sidebar-tip {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-top: 22px;
+  padding: 12px;
+  border-top: 1px solid #243442;
+  color: #71808a;
+}
+
+.sidebar-tip > svg {
+  color: #37c878;
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+.sidebar-tip strong {
+  display: block;
+  color: #aebac3;
+  font-size: 11px;
+}
+
+.sidebar-tip p {
+  margin: 5px 0 0;
+  color: #6f7d87;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.admin-shell .editor-container {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0 0 40px;
+}
+
+.admin-overview-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 25px 28px;
+  margin-bottom: 16px;
+  background: linear-gradient(135deg, #0d1925, #0a1822);
+  border: 1px solid #243442;
+  border-radius: 14px;
+  box-shadow: 0 8px 30px rgba(0,0,0,.15);
+}
+
+.overview-copy h2 {
+  margin: 7px 0 7px;
+  font-size: clamp(22px, 3vw, 30px);
+  letter-spacing: -.03em;
+}
+
+.overview-copy p {
+  margin: 0;
+  color: #83909a;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.overview-actions {
+  flex: 0 0 auto;
+}
+
+.overview-save-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border: 0;
+  border-radius: 7px;
+  background: #37c878;
+  color: #06140c;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.overview-save-btn:hover {
+  background: #56da8d;
+}
+
+.overview-save-btn:disabled {
+  opacity: .65;
+  cursor: not-allowed;
+}
+
+.admin-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.admin-summary-card {
+  min-width: 0;
+  padding: 18px;
+  background: #0d1925;
+  border: 1px solid #243442;
+  border-radius: 14px;
+  box-shadow: 0 8px 25px rgba(0,0,0,.12);
+}
+
+.admin-summary-card span {
+  display: block;
+  color: #7b8a94;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.admin-summary-card strong {
+  display: block;
+  margin-top: 9px;
+  color: #37c878;
+  font-size: 28px;
+  line-height: 1;
+}
+
+.admin-summary-card small {
+  display: block;
+  margin-top: 8px;
+  color: #71808a;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+@media (max-width: 980px) {
+  .admin-shell {
+    grid-template-columns: 205px minmax(0, 1fr);
+    gap: 16px;
   }
 
-  .editor-header {
-    padding: 16px 4%;
+  .admin-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .admin-shell {
+    width: 92%;
+    grid-template-columns: 1fr;
+    padding-top: 18px;
   }
 
-  .editor-container {
-    width: 94%;
-
-    padding:
-      25px 0 95px;
+  .admin-sidebar {
+    position: static;
+    min-height: auto;
   }
 
-  .editor-card {
-    padding: 20px;
-
-    border-radius: 15px;
+  .admin-nav {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .editor-card-title h2 {
-    font-size: 16px;
+  .sidebar-tip {
+    display: none;
   }
 
-  .profile-preview img,
-  .profile-placeholder {
-    width: 96px;
-    height: 96px;
-
-    border-radius: 20px;
+  .admin-overview-card {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
-  .save-area {
-    bottom: 10px;
-  }
-
-  .save-area .save-btn {
+  .overview-actions,
+  .overview-save-btn {
     width: 100%;
   }
 }
 
-@media (max-width: 520px) {
-  .editor-header {
-    align-items: flex-start;
-
-    gap: 12px;
+@media (max-width: 480px) {
+  .admin-summary-grid {
+    grid-template-columns: 1fr;
   }
 
-  .editor-header h1 {
-    font-size: 21px;
-  }
-
-  .logout-btn {
-    padding: 9px 10px;
-
-    font-size: 11px;
-  }
-
-  .logout-btn svg {
-    width: 16px;
-  }
-
-  .editor-card {
-    padding: 17px;
-  }
-
-  .profile-preview {
-    align-items: flex-start;
-  }
-
-  .profile-preview img,
-  .profile-placeholder {
-    width: 84px;
-    height: 84px;
-
-    border-radius: 18px;
-  }
-
-  .editor-card > div[style*="border"] {
-    padding: 15px !important;
-  }
-}
-
-/* =========================================================
-   REDUCED MOTION
-   ========================================================= */
-
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    scroll-behavior: auto !important;
-
-    animation-duration:
-      0.01ms !important;
-
-    animation-iteration-count:
-      1 !important;
-
-    transition-duration:
-      0.01ms !important;
-  }
-
-  .achievement-animated {
-    opacity: 1;
-
-    transform: none;
-
-    animation: none;
-  }
-
-  .achievement-animated:hover,
-  .achievement-animated:hover
-    .achievement-icon-animated {
-    transform: none;
-  }
-}
-
-/* =========================================================
-   ADMIN SIDEBAR - MOBILE FIX
-   ========================================================= */
-
-@media (max-width: 900px) {
-
-  /* Sidebar */
-  .admin-sidebar {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    bottom: 0 !important;
-
-    width: 270px !important;
-    max-width: 85vw !important;
-
-    z-index: 1000 !important;
-
-    transform: translateX(-100%) !important;
-    transition: transform 0.25s ease !important;
-
-    overflow-y: auto !important;
-    -webkit-overflow-scrolling: touch;
-
-    visibility: visible !important;
-  }
-
-  /* Open sidebar */
-  .admin-sidebar[style*="translateX(0)"],
-  .admin-sidebar.open {
-    transform: translateX(0) !important;
-  }
-
-  /* Mobile menu button */
-  .admin-mobile-menu {
-    display: grid !important;
-    position: fixed !important;
-
-    top: 16px !important;
-    left: 16px !important;
-
-    z-index: 1100 !important;
-
-    width: 42px !important;
-    height: 42px !important;
-
-    place-items: center !important;
-
-    border: 1px solid rgba(120, 150, 165, 0.25) !important;
-    border-radius: 10px !important;
-
-    background: #06101b !important;
-    color: #fff !important;
-
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
-  }
-
-  /* Close button inside sidebar */
-  .admin-mobile-close {
-    display: block !important;
-    position: absolute !important;
-
-    top: 16px !important;
-    right: 16px !important;
-
-    z-index: 1101 !important;
-
-    border: 0 !important;
-    background: transparent !important;
-
-    color: #fff !important;
-  }
-
-  /* Main content */
-  .admin-main-with-sidebar {
-    margin-left: 0 !important;
-    width: 100% !important;
-  }
-
-  /* Header leaves space for hamburger */
-  .admin-main-with-sidebar .editor-header {
-    padding-left: 72px !important;
-  }
-
-  /* IMPORTANT:
-     Mobile backdrop should sit BELOW the sidebar
-     but ABOVE the page content.
-  */
-  .admin-sidebar-backdrop {
-    position: fixed !important;
-
-    inset: 0 !important;
-
-    z-index: 900 !important;
-
-    background: rgba(0, 0, 0, 0.55) !important;
-
-    display: block !important;
-  }
-}
-
-
-/* =========================================================
-   SMALL PHONE
-   ========================================================= */
-
-@media (max-width: 600px) {
-
-  .admin-main-with-sidebar .editor-header {
-    align-items: flex-start !important;
-  }
-
-  .admin-main-with-sidebar .editor-header .logout-btn {
-    font-size: 0 !important;
-    padding: 10px !important;
-  }
-
-  .admin-main-with-sidebar .editor-header .logout-btn svg {
-    margin: 0 !important;
-  }
-
-  .admin-sidebar {
-    width: 260px !important;
-    max-width: 82vw !important;
-  }
-}
-
-
-/* =========================================================
-   DESKTOP SIDEBAR
-   ========================================================= */
-
-@media (min-width: 901px) {
-
-  .admin-sidebar {
-    transform: translateX(0) !important;
-    position: fixed !important;
-    left: 0 !important;
-    top: 0 !important;
-    bottom: 0 !important;
-
-    z-index: 1000 !important;
-  }
-
-  .admin-mobile-menu,
-  .admin-mobile-close,
-  .admin-sidebar-backdrop {
-    display: none !important;
-  }
-
-  .admin-main-with-sidebar {
-    margin-left: 270px;
+  .admin-nav {
+    grid-template-columns: 1fr;
   }
 }
