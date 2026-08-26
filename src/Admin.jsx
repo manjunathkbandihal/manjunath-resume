@@ -20,11 +20,10 @@ import {
   Trash2,
   BarChart3,
   LayoutDashboard,
-  Settings,
-  CheckCircle2,
-  Globe2,
-  Menu,
-  X,
+  UserRound,
+  BriefcaseBusiness,
+  Settings2,
+  ExternalLink as ExternalLinkIcon,
 } from "lucide-react";
 
 import { supabase } from "./supabase";
@@ -82,6 +81,7 @@ const emptyContent = {
   title: "Data Annotation Team Lead",
   photo: "",
   resume: "",
+  intro: "",
   about: "",
 
   personal: {
@@ -296,10 +296,7 @@ export default function Admin() {
     useState("");
 
   const [activeSection, setActiveSection] =
-    useState("dashboard");
-
-  const [sidebarOpen, setSidebarOpen] =
-    useState(false);
+    useState("overview");
 
   useEffect(() => {
     let mounted = true;
@@ -368,56 +365,6 @@ export default function Admin() {
       authListener?.data?.subscription?.unsubscribe();
     };
   }, []);
-
-  useEffect(() => {
-    if (!session) return;
-
-    const sectionIds = [
-      "dashboard",
-      "profile",
-      "resume",
-      "personal",
-      "contact",
-      "experience",
-      "stats",
-      "skills",
-      "projects",
-      "achievements",
-    ];
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visibleEntries = entries
-          .filter((entry) => entry.isIntersecting)
-          .sort(
-            (a, b) =>
-              a.boundingClientRect.top -
-              b.boundingClientRect.top
-          );
-
-        if (visibleEntries.length > 0) {
-          setActiveSection(
-            visibleEntries[0].target.id
-          );
-        }
-      },
-      {
-        rootMargin: "-20% 0px -65% 0px",
-        threshold: 0,
-      }
-    );
-
-    sectionIds.forEach((id) => {
-      const element =
-        document.getElementById(id);
-
-      if (element) {
-        observer.observe(element);
-      }
-    });
-
-    return () => observer.disconnect();
-  }, [session]);
 
   async function loadContent() {
     try {
@@ -524,21 +471,6 @@ export default function Admin() {
         err?.message || "Logout failed."
       );
     }
-  }
-
-  function scrollToSection(id) {
-    const element =
-      document.getElementById(id);
-
-    if (!element) return;
-
-    setActiveSection(id);
-    setSidebarOpen(false);
-
-    element.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
-    });
   }
 
   function updateField(field, value) {
@@ -1039,6 +971,19 @@ export default function Admin() {
     );
   }
 
+  function scrollToSection(sectionId) {
+    setActiveSection(sectionId);
+
+    const element = document.getElementById(sectionId);
+
+    if (element) {
+      element.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }
+  }
+
   /* SAVE */
 
   async function saveChanges() {
@@ -1084,6 +1029,11 @@ export default function Admin() {
         resume:
           typeof content.resume === "string"
             ? content.resume
+            : "",
+
+        intro:
+          typeof content.intro === "string"
+            ? content.intro.trim()
             : "",
 
         about:
@@ -1471,906 +1421,938 @@ export default function Admin() {
         )
       : [];
 
-  const projects =
-    Array.isArray(content.projects)
-      ? content.projects
-      : [];
-
-  const skills =
-    Array.isArray(content.skills)
-      ? content.skills
-      : [];
-
-  const sidebarItems = [
-    {
-      id: "dashboard",
-      label: "Dashboard",
-      icon: LayoutDashboard,
-    },
-    {
-      id: "profile",
-      label: "Profile",
-      icon: User,
-    },
-    {
-      id: "resume",
-      label: "Resume / CV",
-      icon: FileText,
-    },
-    {
-      id: "personal",
-      label: "Personal Info",
-      icon: MapPin,
-    },
-    {
-      id: "contact",
-      label: "Contact",
-      icon: Mail,
-    },
-    {
-      id: "experience",
-      label: "Experience",
-      icon: Briefcase,
-    },
-    {
-      id: "stats",
-      label: "Professional Stats",
-      icon: BarChart3,
-    },
-    {
-      id: "skills",
-      label: "Skills",
-      icon: Code,
-    },
-    {
-      id: "projects",
-      label: "Projects",
-      icon: FolderKanban,
-    },
-    {
-      id: "achievements",
-      label: "Achievements",
-      icon: Award,
-    },
-  ];
-
   return (
     <div className="editor-page">
-      {/* MOBILE OVERLAY */}
-
-      {sidebarOpen && (
-        <button
-          type="button"
-          aria-label="Close navigation"
-          onClick={() =>
-            setSidebarOpen(false)
-          }
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 80,
-            border: 0,
-            background:
-              "rgba(0,0,0,0.55)",
-            cursor: "pointer",
-          }}
-        />
-      )}
-
-      {/* SIDEBAR */}
-
-      <aside
-        style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          bottom: 0,
-          zIndex: 90,
-          width: "270px",
-          padding: "24px 16px",
-          background:
-            "linear-gradient(180deg, #07131f 0%, #040b13 100%)",
-          borderRight:
-            "1px solid rgba(120,150,165,0.15)",
-          boxSizing: "border-box",
-          transform:
-            sidebarOpen
-              ? "translateX(0)"
-              : "translateX(0)",
-          overflowY: "auto",
-        }}
-        className="admin-sidebar"
-      >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent:
-              "space-between",
-            marginBottom: "28px",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "11px",
-            }}
-          >
-            {/* ADMIN PROFILE PHOTO */}
-
-            <div
-              style={{
-                width: "42px",
-                height: "42px",
-                borderRadius: "13px",
-                overflow: "hidden",
-                display: "grid",
-                placeItems: "center",
-                background:
-                  "linear-gradient(135deg,#e9f8f0,#bff0d2)",
-                flexShrink: 0,
-              }}
-            >
-              {content.photo ? (
-                <img
-                  src={content.photo}
-                  alt={
-                    content.name ||
-                    "Profile"
-                  }
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    objectFit: "cover",
-                    display: "block",
-                  }}
-                />
-              ) : (
-                <span
-                  style={{
-                    color: "#159154",
-                    fontWeight: 900,
-                    fontSize: "14px",
-                  }}
-                >
-                  MB
-                </span>
-              )}
-            </div>
-
-            <div>
-              <strong
-                style={{
-                  display: "block",
-                  fontSize: "14px",
-                }}
-              >
-                Admin Control
-              </strong>
-
-              <span
-                style={{
-                  display: "block",
-                  marginTop: "3px",
-                  color: "#72818c",
-                  fontSize: "10px",
-                }}
-              >
-                WEBSITE MANAGER
-              </span>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={() =>
-              setSidebarOpen(false)
-            }
-            style={{
-              display: "none",
-              border: 0,
-              background: "transparent",
-              color: "#8e9ba5",
-              cursor: "pointer",
-            }}
-            className="admin-mobile-close"
-          >
-            <X size={20} />
-          </button>
-        </div>
-
-        <div
-          style={{
-            padding: "12px",
-            borderRadius: "13px",
-            background:
-              "rgba(55,200,120,0.06)",
-            border:
-              "1px solid rgba(55,200,120,0.13)",
-            marginBottom: "20px",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              color: "#73dc9a",
-              fontSize: "11px",
-              fontWeight: 700,
-            }}
-          >
-            <CheckCircle2 size={14} />
-            Website Online
-          </div>
-
-          <div
-            style={{
-              marginTop: "5px",
-              color: "#72818c",
-              fontSize: "10px",
-            }}
-          >
-            Content system connected
+      <header className="editor-header">
+        <div className="editor-brand-area">
+          <div className="admin-mini-logo">MB</div>
+          <div>
+            <div className="editor-label">ADMIN PANEL</div>
+            <h1>Website Control Center</h1>
+            <p>{session.user?.email}</p>
           </div>
         </div>
 
-        <div
-          style={{
-            color: "#596974",
-            fontSize: "9px",
-            fontWeight: 800,
-            letterSpacing: "0.14em",
-            padding:
-              "0 10px 10px",
-          }}
-        >
-          CONTENT MANAGEMENT
-        </div>
-
-        <nav>
-          {sidebarItems.map((item) => {
-            const Icon = item.icon;
-
-            const active =
-              activeSection === item.id;
-
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() =>
-                  scrollToSection(
-                    item.id
-                  )
-                }
-                style={{
-                  width: "100%",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "11px",
-                  border: 0,
-                  borderRadius: "10px",
-                  padding: "11px 12px",
-                  marginBottom: "4px",
-                  background: active
-                    ? "rgba(55,200,120,0.11)"
-                    : "transparent",
-                  color: active
-                    ? "#5bdd91"
-                    : "#91a0aa",
-                  fontSize: "12px",
-                  fontWeight: active
-                    ? 800
-                    : 600,
-                  textAlign: "left",
-                  cursor: "pointer",
-                  transition:
-                    "all 0.2s ease",
-                }}
-              >
-                <Icon size={17} />
-
-                <span>
-                  {item.label}
-                </span>
-
-                {active && (
-                  <span
-                    style={{
-                      width: "4px",
-                      height: "20px",
-                      borderRadius:
-                        "999px",
-                      background:
-                        "#37c878",
-                      marginLeft:
-                        "auto",
-                    }}
-                  />
-                )}
-              </button>
-            );
-          })}
-        </nav>
-
-        <div
-          style={{
-            marginTop: "28px",
-            paddingTop: "18px",
-            borderTop:
-              "1px solid rgba(120,150,165,0.1)",
-          }}
-        >
-          <button
-            type="button"
-            onClick={() => {
-              window.location.href =
-                "/";
-            }}
-            style={{
-              width: "100%",
-              display: "flex",
-              alignItems: "center",
-              gap: "10px",
-              padding: "10px 12px",
-              border: 0,
-              background:
-                "transparent",
-              color: "#82909a",
-              cursor: "pointer",
-              fontSize: "12px",
-              textAlign: "left",
-            }}
+        <div className="editor-header-actions">
+          <a
+            className="admin-preview-btn"
+            href="/"
+            target="_blank"
+            rel="noreferrer"
           >
-            <Globe2 size={17} />
+            <ExternalLinkIcon size={16} />
             View Website
-          </button>
+          </a>
 
           <button
-            type="button"
+            className="logout-btn"
             onClick={handleLogout}
-            style={{
-              width: "100%",
-              display: "flex",
-              alignItems: "center",
-              gap: "10px",
-              padding: "10px 12px",
-              border: 0,
-              background:
-                "transparent",
-              color: "#82909a",
-              cursor: "pointer",
-              fontSize: "12px",
-              textAlign: "left",
-            }}
           >
-            <LogOut size={17} />
+            <LogOut size={18} />
             Logout
           </button>
         </div>
-      </aside>
+      </header>
 
-      {/* MOBILE MENU BUTTON */}
-
-      <button
-        type="button"
-        onClick={() =>
-          setSidebarOpen(true)
-        }
-        className="admin-mobile-menu"
-        style={{
-          display: "none",
-          position: "fixed",
-          top: "15px",
-          left: "15px",
-          zIndex: 70,
-          width: "42px",
-          height: "42px",
-          border: "1px solid rgba(120,150,165,0.2)",
-          borderRadius: "11px",
-          background: "#07131f",
-          color: "#fff",
-          placeItems: "center",
-          cursor: "pointer",
-        }}
-      >
-        <Menu size={20} />
-      </button>
-
-      {/* MAIN AREA */}
-
-      <div
-        style={{
-          marginLeft: "270px",
-          minHeight: "100vh",
-        }}
-        className="admin-main-with-sidebar"
-      >
-        {/* CONTROL CENTER HEADER */}
-
-        <header
-          style={{
-            position: "sticky",
-            top: 0,
-            zIndex: 50,
-            display: "flex",
-            alignItems: "center",
-            justifyContent:
-              "space-between",
-            gap: "20px",
-            padding:
-              "18px clamp(22px,4vw,55px)",
-            background:
-              "rgba(6,16,27,0.88)",
-            borderBottom:
-              "1px solid rgba(120,150,165,0.15)",
-            backdropFilter:
-              "blur(18px)",
-          }}
-        >
-          <div>
-            <div
-              className="editor-label"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "7px",
-              }}
-            >
-              <Settings size={12} />
-              ADMIN CONTROL CENTER
-            </div>
-
-            <h1
-              style={{
-                margin:
-                  "5px 0 3px",
-                fontSize:
-                  "clamp(22px,3vw,30px)",
-                letterSpacing:
-                  "-0.04em",
-              }}
-            >
-              Manage Your Website
-            </h1>
-
-            <p
-              style={{
-                margin: 0,
-                color: "#83909a",
-                fontSize: "11px",
-              }}
-            >
-              Edit your portfolio content,
-              resume and professional
-              information from one place.
-            </p>
+      <div className="admin-shell">
+        <aside className="admin-sidebar">
+          <div className="sidebar-title">
+            <span>CONTENT</span>
+            <small>Manage your portfolio</small>
           </div>
 
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "12px",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                padding:
-                  "9px 12px",
-                borderRadius: "10px",
-                border:
-                  "1px solid rgba(55,200,120,0.15)",
-                background:
-                  "rgba(55,200,120,0.05)",
-              }}
-            >
-              <span
-                style={{
-                  width: "7px",
-                  height: "7px",
-                  borderRadius:
-                    "50%",
-                  background:
-                    "#37c878",
-                  boxShadow:
-                    "0 0 10px #37c878",
-                }}
-              />
-
-              <span
-                style={{
-                  color: "#7be09e",
-                  fontSize: "10px",
-                  fontWeight: 700,
-                }}
+          <nav className="admin-nav">
+            {[
+              ["overview", LayoutDashboard, "Overview"],
+              ["profile", UserRound, "Profile"],
+              ["resume", FileText, "Resume / CV"],
+              ["personal", User, "Personal Info"],
+              ["contact", Mail, "Contact"],
+              ["experience", BriefcaseBusiness, "Experience"],
+              ["stats", BarChart3, "Professional Stats"],
+              ["skills", Code, "Skills"],
+              ["projects", FolderKanban, "Projects"],
+              ["achievements", Award, "Achievements"],
+            ].map(([id, Icon, label]) => (
+              <button
+                key={id}
+                type="button"
+                className={
+                  "admin-nav-item " +
+                  (activeSection === id ? "active" : "")
+                }
+                onClick={() => scrollToSection(id)}
               >
-                ONLINE
-              </span>
-            </div>
+                <Icon size={17} />
+                <span>{label}</span>
+              </button>
+            ))}
+          </nav>
 
-            <button
-              className="logout-btn"
-              onClick={handleLogout}
-            >
-              <LogOut size={17} />
-              Logout
-            </button>
+          <div className="sidebar-tip">
+            <Settings2 size={16} />
+            <div>
+              <strong>Quick tip</strong>
+              <p>Save your changes after editing any section.</p>
+            </div>
           </div>
-        </header>
+        </aside>
 
-        <main
-          className="editor-container"
-          style={{
-            maxWidth: "1050px",
-          }}
-        >
-          {loadingContent && (
-            <div className="admin-info">
-              Loading your website content...
-            </div>
-          )}
-
-          {error && (
-            <div className="admin-error">
-              {error}
-            </div>
-          )}
-
-          {message && (
-            <div className="admin-success">
-              {message}
-            </div>
-          )}
-
-          {/* DASHBOARD */}
-
-          <section
-            id="dashboard"
-            className="editor-card"
-            style={{
-              scrollMarginTop:
-                "100px",
-            }}
-          >
-            <div className="editor-card-title">
-              <LayoutDashboard size={20} />
-              <h2>Dashboard Overview</h2>
+        <main className="editor-container">
+          <section id="overview" className="admin-overview-card">
+            <div className="overview-copy">
+              <div className="editor-label">WELCOME BACK</div>
+              <h2>Keep your portfolio up to date.</h2>
+              <p>
+                Manage your profile, experience, projects and achievements from one place.
+              </p>
             </div>
 
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns:
-                  "repeat(auto-fit,minmax(180px,1fr))",
-                gap: "14px",
-              }}
-            >
-              {[
-                {
-                  icon: User,
-                  label: "Profile",
-                  value:
-                    content.name ||
-                    "Not set",
-                  section:
-                    "profile",
-                },
-                {
-                  icon: Briefcase,
-                  label: "Experience",
-                  value:
-                    `${experiences.length} ${
-                      experiences.length === 1
-                        ? "entry"
-                        : "entries"
-                    }`,
-                  section:
-                    "experience",
-                },
-                {
-                  icon: FolderKanban,
-                  label: "Projects",
-                  value:
-                    `${projects.length} ${
-                      projects.length === 1
-                        ? "project"
-                        : "projects"
-                    }`,
-                  section:
-                    "projects",
-                },
-                {
-                  icon: Award,
-                  label: "Achievements",
-                  value:
-                    `${achievements.length} ${
-                      achievements.length === 1
-                        ? "achievement"
-                        : "achievements"
-                    }`,
-                  section:
-                    "achievements",
-                },
-              ].map((item) => {
-                const Icon = item.icon;
-
-                return (
-                  <button
-                    key={item.label}
-                    type="button"
-                    onClick={() =>
-                      scrollToSection(
-                        item.section
-                      )
-                    }
-                    style={{
-                      textAlign:
-                        "left",
-                      border:
-                        "1px solid rgba(120,150,165,0.14)",
-                      borderRadius:
-                        "14px",
-                      padding:
-                        "18px",
-                      background:
-                        "rgba(6,16,27,0.55)",
-                      color: "#fff",
-                      cursor:
-                        "pointer",
-                      transition:
-                        "all 0.2s ease",
-                    }}
-                  >
-                    <Icon
-                      size={19}
-                      color="#37c878"
-                    />
-
-                    <div
-                      style={{
-                        marginTop:
-                          "13px",
-                        color:
-                          "#778690",
-                        fontSize:
-                          "10px",
-                        fontWeight:
-                          700,
-                        textTransform:
-                          "uppercase",
-                        letterSpacing:
-                          "0.08em",
-                      }}
-                    >
-                      {item.label}
-                    </div>
-
-                    <div
-                      style={{
-                        marginTop:
-                          "6px",
-                        fontSize:
-                          "15px",
-                        fontWeight:
-                          700,
-                      }}
-                    >
-                      {item.value}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-
-            <div
-              style={{
-                marginTop: "18px",
-                padding: "14px 16px",
-                borderRadius: "12px",
-                background:
-                  "rgba(55,200,120,0.05)",
-                border:
-                  "1px solid rgba(55,200,120,0.12)",
-                display: "flex",
-                alignItems: "center",
-                gap: "9px",
-                color: "#8fe2ab",
-                fontSize: "11px",
-              }}
-            >
-              <CheckCircle2 size={16} />
-
-              Your admin panel is connected
-              to Supabase and ready to manage
-              your website content.
+            <div className="overview-actions">
+              <button
+                type="button"
+                className="overview-save-btn"
+                onClick={saveChanges}
+                disabled={
+                  saving ||
+                  loadingContent ||
+                  uploadingPhoto ||
+                  uploadingResume
+                }
+              >
+                <Save size={17} />
+                {saving ? "Saving..." : "Save Changes"}
+              </button>
             </div>
           </section>
 
-          {/* PROFILE */}
-
-          <section
-            id="profile"
-            className="editor-card"
-            style={{
-              scrollMarginTop:
-                "100px",
-            }}
-          >
-            <div className="editor-card-title">
-              <User size={20} />
-              <h2>Profile</h2>
+          <div className="admin-summary-grid">
+            <div className="admin-summary-card">
+              <span>Projects</span>
+              <strong>{(content.projects || []).length}</strong>
+              <small>Published portfolio projects</small>
             </div>
-
-            <div className="profile-preview">
-              {content.photo ? (
-                <img
-                  src={content.photo}
-                  alt="Profile"
-                />
-              ) : (
-                <div className="profile-placeholder">
-                  MB
-                </div>
-              )}
+            <div className="admin-summary-card">
+              <span>Experience</span>
+              <strong>{experiences.length}</strong>
+              <small>Career entries</small>
             </div>
+            <div className="admin-summary-card">
+              <span>Achievements</span>
+              <strong>{achievements.length}</strong>
+              <small>Key achievements</small>
+            </div>
+            <div className="admin-summary-card">
+              <span>Skills</span>
+              <strong>{(content.skills || []).length}</strong>
+              <small>Skills listed</small>
+            </div>
+          </div>
+        {loadingContent && (
+          <div className="admin-info">
+            Loading your website content...
+          </div>
+        )}
 
-            <label>
-              <Camera size={14} />
-              Upload Profile Photo
-            </label>
+        {error && (
+          <div className="admin-error">
+            {error}
+          </div>
+        )}
 
-            <input
-              type="file"
-              accept="image/jpeg,image/png,image/webp,image/gif"
-              onChange={
-                handlePhotoUpload
-              }
+        {message && (
+          <div className="admin-success">
+            {message}
+          </div>
+        )}
+
+        {/* PROFILE */}
+
+        <section id="profile" className="editor-card">
+          <div className="editor-card-title">
+            <User size={20} />
+            <h2>Profile</h2>
+          </div>
+
+          <div className="profile-preview">
+            {content.photo ? (
+              <img
+                src={content.photo}
+                alt="Profile"
+              />
+            ) : (
+              <div className="profile-placeholder">
+                MB
+              </div>
+            )}
+          </div>
+
+          <label>
+            <Camera size={14} />
+            Upload Profile Photo
+          </label>
+
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            onChange={handlePhotoUpload}
+            disabled={
+              uploadingPhoto ||
+              saving ||
+              uploadingResume
+            }
+          />
+
+          {uploadingPhoto && (
+            <p className="field-help">
+              Uploading photo to Supabase Storage...
+            </p>
+          )}
+
+          {content.photo && (
+            <button
+              type="button"
+              className="back-home"
+              onClick={removePhoto}
               disabled={
                 uploadingPhoto ||
                 saving ||
                 uploadingResume
               }
-            />
+            >
+              Remove Photo
+            </button>
+          )}
 
-            {uploadingPhoto && (
-              <p className="field-help">
-                Uploading photo to Supabase
-                Storage...
-              </p>
-            )}
+          <p className="field-help">
+            JPG, PNG, WEBP or GIF. Maximum
+            size: 5 MB.
+          </p>
 
-            {content.photo && (
-              <button
-                type="button"
-                className="back-home"
-                onClick={removePhoto}
-                disabled={
-                  uploadingPhoto ||
-                  saving ||
-                  uploadingResume
-                }
-              >
-                Remove Photo
-              </button>
-            )}
+          <label>Full Name</label>
 
+          <input
+            value={content.name || ""}
+            onChange={(event) =>
+              updateField(
+                "name",
+                event.target.value
+              )
+            }
+          />
+
+          <label>Professional Title</label>
+
+          <input
+            value={content.title || ""}
+            onChange={(event) =>
+              updateField(
+                "title",
+                event.target.value
+              )
+            }
+          />
+
+          <label>Professional Introduction</label>
+
+          <p className="field-help">
+            Add a short 1–2 line introduction. This appears below your name on the homepage.
+          </p>
+
+          <textarea
+            rows="3"
+            placeholder="Example: People-first Data Annotation Supervisor with 5+ years of experience leading high-volume annotation and quality-review teams."
+            value={content.intro || ""}
+            onChange={(event) =>
+              updateField(
+                "intro",
+                event.target.value
+              )
+            }
+          />
+
+          <label>About Me</label>
+
+          <p className="field-help">
+            Add your detailed professional background. This appears in the separate About Me section.
+          </p>
+
+          <textarea
+            rows="7"
+            value={content.about || ""}
+            onChange={(event) =>
+              updateField(
+                "about",
+                event.target.value
+              )
+            }
+          />
+        </section>
+
+        {/* RESUME */}
+
+        <section id="resume" className="editor-card">
+          <div className="editor-card-title">
+            <FileText size={20} />
+            <h2>Resume / CV</h2>
+          </div>
+
+          <label>
+            <FileText size={14} />
+            Upload Resume PDF
+          </label>
+
+          <input
+            type="file"
+            accept="application/pdf,.pdf"
+            onChange={handleResumeUpload}
+            disabled={
+              uploadingResume ||
+              saving ||
+              uploadingPhoto
+            }
+          />
+
+          {uploadingResume && (
             <p className="field-help">
-              JPG, PNG, WEBP or GIF.
-              Maximum size: 5 MB.
+              Uploading resume to Supabase Storage...
             </p>
+          )}
 
-            <label>Full Name</label>
+          {content.resume &&
+            !uploadingResume && (
+              <div
+                style={{
+                  display: "flex",
+                  gap: "10px",
+                  flexWrap: "wrap",
+                  marginTop: "12px",
+                }}
+              >
+                <a
+                  href={content.resume}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="back-home"
+                  style={{
+                    textDecoration: "none",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "6px",
+                  }}
+                >
+                  <ExternalLink size={16} />
+                  View Current Resume
+                </a>
 
-            <input
-              value={
-                content.name || ""
-              }
-              onChange={(event) =>
-                updateField(
-                  "name",
-                  event.target.value
-                )
-              }
-            />
-
-            <label>
-              Professional Title
-            </label>
-
-            <input
-              value={
-                content.title || ""
-              }
-              onChange={(event) =>
-                updateField(
-                  "title",
-                  event.target.value
-                )
-              }
-            />
-
-            <label>About Me</label>
-
-            <textarea
-              rows="7"
-              value={
-                content.about || ""
-              }
-              onChange={(event) =>
-                updateField(
-                  "about",
-                  event.target.value
-                )
-              }
-            />
-          </section>
-
-          {/* RESUME */}
-
-          <section
-            id="resume"
-            className="editor-card"
-            style={{
-              scrollMarginTop:
-                "100px",
-            }}
-          >
-            <div className="editor-card-title">
-              <FileText size={20} />
-              <h2>Resume / CV</h2>
-            </div>
-
-            <label>
-              <FileText size={14} />
-              Upload Resume PDF
-            </label>
-
-            <input
-              type="file"
-              accept="application/pdf,.pdf"
-              onChange={
-                handleResumeUpload
-              }
-              disabled={
-                uploadingResume ||
-                saving ||
-                uploadingPhoto
-              }
-            />
-
-            {uploadingResume && (
-              <p className="field-help">
-                Uploading resume to Supabase
-                Storage...
-              </p>
+                <button
+                  type="button"
+                  className="back-home"
+                  onClick={removeResume}
+                  disabled={
+                    uploadingResume ||
+                    saving ||
+                    uploadingPhoto
+                  }
+                >
+                  Remove Resume
+                </button>
+              </div>
             )}
 
-            {content.resume &&
-              !uploadingResume && (
+          <p className="field-help">
+            Upload your resume as a PDF.
+            Maximum size: 10 MB.
+          </p>
+
+          {!content.resume && (
+            <p className="field-help">
+              No resume uploaded yet.
+            </p>
+          )}
+        </section>
+
+        {/* PERSONAL */}
+
+        <section id="personal" className="editor-card">
+          <div className="editor-card-title">
+            <User size={20} />
+            <h2>Personal Information</h2>
+          </div>
+
+          <label>
+            <MapPin size={14} />
+            Location
+          </label>
+
+          <input
+            placeholder="Example: Bengaluru, India"
+            value={
+              content.personal?.location ||
+              ""
+            }
+            onChange={(event) =>
+              updatePersonal(
+                "location",
+                event.target.value
+              )
+            }
+          />
+
+          <label>
+            <GraduationCap size={14} />
+            Education
+          </label>
+
+          <input
+            placeholder="Example: Diploma in Civil"
+            value={
+              content.personal?.education ||
+              ""
+            }
+            onChange={(event) =>
+              updatePersonal(
+                "education",
+                event.target.value
+              )
+            }
+          />
+        </section>
+
+        {/* CONTACT */}
+
+        <section id="contact" className="editor-card">
+          <div className="editor-card-title">
+            <Mail size={20} />
+            <h2>Contact Information</h2>
+          </div>
+
+          <label>
+            <Mail size={14} />
+            Email
+          </label>
+
+          <input
+            type="email"
+            placeholder="your@email.com"
+            value={
+              content.contact?.email ||
+              ""
+            }
+            onChange={(event) =>
+              updateContact(
+                "email",
+                event.target.value
+              )
+            }
+          />
+
+          <label>
+            <Phone size={14} />
+            Phone
+          </label>
+
+          <input
+            type="text"
+            placeholder="Your phone number"
+            value={
+              content.contact?.phone ||
+              ""
+            }
+            onChange={(event) =>
+              updateContact(
+                "phone",
+                event.target.value
+              )
+            }
+          />
+
+          <label>
+            <Linkedin size={14} />
+            LinkedIn URL
+          </label>
+
+          <input
+            type="url"
+            placeholder="https://www.linkedin.com/in/..."
+            value={
+              content.contact?.linkedin ||
+              ""
+            }
+            onChange={(event) =>
+              updateContact(
+                "linkedin",
+                event.target.value
+              )
+            }
+          />
+        </section>
+
+        {/* EXPERIENCE */}
+
+        <section id="experience" className="editor-card">
+          <div className="editor-card-title">
+            <Briefcase size={20} />
+            <h2>Experience</h2>
+          </div>
+
+          <p className="field-help">
+            Add and manage all your
+            professional experiences. The
+            order here is the order shown
+            on your website.
+          </p>
+
+          {experiences.map(
+            (experience, index) => (
+              <div
+                key={index}
+                style={{
+                  border:
+                    "1px solid rgba(127, 127, 127, 0.25)",
+                  borderRadius: "14px",
+                  padding: "18px",
+                  marginTop: "18px",
+                }}
+              >
                 <div
                   style={{
                     display: "flex",
-                    gap: "10px",
-                    flexWrap:
-                      "wrap",
-                    marginTop:
-                      "12px",
+                    justifyContent:
+                      "space-between",
+                    alignItems: "center",
+                    gap: "12px",
+                    marginBottom: "16px",
                   }}
                 >
-                  <a
-                    href={
-                      content.resume
+                  <div>
+                    <h3 style={{ margin: 0 }}>
+                      Experience {index + 1}
+                    </h3>
+
+                    {experience.role && (
+                      <p
+                        className="field-help"
+                        style={{
+                          marginTop: "5px",
+                        }}
+                      >
+                        {experience.role}
+                        {experience.company
+                          ? ` • ${experience.company}`
+                          : ""}
+                      </p>
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    className="back-home"
+                    onClick={() =>
+                      deleteExperience(index)
                     }
+                    disabled={saving}
+                    style={{
+                      display:
+                        "inline-flex",
+                      alignItems:
+                        "center",
+                      gap: "6px",
+                    }}
+                  >
+                    <Trash2 size={16} />
+                    Delete
+                  </button>
+                </div>
+
+                <label>Job Role</label>
+
+                <input
+                  type="text"
+                  placeholder="Example: Data Annotation Team Lead"
+                  value={
+                    experience.role || ""
+                  }
+                  onChange={(event) =>
+                    updateExperience(
+                      index,
+                      "role",
+                      event.target.value
+                    )
+                  }
+                />
+
+                <label>Company</label>
+
+                <input
+                  type="text"
+                  placeholder="Example: ABC Company"
+                  value={
+                    experience.company ||
+                    ""
+                  }
+                  onChange={(event) =>
+                    updateExperience(
+                      index,
+                      "company",
+                      event.target.value
+                    )
+                  }
+                />
+
+                <label>Period</label>
+
+                <input
+                  type="text"
+                  placeholder="Example: 2023 - Present"
+                  value={
+                    experience.period || ""
+                  }
+                  onChange={(event) =>
+                    updateExperience(
+                      index,
+                      "period",
+                      event.target.value
+                    )
+                  }
+                />
+
+                <label>Description</label>
+
+                <p className="field-help">
+                  Add one responsibility or
+                  achievement per line.
+                </p>
+
+                <textarea
+                  rows="8"
+                  placeholder={
+                    "Led annotation teams across multiple projects.\nManaged daily targets and deadlines.\nEnsured high-quality annotations."
+                  }
+                  value={
+                    experience.description ||
+                    ""
+                  }
+                  onChange={(event) =>
+                    updateExperience(
+                      index,
+                      "description",
+                      event.target.value
+                    )
+                  }
+                />
+              </div>
+            )
+          )}
+
+          <button
+            type="button"
+            className="save-btn"
+            onClick={addExperience}
+            disabled={saving}
+            style={{
+              marginTop: "18px",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "8px",
+            }}
+          >
+            <Plus size={18} />
+            Add Experience
+          </button>
+        </section>
+
+        {/* PROFESSIONAL STATS */}
+
+        <section id="stats" className="editor-card">
+          <div className="editor-card-title">
+            <BarChart3 size={20} />
+            <h2>Professional Stats</h2>
+          </div>
+
+          <p className="field-help">
+            These statistics are displayed in
+            the Experience section of your
+            website. Edit the value and
+            description whenever you need.
+          </p>
+
+          {stats.map((stat, index) => (
+            <div
+              key={index}
+              style={{
+                border:
+                  "1px solid rgba(127, 127, 127, 0.25)",
+                borderRadius: "14px",
+                padding: "18px",
+                marginTop: "16px",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent:
+                    "space-between",
+                  alignItems: "center",
+                  gap: "12px",
+                  marginBottom: "16px",
+                }}
+              >
+                <h3 style={{ margin: 0 }}>
+                  Stat {index + 1}
+                </h3>
+
+                <button
+                  type="button"
+                  className="back-home"
+                  onClick={() =>
+                    deleteStat(index)
+                  }
+                  disabled={saving}
+                  style={{
+                    display:
+                      "inline-flex",
+                    alignItems:
+                      "center",
+                    gap: "6px",
+                  }}
+                >
+                  <Trash2 size={16} />
+                  Delete
+                </button>
+              </div>
+
+              <label>Stat Value</label>
+
+              <input
+                type="text"
+                placeholder="Example: 18+"
+                value={stat.value || ""}
+                onChange={(event) =>
+                  updateStat(
+                    index,
+                    "value",
+                    event.target.value
+                  )
+                }
+              />
+
+              <label>
+                Stat Description
+              </label>
+
+              <input
+                type="text"
+                placeholder="Example: Projects handled concurrently"
+                value={stat.label || ""}
+                onChange={(event) =>
+                  updateStat(
+                    index,
+                    "label",
+                    event.target.value
+                  )
+                }
+              />
+            </div>
+          ))}
+
+          {stats.length === 0 && (
+            <div
+              style={{
+                padding: "24px",
+                marginTop: "16px",
+                borderRadius: "12px",
+                textAlign: "center",
+                border:
+                  "1px dashed rgba(127, 127, 127, 0.4)",
+              }}
+            >
+              <p className="field-help">
+                No professional stats added.
+              </p>
+            </div>
+          )}
+
+          <button
+            type="button"
+            className="save-btn"
+            onClick={addStat}
+            disabled={saving}
+            style={{
+              marginTop: "18px",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "8px",
+            }}
+          >
+            <Plus size={18} />
+            Add Stat
+          </button>
+        </section>
+
+        {/* SKILLS */}
+
+        <section id="skills" className="editor-card">
+          <div className="editor-card-title">
+            <Code size={20} />
+            <h2>Skills</h2>
+          </div>
+
+          <label>Skills</label>
+
+          <textarea
+            rows="5"
+            placeholder="Data Annotation, QA, Team Management, Segmentation..."
+            value={(content.skills || []).join(
+              ", "
+            )}
+            onChange={(event) =>
+              updateSkills(
+                event.target.value
+              )
+            }
+          />
+        </section>
+
+        {/* PROJECTS */}
+
+        <section id="projects" className="editor-card">
+          <div className="editor-card-title">
+            <FolderKanban size={20} />
+            <h2>Projects</h2>
+          </div>
+
+          <p className="field-help">
+            Add your professional projects.
+          </p>
+
+          {(content.projects || []).map(
+            (project, index) => (
+              <div
+                key={index}
+                style={{
+                  border:
+                    "1px solid rgba(127, 127, 127, 0.25)",
+                  borderRadius: "14px",
+                  padding: "18px",
+                  marginTop: "16px",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent:
+                      "space-between",
+                    alignItems: "center",
+                    gap: "12px",
+                    marginBottom: "16px",
+                  }}
+                >
+                  <h3 style={{ margin: 0 }}>
+                    Project {index + 1}
+                  </h3>
+
+                  <button
+                    type="button"
+                    className="back-home"
+                    onClick={() =>
+                      deleteProject(index)
+                    }
+                    disabled={saving}
+                    style={{
+                      display:
+                        "inline-flex",
+                      alignItems:
+                        "center",
+                      gap: "6px",
+                    }}
+                  >
+                    <Trash2 size={16} />
+                    Delete
+                  </button>
+                </div>
+
+                <label>
+                  Project Title
+                </label>
+
+                <input
+                  type="text"
+                  placeholder="Example: AnnotatePro Team Dashboard"
+                  value={
+                    project.title || ""
+                  }
+                  onChange={(event) =>
+                    updateProject(
+                      index,
+                      "title",
+                      event.target.value
+                    )
+                  }
+                />
+
+                <label>
+                  Description
+                </label>
+
+                <textarea
+                  rows="5"
+                  placeholder="Describe what you built, what problem it solves and your role."
+                  value={
+                    project.description ||
+                    ""
+                  }
+                  onChange={(event) =>
+                    updateProject(
+                      index,
+                      "description",
+                      event.target.value
+                    )
+                  }
+                />
+
+                <label>
+                  Technology / Tag
+                </label>
+
+                <input
+                  type="text"
+                  placeholder="Example: React, Vite, Supabase"
+                  value={project.tag || ""}
+                  onChange={(event) =>
+                    updateProject(
+                      index,
+                      "tag",
+                      event.target.value
+                    )
+                  }
+                />
+
+                <label>
+                  Project URL
+                </label>
+
+                <input
+                  type="url"
+                  placeholder="https://your-project.vercel.app"
+                  value={project.url || ""}
+                  onChange={(event) =>
+                    updateProject(
+                      index,
+                      "url",
+                      event.target.value
+                    )
+                  }
+                />
+
+                {project.url && (
+                  <a
+                    href={project.url}
                     target="_blank"
                     rel="noreferrer"
                     className="back-home"
                     style={{
+                      marginTop: "10px",
                       textDecoration:
                         "none",
                       display:
@@ -2380,1142 +2362,259 @@ export default function Admin() {
                       gap: "6px",
                     }}
                   >
-                    <ExternalLink
-                      size={16}
-                    />
-                    View Current
-                    Resume
+                    <ExternalLink size={16} />
+                    Test Project Link
                   </a>
+                )}
+              </div>
+            )
+          )}
+
+          {content.projects?.length === 0 && (
+            <div
+              style={{
+                padding: "24px",
+                marginTop: "16px",
+                borderRadius: "12px",
+                textAlign: "center",
+                border:
+                  "1px dashed rgba(127, 127, 127, 0.4)",
+              }}
+            >
+              <p className="field-help">
+                No projects added yet.
+              </p>
+            </div>
+          )}
+
+          <button
+            type="button"
+            className="save-btn"
+            onClick={addProject}
+            disabled={saving}
+            style={{
+              marginTop: "18px",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "8px",
+            }}
+          >
+            <Plus size={18} />
+            Add Project
+          </button>
+        </section>
+
+        {/* ACHIEVEMENTS */}
+
+        <section id="achievements" className="editor-card">
+          <div className="editor-card-title">
+            <Award size={20} />
+            <h2>Achievements</h2>
+          </div>
+
+          <p className="field-help">
+            Manage your professional achievements.
+            Each achievement can have a title,
+            description, year and organization.
+            Existing achievements saved as simple
+            text are automatically supported.
+          </p>
+
+          {achievements.map(
+            (achievement, index) => (
+              <div
+                key={index}
+                style={{
+                  border:
+                    "1px solid rgba(127, 127, 127, 0.25)",
+                  borderRadius: "14px",
+                  padding: "18px",
+                  marginTop: "16px",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent:
+                      "space-between",
+                    alignItems: "center",
+                    gap: "12px",
+                    marginBottom: "16px",
+                  }}
+                >
+                  <div>
+                    <h3 style={{ margin: 0 }}>
+                      Achievement {index + 1}
+                    </h3>
+
+                    {achievement.title && (
+                      <p
+                        className="field-help"
+                        style={{
+                          marginTop: "5px",
+                        }}
+                      >
+                        {achievement.title}
+                      </p>
+                    )}
+                  </div>
 
                   <button
                     type="button"
                     className="back-home"
-                    onClick={
-                      removeResume
+                    onClick={() =>
+                      deleteAchievement(index)
                     }
-                    disabled={
-                      uploadingResume ||
-                      saving ||
-                      uploadingPhoto
-                    }
+                    disabled={saving}
+                    style={{
+                      display:
+                        "inline-flex",
+                      alignItems:
+                        "center",
+                      gap: "6px",
+                    }}
                   >
-                    Remove Resume
+                    <Trash2 size={16} />
+                    Delete
                   </button>
                 </div>
-              )}
 
-            <p className="field-help">
-              Upload your resume as a
-              PDF. Maximum size: 10 MB.
-            </p>
+                <label>
+                  Achievement Title
+                </label>
 
-            {!content.resume && (
+                <input
+                  type="text"
+                  placeholder="Example: Best Performer"
+                  value={
+                    achievement.title || ""
+                  }
+                  onChange={(event) =>
+                    updateAchievement(
+                      index,
+                      "title",
+                      event.target.value
+                    )
+                  }
+                />
+
+                <label>
+                  Description
+                </label>
+
+                <textarea
+                  rows="5"
+                  placeholder="Describe the achievement, recognition or result."
+                  value={
+                    achievement.description ||
+                    ""
+                  }
+                  onChange={(event) =>
+                    updateAchievement(
+                      index,
+                      "description",
+                      event.target.value
+                    )
+                  }
+                />
+
+                <label>
+                  Year
+                </label>
+
+                <input
+                  type="text"
+                  placeholder="Example: 2026"
+                  value={
+                    achievement.year || ""
+                  }
+                  onChange={(event) =>
+                    updateAchievement(
+                      index,
+                      "year",
+                      event.target.value
+                    )
+                  }
+                />
+
+                <label>
+                  Organization / Context
+                </label>
+
+                <input
+                  type="text"
+                  placeholder="Example: Data Annotation Team"
+                  value={
+                    achievement.organization ||
+                    ""
+                  }
+                  onChange={(event) =>
+                    updateAchievement(
+                      index,
+                      "organization",
+                      event.target.value
+                    )
+                  }
+                />
+              </div>
+            )
+          )}
+
+          {achievements.length === 0 && (
+            <div
+              style={{
+                padding: "24px",
+                marginTop: "16px",
+                borderRadius: "12px",
+                textAlign: "center",
+                border:
+                  "1px dashed rgba(127, 127, 127, 0.4)",
+              }}
+            >
               <p className="field-help">
-                No resume uploaded yet.
+                No achievements added yet.
               </p>
-            )}
-          </section>
+            </div>
+          )}
 
-          {/* PERSONAL */}
-
-          <section
-            id="personal"
-            className="editor-card"
+          <button
+            type="button"
+            className="save-btn"
+            onClick={addAchievement}
+            disabled={saving}
             style={{
-              scrollMarginTop:
-                "100px",
+              marginTop: "18px",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "8px",
             }}
           >
-            <div className="editor-card-title">
-              <MapPin size={20} />
-              <h2>
-                Personal Information
-              </h2>
-            </div>
+            <Plus size={18} />
+            Add Achievement
+          </button>
+        </section>
 
-            <label>
-              <MapPin size={14} />
-              Location
-            </label>
+        {/* SAVE */}
 
-            <input
-              placeholder="Example: Bengaluru, India"
-              value={
-                content.personal
-                  ?.location || ""
-              }
-              onChange={(event) =>
-                updatePersonal(
-                  "location",
-                  event.target.value
-                )
-              }
-            />
-
-            <label>
-              <GraduationCap size={14} />
-              Education
-            </label>
-
-            <input
-              placeholder="Example: Diploma in Civil"
-              value={
-                content.personal
-                  ?.education || ""
-              }
-              onChange={(event) =>
-                updatePersonal(
-                  "education",
-                  event.target.value
-                )
-              }
-            />
-          </section>
-
-          {/* CONTACT */}
-
-          <section
-            id="contact"
-            className="editor-card"
-            style={{
-              scrollMarginTop:
-                "100px",
-            }}
+        <div className="save-area">
+          <button
+            className="save-btn"
+            onClick={saveChanges}
+            disabled={
+              saving ||
+              loadingContent ||
+              uploadingPhoto ||
+              uploadingResume
+            }
           >
-            <div className="editor-card-title">
-              <Mail size={20} />
-              <h2>
-                Contact Information
-              </h2>
-            </div>
-
-            <label>
-              <Mail size={14} />
-              Email
-            </label>
-
-            <input
-              type="email"
-              placeholder="your@email.com"
-              value={
-                content.contact
-                  ?.email || ""
-              }
-              onChange={(event) =>
-                updateContact(
-                  "email",
-                  event.target.value
-                )
-              }
-            />
-
-            <label>
-              <Phone size={14} />
-              Phone
-            </label>
-
-            <input
-              type="text"
-              placeholder="Your phone number"
-              value={
-                content.contact
-                  ?.phone || ""
-              }
-              onChange={(event) =>
-                updateContact(
-                  "phone",
-                  event.target.value
-                )
-              }
-            />
-
-            <label>
-              <Linkedin size={14} />
-              LinkedIn URL
-            </label>
-
-            <input
-              type="url"
-              placeholder="https://www.linkedin.com/in/..."
-              value={
-                content.contact
-                  ?.linkedin || ""
-              }
-              onChange={(event) =>
-                updateContact(
-                  "linkedin",
-                  event.target.value
-                )
-              }
-            />
-          </section>
-
-          {/* EXPERIENCE */}
-
-          <section
-            id="experience"
-            className="editor-card"
-            style={{
-              scrollMarginTop:
-                "100px",
-            }}
-          >
-            <div className="editor-card-title">
-              <Briefcase size={20} />
-              <h2>Experience</h2>
-            </div>
-
-            <p className="field-help">
-              Add and manage all your
-              professional experiences.
-              The order here is the order
-              shown on your website.
-            </p>
-
-            {experiences.map(
-              (
-                experience,
-                index
-              ) => (
-                <div
-                  key={index}
-                  style={{
-                    border:
-                      "1px solid rgba(127,127,127,0.25)",
-                    borderRadius:
-                      "14px",
-                    padding:
-                      "18px",
-                    marginTop:
-                      "18px",
-                  }}
-                >
-                  <div
-                    style={{
-                      display:
-                        "flex",
-                      justifyContent:
-                        "space-between",
-                      alignItems:
-                        "center",
-                      gap: "12px",
-                      marginBottom:
-                        "16px",
-                    }}
-                  >
-                    <div>
-                      <h3
-                        style={{
-                          margin: 0,
-                        }}
-                      >
-                        Experience{" "}
-                        {index + 1}
-                      </h3>
-
-                      {experience.role && (
-                        <p
-                          className="field-help"
-                          style={{
-                            marginTop:
-                              "5px",
-                          }}
-                        >
-                          {
-                            experience.role
-                          }
-
-                          {experience.company
-                            ? ` • ${experience.company}`
-                            : ""}
-                        </p>
-                      )}
-                    </div>
-
-                    <button
-                      type="button"
-                      className="back-home"
-                      onClick={() =>
-                        deleteExperience(
-                          index
-                        )
-                      }
-                      disabled={
-                        saving
-                      }
-                      style={{
-                        display:
-                          "inline-flex",
-                        alignItems:
-                          "center",
-                        gap: "6px",
-                      }}
-                    >
-                      <Trash2
-                        size={16}
-                      />
-                      Delete
-                    </button>
-                  </div>
-
-                  <label>
-                    Job Role
-                  </label>
-
-                  <input
-                    type="text"
-                    placeholder="Example: Data Annotation Team Lead"
-                    value={
-                      experience.role ||
-                      ""
-                    }
-                    onChange={(
-                      event
-                    ) =>
-                      updateExperience(
-                        index,
-                        "role",
-                        event.target
-                          .value
-                      )
-                    }
-                  />
-
-                  <label>
-                    Company
-                  </label>
-
-                  <input
-                    type="text"
-                    placeholder="Example: ABC Company"
-                    value={
-                      experience.company ||
-                      ""
-                    }
-                    onChange={(
-                      event
-                    ) =>
-                      updateExperience(
-                        index,
-                        "company",
-                        event.target
-                          .value
-                      )
-                    }
-                  />
-
-                  <label>
-                    Period
-                  </label>
-
-                  <input
-                    type="text"
-                    placeholder="Example: 2023 - Present"
-                    value={
-                      experience.period ||
-                      ""
-                    }
-                    onChange={(
-                      event
-                    ) =>
-                      updateExperience(
-                        index,
-                        "period",
-                        event.target
-                          .value
-                      )
-                    }
-                  />
-
-                  <label>
-                    Description
-                  </label>
-
-                  <p className="field-help">
-                    Add one responsibility
-                    or achievement per
-                    line.
-                  </p>
-
-                  <textarea
-                    rows="8"
-                    placeholder={
-                      "Led annotation teams across multiple projects.\nManaged daily targets and deadlines.\nEnsured high-quality annotations."
-                    }
-                    value={
-                      experience.description ||
-                      ""
-                    }
-                    onChange={(
-                      event
-                    ) =>
-                      updateExperience(
-                        index,
-                        "description",
-                        event.target
-                          .value
-                      )
-                    }
-                  />
-                </div>
-              )
-            )}
-
-            <button
-              type="button"
-              className="save-btn"
-              onClick={
-                addExperience
-              }
-              disabled={saving}
-              style={{
-                marginTop:
-                  "18px",
-                display:
-                  "inline-flex",
-                alignItems:
-                  "center",
-                gap: "8px",
-              }}
-            >
-              <Plus size={18} />
-              Add Experience
-            </button>
-          </section>
-
-          {/* STATS */}
-
-          <section
-            id="stats"
-            className="editor-card"
-            style={{
-              scrollMarginTop:
-                "100px",
-            }}
-          >
-            <div className="editor-card-title">
-              <BarChart3 size={20} />
-              <h2>
-                Professional Stats
-              </h2>
-            </div>
-
-            <p className="field-help">
-              These statistics are
-              displayed in the Experience
-              section of your website.
-            </p>
-
-            {stats.map(
-              (stat, index) => (
-                <div
-                  key={index}
-                  style={{
-                    border:
-                      "1px solid rgba(127,127,127,0.25)",
-                    borderRadius:
-                      "14px",
-                    padding:
-                      "18px",
-                    marginTop:
-                      "16px",
-                  }}
-                >
-                  <div
-                    style={{
-                      display:
-                        "flex",
-                      justifyContent:
-                        "space-between",
-                      alignItems:
-                        "center",
-                      gap: "12px",
-                      marginBottom:
-                        "16px",
-                    }}
-                  >
-                    <h3
-                      style={{
-                        margin: 0,
-                      }}
-                    >
-                      Stat{" "}
-                      {index + 1}
-                    </h3>
-
-                    <button
-                      type="button"
-                      className="back-home"
-                      onClick={() =>
-                        deleteStat(
-                          index
-                        )
-                      }
-                      disabled={
-                        saving
-                      }
-                      style={{
-                        display:
-                          "inline-flex",
-                        alignItems:
-                          "center",
-                        gap: "6px",
-                      }}
-                    >
-                      <Trash2
-                        size={16}
-                      />
-                      Delete
-                    </button>
-                  </div>
-
-                  <label>
-                    Stat Value
-                  </label>
-
-                  <input
-                    type="text"
-                    placeholder="Example: 18+"
-                    value={
-                      stat.value ||
-                      ""
-                    }
-                    onChange={(
-                      event
-                    ) =>
-                      updateStat(
-                        index,
-                        "value",
-                        event.target
-                          .value
-                      )
-                    }
-                  />
-
-                  <label>
-                    Stat Description
-                  </label>
-
-                  <input
-                    type="text"
-                    placeholder="Example: Projects handled concurrently"
-                    value={
-                      stat.label ||
-                      ""
-                    }
-                    onChange={(
-                      event
-                    ) =>
-                      updateStat(
-                        index,
-                        "label",
-                        event.target
-                          .value
-                      )
-                    }
-                  />
-                </div>
-              )
-            )}
-
-            {stats.length === 0 && (
-              <div
-                style={{
-                  padding:
-                    "24px",
-                  marginTop:
-                    "16px",
-                  borderRadius:
-                    "12px",
-                  textAlign:
-                    "center",
-                  border:
-                    "1px dashed rgba(127,127,127,0.4)",
-                }}
-              >
-                <p className="field-help">
-                  No professional stats
-                  added.
-                </p>
-              </div>
-            )}
-
-            <button
-              type="button"
-              className="save-btn"
-              onClick={
-                addStat
-              }
-              disabled={saving}
-              style={{
-                marginTop:
-                  "18px",
-                display:
-                  "inline-flex",
-                alignItems:
-                  "center",
-                gap: "8px",
-              }}
-            >
-              <Plus size={18} />
-              Add Stat
-            </button>
-          </section>
-
-          {/* SKILLS */}
-
-          <section
-            id="skills"
-            className="editor-card"
-            style={{
-              scrollMarginTop:
-                "100px",
-            }}
-          >
-            <div className="editor-card-title">
-              <Code size={20} />
-              <h2>Skills</h2>
-            </div>
-
-            <label>Skills</label>
-
-            <textarea
-              rows="5"
-              placeholder="Data Annotation, QA, Team Management, Segmentation..."
-              value={skills.join(
-                ", "
-              )}
-              onChange={(event) =>
-                updateSkills(
-                  event.target.value
-                )
-              }
-            />
-          </section>
-
-          {/* PROJECTS */}
-
-          <section
-            id="projects"
-            className="editor-card"
-            style={{
-              scrollMarginTop:
-                "100px",
-            }}
-          >
-            <div className="editor-card-title">
-              <FolderKanban size={20} />
-              <h2>Projects</h2>
-            </div>
-
-            <p className="field-help">
-              Add your professional
-              projects.
-            </p>
-
-            {projects.map(
-              (
-                project,
-                index
-              ) => (
-                <div
-                  key={index}
-                  style={{
-                    border:
-                      "1px solid rgba(127,127,127,0.25)",
-                    borderRadius:
-                      "14px",
-                    padding:
-                      "18px",
-                    marginTop:
-                      "16px",
-                  }}
-                >
-                  <div
-                    style={{
-                      display:
-                        "flex",
-                      justifyContent:
-                        "space-between",
-                      alignItems:
-                        "center",
-                      gap: "12px",
-                      marginBottom:
-                        "16px",
-                    }}
-                  >
-                    <h3
-                      style={{
-                        margin: 0,
-                      }}
-                    >
-                      Project{" "}
-                      {index + 1}
-                    </h3>
-
-                    <button
-                      type="button"
-                      className="back-home"
-                      onClick={() =>
-                        deleteProject(
-                          index
-                        )
-                      }
-                      disabled={
-                        saving
-                      }
-                      style={{
-                        display:
-                          "inline-flex",
-                        alignItems:
-                          "center",
-                        gap: "6px",
-                      }}
-                    >
-                      <Trash2
-                        size={16}
-                      />
-                      Delete
-                    </button>
-                  </div>
-
-                  <label>
-                    Project Title
-                  </label>
-
-                  <input
-                    type="text"
-                    placeholder="Example: AnnotatePro Team Dashboard"
-                    value={
-                      project.title ||
-                      ""
-                    }
-                    onChange={(
-                      event
-                    ) =>
-                      updateProject(
-                        index,
-                        "title",
-                        event.target
-                          .value
-                      )
-                    }
-                  />
-
-                  <label>
-                    Description
-                  </label>
-
-                  <textarea
-                    rows="5"
-                    placeholder="Describe what you built, what problem it solves and your role."
-                    value={
-                      project.description ||
-                      ""
-                    }
-                    onChange={(
-                      event
-                    ) =>
-                      updateProject(
-                        index,
-                        "description",
-                        event.target
-                          .value
-                      )
-                    }
-                  />
-
-                  <label>
-                    Technology / Tag
-                  </label>
-
-                  <input
-                    type="text"
-                    placeholder="Example: React, Vite, Supabase"
-                    value={
-                      project.tag ||
-                      ""
-                    }
-                    onChange={(
-                      event
-                    ) =>
-                      updateProject(
-                        index,
-                        "tag",
-                        event.target
-                          .value
-                      )
-                    }
-                  />
-
-                  <label>
-                    Project URL
-                  </label>
-
-                  <input
-                    type="url"
-                    placeholder="https://your-project.vercel.app"
-                    value={
-                      project.url ||
-                      ""
-                    }
-                    onChange={(
-                      event
-                    ) =>
-                      updateProject(
-                        index,
-                        "url",
-                        event.target
-                          .value
-                      )
-                    }
-                  />
-
-                  {project.url && (
-                    <a
-                      href={
-                        project.url
-                      }
-                      target="_blank"
-                      rel="noreferrer"
-                      className="back-home"
-                      style={{
-                        marginTop:
-                          "10px",
-                        textDecoration:
-                          "none",
-                        display:
-                          "inline-flex",
-                        alignItems:
-                          "center",
-                        gap: "6px",
-                      }}
-                    >
-                      <ExternalLink
-                        size={16}
-                      />
-                      Test Project
-                      Link
-                    </a>
-                  )}
-                </div>
-              )
-            )}
-
-            {projects.length ===
-              0 && (
-              <div
-                style={{
-                  padding:
-                    "24px",
-                  marginTop:
-                    "16px",
-                  borderRadius:
-                    "12px",
-                  textAlign:
-                    "center",
-                  border:
-                    "1px dashed rgba(127,127,127,0.4)",
-                }}
-              >
-                <p className="field-help">
-                  No projects added
-                  yet.
-                </p>
-              </div>
-            )}
-
-            <button
-              type="button"
-              className="save-btn"
-              onClick={
-                addProject
-              }
-              disabled={saving}
-              style={{
-                marginTop:
-                  "18px",
-                display:
-                  "inline-flex",
-                alignItems:
-                  "center",
-                gap: "8px",
-              }}
-            >
-              <Plus size={18} />
-              Add Project
-            </button>
-          </section>
-
-          {/* ACHIEVEMENTS */}
-
-          <section
-            id="achievements"
-            className="editor-card"
-            style={{
-              scrollMarginTop:
-                "100px",
-            }}
-          >
-            <div className="editor-card-title">
-              <Award size={20} />
-              <h2>Achievements</h2>
-            </div>
-
-            <p className="field-help">
-              Manage your professional
-              achievements. Each
-              achievement can have a title,
-              description, year and
-              organization.
-            </p>
-
-            {achievements.map(
-              (
-                achievement,
-                index
-              ) => (
-                <div
-                  key={index}
-                  style={{
-                    border:
-                      "1px solid rgba(127,127,127,0.25)",
-                    borderRadius:
-                      "14px",
-                    padding:
-                      "18px",
-                    marginTop:
-                      "16px",
-                  }}
-                >
-                  <div
-                    style={{
-                      display:
-                        "flex",
-                      justifyContent:
-                        "space-between",
-                      alignItems:
-                        "center",
-                      gap: "12px",
-                      marginBottom:
-                        "16px",
-                    }}
-                  >
-                    <div>
-                      <h3
-                        style={{
-                          margin: 0,
-                        }}
-                      >
-                        Achievement{" "}
-                        {index + 1}
-                      </h3>
-
-                      {achievement.title && (
-                        <p
-                          className="field-help"
-                          style={{
-                            marginTop:
-                              "5px",
-                          }}
-                        >
-                          {
-                            achievement.title
-                          }
-                        </p>
-                      )}
-                    </div>
-
-                    <button
-                      type="button"
-                      className="back-home"
-                      onClick={() =>
-                        deleteAchievement(
-                          index
-                        )
-                      }
-                      disabled={
-                        saving
-                      }
-                      style={{
-                        display:
-                          "inline-flex",
-                        alignItems:
-                          "center",
-                        gap: "6px",
-                      }}
-                    >
-                      <Trash2
-                        size={16}
-                      />
-                      Delete
-                    </button>
-                  </div>
-
-                  <label>
-                    Achievement Title
-                  </label>
-
-                  <input
-                    type="text"
-                    placeholder="Example: Best Performer"
-                    value={
-                      achievement.title ||
-                      ""
-                    }
-                    onChange={(
-                      event
-                    ) =>
-                      updateAchievement(
-                        index,
-                        "title",
-                        event.target
-                          .value
-                      )
-                    }
-                  />
-
-                  <label>
-                    Description
-                  </label>
-
-                  <textarea
-                    rows="5"
-                    placeholder="Describe the achievement, recognition or result."
-                    value={
-                      achievement.description ||
-                      ""
-                    }
-                    onChange={(
-                      event
-                    ) =>
-                      updateAchievement(
-                        index,
-                        "description",
-                        event.target
-                          .value
-                      )
-                    }
-                  />
-
-                  <label>
-                    Year
-                  </label>
-
-                  <input
-                    type="text"
-                    placeholder="Example: 2026"
-                    value={
-                      achievement.year ||
-                      ""
-                    }
-                    onChange={(
-                      event
-                    ) =>
-                      updateAchievement(
-                        index,
-                        "year",
-                        event.target
-                          .value
-                      )
-                    }
-                  />
-
-                  <label>
-                    Organization /
-                    Context
-                  </label>
-
-                  <input
-                    type="text"
-                    placeholder="Example: Data Annotation Team"
-                    value={
-                      achievement.organization ||
-                      ""
-                    }
-                    onChange={(
-                      event
-                    ) =>
-                      updateAchievement(
-                        index,
-                        "organization",
-                        event.target
-                          .value
-                      )
-                    }
-                  />
-                </div>
-              )
-            )}
-
-            {achievements.length ===
-              0 && (
-              <div
-                style={{
-                  padding:
-                    "24px",
-                  marginTop:
-                    "16px",
-                  borderRadius:
-                    "12px",
-                  textAlign:
-                    "center",
-                  border:
-                    "1px dashed rgba(127,127,127,0.4)",
-                }}
-              >
-                <p className="field-help">
-                  No achievements added
-                  yet.
-                </p>
-              </div>
-            )}
-
-            <button
-              type="button"
-              className="save-btn"
-              onClick={
-                addAchievement
-              }
-              disabled={saving}
-              style={{
-                marginTop:
-                  "18px",
-                display:
-                  "inline-flex",
-                alignItems:
-                  "center",
-                gap: "8px",
-              }}
-            >
-              <Plus size={18} />
-              Add Achievement
-            </button>
-          </section>
-
-          {/* SAVE */}
-
-          <div className="save-area">
-            <button
-              className="save-btn"
-              onClick={
-                saveChanges
-              }
-              disabled={
-                saving ||
-                loadingContent ||
-                uploadingPhoto ||
-                uploadingResume
-              }
-            >
-              <Save size={20} />
-
-              {saving
-                ? "Saving..."
-                : "Save Changes"}
-            </button>
-          </div>
-        </main>
+            <Save size={20} />
+
+            {saving
+              ? "Saving..."
+              : "Save Changes"}
+          </button>
+        </div>
+      </main>
       </div>
     </div>
   );
