@@ -231,6 +231,41 @@ button,a,input,textarea{font:inherit}button{cursor:pointer}a{text-decoration:non
   letter-spacing: 0.08em;
 }
 
+
+.admin-header-actions, .editor-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.admin-preview-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 10px 14px;
+  border: 1px solid rgba(55, 200, 120, 0.35);
+  border-radius: 7px;
+  background: rgba(55, 200, 120, 0.08);
+  color: #9be8b6;
+  font-size: 12px;
+  font-weight: 700;
+  transition: all 0.2s ease;
+}
+
+.admin-preview-btn:hover {
+  border-color: #37c878;
+  background: rgba(55, 200, 120, 0.15);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.admin-preview-btn:focus-visible {
+  outline: 2px solid #37c878;
+  outline-offset: 2px;
+}
+
 .logout-btn {
   display: flex;
   align-items: center;
