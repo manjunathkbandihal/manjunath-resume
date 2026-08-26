@@ -1454,7 +1454,7 @@ export default function Admin() {
             rel="noreferrer"
           >
             <ExternalLinkIcon size={16} />
-            View Website
+            Preview Website
           </a>
 
           <button
