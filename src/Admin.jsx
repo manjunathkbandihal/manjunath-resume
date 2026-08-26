@@ -1425,7 +1425,20 @@ export default function Admin() {
     <div className="editor-page">
       <header className="editor-header">
         <div className="editor-brand-area">
-          <div className="admin-mini-logo">MB</div>
+          <div className="admin-mini-logo">
+            {content.photo ? (
+              <img
+                src={content.photo}
+                alt="Profile"
+                onError={(event) => {
+                  event.currentTarget.style.display = "none";
+                }}
+              />
+            ) : (
+              <span>MB</span>
+            )}
+          </div>
+
           <div>
             <div className="editor-label">ADMIN PANEL</div>
             <h1>Website Control Center</h1>
