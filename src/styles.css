@@ -188,6 +188,42 @@ button,a,input,textarea{font:inherit}button{cursor:pointer}a{text-decoration:non
   font-size: 11px;
 }
 
+/* Profile photo beside ADMIN PANEL */
+.editor-brand-area {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  min-width: 0;
+}
+
+.admin-mini-logo {
+  width: 46px;
+  height: 46px;
+  min-width: 46px;
+  border-radius: 13px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: linear-gradient(135deg, #e9f8f0, #bff0d2);
+  color: #159154;
+  font-weight: 900;
+  font-size: 14px;
+}
+
+.admin-mini-logo img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.admin-mini-logo span {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+}
+
 .editor-label {
   color: #37c878;
   font-size: 11px;
