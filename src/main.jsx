@@ -39,6 +39,9 @@ const defaultContent = {
   photo: "",
   resume: "",
 
+  intro:
+    "People-first Data Annotation Supervisor with 5+ years of experience leading high-volume annotation and quality-review teams.",
+
   about:
     "Dedicated and result-driven professional with experience in data annotation, segmentation annotation, quality control, team coordination and project management.",
 
@@ -203,6 +206,11 @@ function mergeContent(saved) {
       ...defaultContent.contact,
       ...(saved.contact || {}),
     },
+
+    intro:
+      typeof saved.intro === "string"
+        ? saved.intro
+        : defaultContent.intro,
 
     experience:
       Array.isArray(saved.experience) &&
@@ -516,7 +524,7 @@ function App() {
               </h1>
 
               <p className="hero-text">
-                {content.about ||
+                {content.intro ||
                   "Dedicated and result-driven professional."}
               </p>
 
@@ -1402,4 +1410,3 @@ ReactDOM.createRoot(
     <Root />
   </React.StrictMode>
 );
-
