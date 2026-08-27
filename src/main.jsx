@@ -24,6 +24,10 @@ import Admin from "./Admin";
 import { supabase } from "./supabase";
 import "./styles.css";
 
+/* =========================================================
+   NAVIGATION
+========================================================= */
+
 const navItems = [
   "About",
   "Experience",
@@ -33,11 +37,21 @@ const navItems = [
   "Contact",
 ];
 
+/* =========================================================
+   DEFAULT CONTENT
+========================================================= */
+
 const defaultContent = {
   name: "Manjunath Bandihal",
+
   title: "Data Annotation Team Lead",
+
   photo: "",
+
   resume: "",
+
+  intro:
+    "People-first Data Annotation Supervisor with 5+ years of experience leading high-volume annotation and quality-review teams.",
 
   about:
     "Dedicated and result-driven professional with experience in data annotation, segmentation annotation, quality control, team coordination and project management.",
@@ -152,6 +166,10 @@ const defaultContent = {
   },
 };
 
+/* =========================================================
+   NORMALIZE ACHIEVEMENTS
+========================================================= */
+
 function normalizeAchievement(item) {
   if (typeof item === "string") {
     return {
@@ -167,20 +185,27 @@ function normalizeAchievement(item) {
       typeof item?.title === "string"
         ? item.title
         : "",
+
     description:
       typeof item?.description === "string"
         ? item.description
         : "",
+
     year:
       typeof item?.year === "string"
         ? item.year
         : "",
+
     organization:
       typeof item?.organization === "string"
         ? item.organization
         : "",
   };
 }
+
+/* =========================================================
+   MERGE SUPABASE CONTENT
+========================================================= */
 
 function mergeContent(saved) {
   if (!saved) {
@@ -201,6 +226,11 @@ function mergeContent(saved) {
       ...(saved.contact || {}),
     },
 
+    intro:
+      typeof saved.intro === "string"
+        ? saved.intro
+        : defaultContent.intro,
+
     experience:
       Array.isArray(saved.experience) &&
       saved.experience.length > 0
@@ -209,16 +239,20 @@ function mergeContent(saved) {
               typeof item?.role === "string"
                 ? item.role
                 : "",
+
             company:
               typeof item?.company === "string"
                 ? item.company
                 : "",
+
             period:
               typeof item?.period === "string"
                 ? item.period
                 : "",
+
             description:
-              typeof item?.description === "string"
+              typeof item?.description ===
+              "string"
                 ? item.description
                 : "",
           }))
@@ -234,19 +268,26 @@ function mergeContent(saved) {
       saved.projects.length > 0
         ? saved.projects.map((project) => ({
             title:
-              typeof project?.title === "string"
+              typeof project?.title ===
+              "string"
                 ? project.title
                 : "",
+
             description:
-              typeof project?.description === "string"
+              typeof project?.description ===
+              "string"
                 ? project.description
                 : "",
+
             tag:
-              typeof project?.tag === "string"
+              typeof project?.tag ===
+              "string"
                 ? project.tag
                 : "",
+
             url:
-              typeof project?.url === "string"
+              typeof project?.url ===
+              "string"
                 ? project.url
                 : "",
           }))
@@ -267,6 +308,7 @@ function mergeContent(saved) {
               typeof stat?.value === "string"
                 ? stat.value
                 : "",
+
             label:
               typeof stat?.label === "string"
                 ? stat.label
@@ -286,8 +328,13 @@ function mergeContent(saved) {
   };
 }
 
+/* =========================================================
+   MAIN APP
+========================================================= */
+
 function App() {
-  const [menuOpen, setMenuOpen] = React.useState(false);
+  const [menuOpen, setMenuOpen] =
+    React.useState(false);
 
   const [content, setContent] =
     React.useState(defaultContent);
@@ -295,23 +342,32 @@ function App() {
   const [loading, setLoading] =
     React.useState(true);
 
-  const [formName, setFormName] =
-    React.useState("");
+  /* READ MORE / READ LESS */
 
-  const [formEmail, setFormEmail] =
-    React.useState("");
+  const [expandedExperience, setExpandedExperience] =
+    React.useState({});
 
-  const [formMessage, setFormMessage] =
-    React.useState("");
+  /* CONTACT FORM */
+
+  const [contactForm, setContactForm] =
+    React.useState({
+      name: "",
+      email: "",
+      message: "",
+    });
 
   const [sendingMessage, setSendingMessage] =
     React.useState(false);
 
-  const [contactStatus, setContactStatus] =
+  const [contactMessage, setContactMessage] =
     React.useState("");
 
   const [contactError, setContactError] =
     React.useState("");
+
+  /* =========================================================
+     LOAD WEBSITE CONTENT
+  ========================================================= */
 
   React.useEffect(() => {
     let mounted = true;
@@ -330,6 +386,7 @@ function App() {
             "Supabase viewer error:",
             error
           );
+
           return;
         }
 
@@ -361,6 +418,10 @@ function App() {
     };
   }, []);
 
+  /* =========================================================
+     NAVIGATION
+  ========================================================= */
+
   const go = (id) => {
     setMenuOpen(false);
 
@@ -374,15 +435,42 @@ function App() {
     }
   };
 
+  /* =========================================================
+     READ MORE / READ LESS
+  ========================================================= */
+
+  const toggleExperience = (index) => {
+    setExpandedExperience((current) => ({
+      ...current,
+      [index]: !current[index],
+    }));
+  };
+
+  /* =========================================================
+     CONTACT FORM
+  ========================================================= */
+
+  function updateContactForm(field, value) {
+    setContactForm((current) => ({
+      ...current,
+      [field]: value,
+    }));
+  }
+
   async function handleContactSubmit(event) {
     event.preventDefault();
 
-    setContactStatus("");
+    setContactMessage("");
     setContactError("");
 
-    const name = formName.trim();
-    const email = formEmail.trim();
-    const message = formMessage.trim();
+    const name =
+      contactForm.name.trim();
+
+    const email =
+      contactForm.email.trim();
+
+    const message =
+      contactForm.message.trim();
 
     if (!name) {
       setContactError(
@@ -412,12 +500,9 @@ function App() {
       return;
     }
 
-    if (
-      email.length < 3 ||
-      email.length > 320
-    ) {
+    if (email.length > 320) {
       setContactError(
-        "Please enter a valid email address."
+        "Email address is too long."
       );
       return;
     }
@@ -435,45 +520,43 @@ function App() {
       const { error } =
         await supabase
           .from("contact_messages")
-          .insert([
-            {
-              name,
-              email,
-              message,
-              status: "new",
-            },
-          ]);
+          .insert({
+            name,
+            email,
+            message,
+            status: "new",
+          });
 
       if (error) {
-        console.error(
-          "Contact form submission failed:",
-          error
-        );
-
         throw error;
       }
 
-      setFormName("");
-      setFormEmail("");
-      setFormMessage("");
+      setContactForm({
+        name: "",
+        email: "",
+        message: "",
+      });
 
-      setContactStatus(
+      setContactMessage(
         "Message sent successfully! Thank you for reaching out."
       );
     } catch (error) {
       console.error(
-        "Contact form error:",
+        "Contact form submission failed:",
         error
       );
 
       setContactError(
-        error?.message ||
-          "Unable to send your message right now. Please try again."
+        "Unable to send your message right now. Please try again."
       );
     } finally {
       setSendingMessage(false);
     }
   }
+
+  /* =========================================================
+     LOADING
+  ========================================================= */
 
   if (loading) {
     return (
@@ -523,14 +606,16 @@ function App() {
   return (
     <div className="site">
 
+      {/* =====================================================
+          HEADER
+      ===================================================== */}
+
       <header className="header">
         <div className="nav container">
 
           <button
             className="brand"
-            onClick={() =>
-              go("home")
-            }
+            onClick={() => go("home")}
           >
             <span>
               {content.name
@@ -557,9 +642,7 @@ function App() {
               <button
                 key={item}
                 onClick={() =>
-                  go(
-                    item.toLowerCase()
-                  )
+                  go(item.toLowerCase())
                 }
               >
                 {item}
@@ -585,6 +668,10 @@ function App() {
       </header>
 
       <main>
+
+        {/* ===================================================
+            HERO
+        =================================================== */}
 
         <section
           id="home"
@@ -617,8 +704,10 @@ function App() {
                 </span>
               </h1>
 
+              {/* PROFESSIONAL INTRODUCTION */}
+
               <p className="hero-text">
-                {content.about ||
+                {content.intro ||
                   "Dedicated and result-driven professional."}
               </p>
 
@@ -748,6 +837,10 @@ function App() {
           </div>
         </section>
 
+        {/* ===================================================
+            ABOUT
+        =================================================== */}
+
         <section
           id="about"
           className="section"
@@ -777,7 +870,8 @@ function App() {
                     }
                     title="Education"
                     value={
-                      content.personal?.education ||
+                      content.personal
+                        ?.education ||
                       "Education"
                     }
                   />
@@ -822,7 +916,8 @@ function App() {
                   icon={<Mail />}
                   label="Email"
                   value={
-                    content.contact?.email ||
+                    content.contact
+                      ?.email ||
                     "Not provided"
                   }
                 />
@@ -831,7 +926,8 @@ function App() {
                   icon={<Phone />}
                   label="Phone"
                   value={
-                    content.contact?.phone ||
+                    content.contact
+                      ?.phone ||
                     "Not provided"
                   }
                 />
@@ -840,7 +936,8 @@ function App() {
                   icon={<MapPin />}
                   label="Location"
                   value={
-                    content.personal?.location ||
+                    content.personal
+                      ?.location ||
                     "India"
                   }
                 />
@@ -849,7 +946,8 @@ function App() {
                   icon={<Linkedin />}
                   label="LinkedIn"
                   value={
-                    content.contact?.linkedin ||
+                    content.contact
+                      ?.linkedin ||
                     "Not provided"
                   }
                 />
@@ -860,6 +958,10 @@ function App() {
 
           </div>
         </section>
+
+        {/* ===================================================
+            EXPERIENCE
+        =================================================== */}
 
         <section
           id="experience"
@@ -882,106 +984,170 @@ function App() {
               <div className="timeline-card">
 
                 {experiences.length > 0 ? (
-                  experiences.map(
-                    (experience, index) => (
-                      <div
-                        className="experience-item"
-                        key={index}
-                        style={{
-                          position:
-                            "relative",
-                          paddingLeft:
-                            "28px",
-                          paddingBottom:
-                            index ===
-                            experiences.length -
-                              1
-                              ? "0"
-                              : "32px",
-                          marginBottom:
-                            index ===
-                            experiences.length -
-                              1
-                              ? "0"
-                              : "32px",
-                          borderLeft:
-                            index ===
-                            experiences.length -
-                              1
-                              ? "none"
-                              : "2px solid rgba(127,127,127,0.25)",
-                        }}
-                      >
 
+                  experiences.map(
+                    (
+                      experience,
+                      index
+                    ) => {
+
+                      const lines = (
+                        experience.description ||
+                        ""
+                      )
+                        .split("\n")
+                        .filter(Boolean);
+
+                      const isExpanded =
+                        !!expandedExperience[
+                          index
+                        ];
+
+                      const visibleLines =
+                        isExpanded
+                          ? lines
+                          : lines.slice(0, 3);
+
+                      const hasMore =
+                        lines.length > 3;
+
+                      return (
                         <div
-                          className="timeline-dot"
+                          className="experience-item"
+                          key={index}
                           style={{
                             position:
-                              "absolute",
-                            left: "-7px",
-                            top: "3px",
+                              "relative",
+                            paddingLeft:
+                              "28px",
+                            paddingBottom:
+                              index ===
+                              experiences.length -
+                                1
+                                ? "0"
+                                : "32px",
+                            marginBottom:
+                              index ===
+                              experiences.length -
+                                1
+                                ? "0"
+                                : "32px",
+                            borderLeft:
+                              index ===
+                              experiences.length -
+                                1
+                                ? "none"
+                                : "2px solid rgba(127,127,127,0.25)",
                           }}
-                        />
+                        >
 
-                        <div className="role-head">
+                          <div
+                            className="timeline-dot"
+                            style={{
+                              position:
+                                "absolute",
+                              left: "-7px",
+                              top: "3px",
+                            }}
+                          />
 
-                          <div>
+                          <div className="role-head">
 
-                            <h3>
-                              {experience.role ||
-                                content.title ||
-                                "Professional Role"}
-                            </h3>
+                            <div>
 
-                            <p>
-                              {experience.company ||
-                                "Annotation / Data Operations"}
-                            </p>
+                              <h3>
+                                {experience.role ||
+                                  content.title ||
+                                  "Professional Role"}
+                              </h3>
+
+                              <p>
+                                {experience.company ||
+                                  "Annotation / Data Operations"}
+                              </p>
+
+                            </div>
+
+                            <span className="pill">
+                              {experience.period ||
+                                "Present"}
+                            </span>
 
                           </div>
 
-                          <span className="pill">
-                            {experience.period ||
-                              "Present"}
-                          </span>
+                          {lines.length > 0 && (
+                            <ul>
+
+                              {visibleLines.map(
+                                (
+                                  item,
+                                  itemIndex
+                                ) => (
+                                  <li
+                                    key={
+                                      itemIndex
+                                    }
+                                  >
+                                    {item}
+                                  </li>
+                                )
+                              )}
+
+                            </ul>
+                          )}
+
+                          {/* READ MORE / READ LESS */}
+
+                          {hasMore && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                toggleExperience(
+                                  index
+                                )
+                              }
+                              style={{
+                                marginTop:
+                                  "8px",
+                                padding:
+                                  "8px 14px",
+                                border:
+                                  "1px solid currentColor",
+                                borderRadius:
+                                  "8px",
+                                background:
+                                  "transparent",
+                                cursor:
+                                  "pointer",
+                                fontWeight:
+                                  600,
+                              }}
+                            >
+                              {isExpanded
+                                ? "Read Less"
+                                : "Read More"}
+                            </button>
+                          )}
 
                         </div>
-
-                        <ul>
-                          {(
-                            experience.description ||
-                            ""
-                          )
-                            .split("\n")
-                            .filter(Boolean)
-                            .map(
-                              (
-                                item,
-                                itemIndex
-                              ) => (
-                                <li
-                                  key={
-                                    itemIndex
-                                  }
-                                >
-                                  {item}
-                                </li>
-                              )
-                            )}
-                        </ul>
-
-                      </div>
-                    )
+                      );
+                    }
                   )
+
                 ) : (
+
                   <div>
+
                     <h3>
                       {content.title}
                     </h3>
+
                     <p>
                       Professional experience
                     </p>
+
                   </div>
+
                 )}
 
               </div>
@@ -1013,6 +1179,10 @@ function App() {
 
           </div>
         </section>
+
+        {/* ===================================================
+            SKILLS
+        =================================================== */}
 
         <section
           id="skills"
@@ -1047,6 +1217,10 @@ function App() {
 
           </div>
         </section>
+
+        {/* ===================================================
+            PROJECTS
+        =================================================== */}
 
         <section
           id="projects"
@@ -1100,9 +1274,7 @@ function App() {
 
                     {project.url && (
                       <a
-                        href={
-                          project.url
-                        }
+                        href={project.url}
                         target="_blank"
                         rel="noreferrer"
                         className="project-link"
@@ -1133,6 +1305,10 @@ function App() {
 
           </div>
         </section>
+
+        {/* ===================================================
+            ACHIEVEMENTS
+        =================================================== */}
 
         <section
           id="achievements"
@@ -1233,6 +1409,10 @@ function App() {
           </div>
         </section>
 
+        {/* ===================================================
+            CONTACT
+        =================================================== */}
+
         <section
           id="contact"
           className="contact-section"
@@ -1320,6 +1500,8 @@ function App() {
 
             </div>
 
+            {/* CONTACT FORM */}
+
             <form
               className="message-form"
               onSubmit={
@@ -1334,35 +1516,34 @@ function App() {
               <div className="form-row">
 
                 <input
-                  type="text"
                   placeholder="Your Name"
-                  value={formName}
+                  value={
+                    contactForm.name
+                  }
                   onChange={(event) =>
-                    setFormName(
+                    updateContactForm(
+                      "name",
                       event.target.value
                     )
                   }
                   maxLength={100}
                   required
-                  disabled={
-                    sendingMessage
-                  }
                 />
 
                 <input
                   type="email"
                   placeholder="Your Email"
-                  value={formEmail}
+                  value={
+                    contactForm.email
+                  }
                   onChange={(event) =>
-                    setFormEmail(
+                    updateContactForm(
+                      "email",
                       event.target.value
                     )
                   }
                   maxLength={320}
                   required
-                  disabled={
-                    sendingMessage
-                  }
                 />
 
               </div>
@@ -1370,34 +1551,46 @@ function App() {
               <textarea
                 placeholder="Your Message"
                 rows="5"
-                value={formMessage}
+                value={
+                  contactForm.message
+                }
                 onChange={(event) =>
-                  setFormMessage(
+                  updateContactForm(
+                    "message",
                     event.target.value
                   )
                 }
                 maxLength={5000}
                 required
-                disabled={
-                  sendingMessage
-                }
               />
 
               {contactError && (
                 <div
-                  className="admin-error"
-                  role="alert"
+                  style={{
+                    marginTop: "10px",
+                    padding: "10px 12px",
+                    borderRadius: "8px",
+                    color: "#b42318",
+                    background:
+                      "rgba(180,35,24,0.08)",
+                  }}
                 >
                   {contactError}
                 </div>
               )}
 
-              {contactStatus && (
+              {contactMessage && (
                 <div
-                  className="admin-success"
-                  role="status"
+                  style={{
+                    marginTop: "10px",
+                    padding: "10px 12px",
+                    borderRadius: "8px",
+                    color: "#067647",
+                    background:
+                      "rgba(6,118,71,0.08)",
+                  }}
                 >
-                  {contactStatus}
+                  {contactMessage}
                 </div>
               )}
 
@@ -1424,7 +1617,12 @@ function App() {
 
       </main>
 
+      {/* =====================================================
+          FOOTER
+      ===================================================== */}
+
       <footer className="footer">
+
         <div className="container">
 
           <span>
@@ -1437,11 +1635,16 @@ function App() {
           </span>
 
         </div>
+
       </footer>
 
     </div>
   );
 }
+
+/* =========================================================
+   SECTION TITLE
+========================================================= */
 
 function SectionTitle({
   icon,
@@ -1461,6 +1664,10 @@ function SectionTitle({
     </div>
   );
 }
+
+/* =========================================================
+   MINI CARD
+========================================================= */
 
 function Mini({
   icon,
@@ -1488,6 +1695,10 @@ function Mini({
   );
 }
 
+/* =========================================================
+   INFO ROW
+========================================================= */
+
 function InfoRow({
   icon,
   label,
@@ -1509,6 +1720,10 @@ function InfoRow({
     </div>
   );
 }
+
+/* =========================================================
+   STAT
+========================================================= */
 
 function Stat({
   icon,
@@ -1532,6 +1747,10 @@ function Stat({
   );
 }
 
+/* =========================================================
+   ROOT
+========================================================= */
+
 function Root() {
   const isAdmin =
     window.location.pathname ===
@@ -1543,6 +1762,10 @@ function Root() {
 
   return <App />;
 }
+
+/* =========================================================
+   RENDER
+========================================================= */
 
 ReactDOM.createRoot(
   document.getElementById("root")
