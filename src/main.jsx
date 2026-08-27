@@ -39,9 +39,6 @@ const defaultContent = {
   photo: "",
   resume: "",
 
-  intro:
-    "People-first Data Annotation Supervisor with 5+ years of experience leading high-volume annotation and quality-review teams.",
-
   about:
     "Dedicated and result-driven professional with experience in data annotation, segmentation annotation, quality control, team coordination and project management.",
 
@@ -158,7 +155,7 @@ const defaultContent = {
 function normalizeAchievement(item) {
   if (typeof item === "string") {
     return {
-      title: item,
+      title: item.trim(),
       description: "",
       year: "",
       organization: "",
@@ -170,17 +167,14 @@ function normalizeAchievement(item) {
       typeof item?.title === "string"
         ? item.title
         : "",
-
     description:
       typeof item?.description === "string"
         ? item.description
         : "",
-
     year:
       typeof item?.year === "string"
         ? item.year
         : "",
-
     organization:
       typeof item?.organization === "string"
         ? item.organization
@@ -207,11 +201,6 @@ function mergeContent(saved) {
       ...(saved.contact || {}),
     },
 
-    intro:
-      typeof saved.intro === "string"
-        ? saved.intro
-        : defaultContent.intro,
-
     experience:
       Array.isArray(saved.experience) &&
       saved.experience.length > 0
@@ -220,17 +209,14 @@ function mergeContent(saved) {
               typeof item?.role === "string"
                 ? item.role
                 : "",
-
             company:
               typeof item?.company === "string"
                 ? item.company
                 : "",
-
             period:
               typeof item?.period === "string"
                 ? item.period
                 : "",
-
             description:
               typeof item?.description === "string"
                 ? item.description
@@ -251,18 +237,14 @@ function mergeContent(saved) {
               typeof project?.title === "string"
                 ? project.title
                 : "",
-
             description:
-              typeof project?.description ===
-              "string"
+              typeof project?.description === "string"
                 ? project.description
                 : "",
-
             tag:
               typeof project?.tag === "string"
                 ? project.tag
                 : "",
-
             url:
               typeof project?.url === "string"
                 ? project.url
@@ -285,7 +267,6 @@ function mergeContent(saved) {
               typeof stat?.value === "string"
                 ? stat.value
                 : "",
-
             label:
               typeof stat?.label === "string"
                 ? stat.label
@@ -306,8 +287,7 @@ function mergeContent(saved) {
 }
 
 function App() {
-  const [menuOpen, setMenuOpen] =
-    React.useState(false);
+  const [menuOpen, setMenuOpen] = React.useState(false);
 
   const [content, setContent] =
     React.useState(defaultContent);
@@ -315,9 +295,23 @@ function App() {
   const [loading, setLoading] =
     React.useState(true);
 
-  // Controls Read More / Read Less separately for each experience
-  const [expandedExperience, setExpandedExperience] =
-    React.useState({});
+  const [formName, setFormName] =
+    React.useState("");
+
+  const [formEmail, setFormEmail] =
+    React.useState("");
+
+  const [formMessage, setFormMessage] =
+    React.useState("");
+
+  const [sendingMessage, setSendingMessage] =
+    React.useState(false);
+
+  const [contactStatus, setContactStatus] =
+    React.useState("");
+
+  const [contactError, setContactError] =
+    React.useState("");
 
   React.useEffect(() => {
     let mounted = true;
@@ -336,7 +330,6 @@ function App() {
             "Supabase viewer error:",
             error
           );
-
           return;
         }
 
@@ -381,12 +374,106 @@ function App() {
     }
   };
 
-  const toggleExperience = (index) => {
-    setExpandedExperience((previous) => ({
-      ...previous,
-      [index]: !previous[index],
-    }));
-  };
+  async function handleContactSubmit(event) {
+    event.preventDefault();
+
+    setContactStatus("");
+    setContactError("");
+
+    const name = formName.trim();
+    const email = formEmail.trim();
+    const message = formMessage.trim();
+
+    if (!name) {
+      setContactError(
+        "Please enter your name."
+      );
+      return;
+    }
+
+    if (!email) {
+      setContactError(
+        "Please enter your email address."
+      );
+      return;
+    }
+
+    if (!message) {
+      setContactError(
+        "Please enter your message."
+      );
+      return;
+    }
+
+    if (name.length > 100) {
+      setContactError(
+        "Name must be 100 characters or less."
+      );
+      return;
+    }
+
+    if (
+      email.length < 3 ||
+      email.length > 320
+    ) {
+      setContactError(
+        "Please enter a valid email address."
+      );
+      return;
+    }
+
+    if (message.length > 5000) {
+      setContactError(
+        "Message must be 5000 characters or less."
+      );
+      return;
+    }
+
+    try {
+      setSendingMessage(true);
+
+      const { error } =
+        await supabase
+          .from("contact_messages")
+          .insert([
+            {
+              name,
+              email,
+              message,
+              status: "new",
+            },
+          ]);
+
+      if (error) {
+        console.error(
+          "Contact form submission failed:",
+          error
+        );
+
+        throw error;
+      }
+
+      setFormName("");
+      setFormEmail("");
+      setFormMessage("");
+
+      setContactStatus(
+        "Message sent successfully! Thank you for reaching out."
+      );
+    } catch (error) {
+      console.error(
+        "Contact form error:",
+        error
+      );
+
+      setContactError(
+        error?.message ||
+          "Unable to send your message right now. Please try again."
+      );
+    } finally {
+      setSendingMessage(false);
+    }
+  }
 
   if (loading) {
     return (
@@ -435,8 +522,6 @@ function App() {
 
   return (
     <div className="site">
-
-      {/* HEADER */}
 
       <header className="header">
         <div className="nav container">
@@ -501,8 +586,6 @@ function App() {
 
       <main>
 
-        {/* HERO */}
-
         <section
           id="home"
           className="hero"
@@ -535,7 +618,7 @@ function App() {
               </h1>
 
               <p className="hero-text">
-                {content.intro ||
+                {content.about ||
                   "Dedicated and result-driven professional."}
               </p>
 
@@ -665,8 +748,6 @@ function App() {
           </div>
         </section>
 
-        {/* ABOUT */}
-
         <section
           id="about"
           className="section"
@@ -780,8 +861,6 @@ function App() {
           </div>
         </section>
 
-        {/* EXPERIENCE */}
-
         <section
           id="experience"
           className="section alt"
@@ -804,95 +883,78 @@ function App() {
 
                 {experiences.length > 0 ? (
                   experiences.map(
-                    (experience, index) => {
+                    (experience, index) => (
+                      <div
+                        className="experience-item"
+                        key={index}
+                        style={{
+                          position:
+                            "relative",
+                          paddingLeft:
+                            "28px",
+                          paddingBottom:
+                            index ===
+                            experiences.length -
+                              1
+                              ? "0"
+                              : "32px",
+                          marginBottom:
+                            index ===
+                            experiences.length -
+                              1
+                              ? "0"
+                              : "32px",
+                          borderLeft:
+                            index ===
+                            experiences.length -
+                              1
+                              ? "none"
+                              : "2px solid rgba(127,127,127,0.25)",
+                        }}
+                      >
 
-                      const descriptionItems =
-                        (
-                          experience.description ||
-                          ""
-                        )
-                          .split("\n")
-                          .filter(Boolean);
-
-                      const isExpanded =
-                        !!expandedExperience[index];
-
-                      const visibleItems =
-                        isExpanded
-                          ? descriptionItems
-                          : descriptionItems.slice(
-                              0,
-                              3
-                            );
-
-                      const hasMore =
-                        descriptionItems.length > 3;
-
-                      return (
                         <div
-                          className="experience-item"
-                          key={index}
+                          className="timeline-dot"
                           style={{
-                            position: "relative",
-                            paddingLeft: "28px",
-                            paddingBottom:
-                              index ===
-                              experiences.length -
-                                1
-                                ? "0"
-                                : "32px",
-                            marginBottom:
-                              index ===
-                              experiences.length -
-                                1
-                                ? "0"
-                                : "32px",
-                            borderLeft:
-                              index ===
-                              experiences.length -
-                                1
-                                ? "none"
-                                : "2px solid rgba(127,127,127,0.25)",
+                            position:
+                              "absolute",
+                            left: "-7px",
+                            top: "3px",
                           }}
-                        >
+                        />
 
-                          <div
-                            className="timeline-dot"
-                            style={{
-                              position:
-                                "absolute",
-                              left: "-7px",
-                              top: "3px",
-                            }}
-                          />
+                        <div className="role-head">
 
-                          <div className="role-head">
+                          <div>
 
-                            <div>
+                            <h3>
+                              {experience.role ||
+                                content.title ||
+                                "Professional Role"}
+                            </h3>
 
-                              <h3>
-                                {experience.role ||
-                                  content.title ||
-                                  "Professional Role"}
-                              </h3>
-
-                              <p>
-                                {experience.company ||
-                                  "Annotation / Data Operations"}
-                              </p>
-
-                            </div>
-
-                            <span className="pill">
-                              {experience.period ||
-                                "Present"}
-                            </span>
+                            <p>
+                              {experience.company ||
+                                "Annotation / Data Operations"}
+                            </p>
 
                           </div>
 
-                          <ul>
+                          <span className="pill">
+                            {experience.period ||
+                              "Present"}
+                          </span>
 
-                            {visibleItems.map(
+                        </div>
+
+                        <ul>
+                          {(
+                            experience.description ||
+                            ""
+                          )
+                            .split("\n")
+                            .filter(Boolean)
+                            .map(
                               (
                                 item,
                                 itemIndex
@@ -906,45 +968,16 @@ function App() {
                                 </li>
                               )
                             )}
+                        </ul>
 
-                          </ul>
-
-                          {hasMore && (
-                            <button
-                              type="button"
-                              onClick={() =>
-                                toggleExperience(
-                                  index
-                                )
-                              }
-                              style={{
-                                marginTop:
-                                  "8px",
-                                padding: 0,
-                                border: "none",
-                                background:
-                                  "transparent",
-                                cursor: "pointer",
-                                font: "inherit",
-                                fontWeight: 600,
-                              }}
-                            >
-                              {isExpanded
-                                ? "Read Less"
-                                : "Read More"}
-                            </button>
-                          )}
-
-                        </div>
-                      );
-                    }
+                      </div>
+                    )
                   )
                 ) : (
                   <div>
                     <h3>
                       {content.title}
                     </h3>
-
                     <p>
                       Professional experience
                     </p>
@@ -981,8 +1014,6 @@ function App() {
           </div>
         </section>
 
-        {/* SKILLS */}
-
         <section
           id="skills"
           className="section"
@@ -1016,8 +1047,6 @@ function App() {
 
           </div>
         </section>
-
-        {/* PROJECTS */}
 
         <section
           id="projects"
@@ -1071,7 +1100,9 @@ function App() {
 
                     {project.url && (
                       <a
-                        href={project.url}
+                        href={
+                          project.url
+                        }
                         target="_blank"
                         rel="noreferrer"
                         className="project-link"
@@ -1102,8 +1133,6 @@ function App() {
 
           </div>
         </section>
-
-        {/* ACHIEVEMENTS */}
 
         <section
           id="achievements"
@@ -1189,22 +1218,20 @@ function App() {
             </div>
 
             {achievements.length === 0 && (
-              <div
-                className="achievement-empty"
-              >
+              <div className="achievement-empty">
+
                 <Award size={28} />
 
                 <p>
                   Achievements will appear
                   here.
                 </p>
+
               </div>
             )}
 
           </div>
         </section>
-
-        {/* CONTACT */}
 
         <section
           id="contact"
@@ -1295,8 +1322,8 @@ function App() {
 
             <form
               className="message-form"
-              onSubmit={(event) =>
-                event.preventDefault()
+              onSubmit={
+                handleContactSubmit
               }
             >
 
@@ -1307,12 +1334,35 @@ function App() {
               <div className="form-row">
 
                 <input
+                  type="text"
                   placeholder="Your Name"
+                  value={formName}
+                  onChange={(event) =>
+                    setFormName(
+                      event.target.value
+                    )
+                  }
+                  maxLength={100}
+                  required
+                  disabled={
+                    sendingMessage
+                  }
                 />
 
                 <input
                   type="email"
                   placeholder="Your Email"
+                  value={formEmail}
+                  onChange={(event) =>
+                    setFormEmail(
+                      event.target.value
+                    )
+                  }
+                  maxLength={320}
+                  required
+                  disabled={
+                    sendingMessage
+                  }
                 />
 
               </div>
@@ -1320,16 +1370,51 @@ function App() {
               <textarea
                 placeholder="Your Message"
                 rows="5"
+                value={formMessage}
+                onChange={(event) =>
+                  setFormMessage(
+                    event.target.value
+                  )
+                }
+                maxLength={5000}
+                required
+                disabled={
+                  sendingMessage
+                }
               />
+
+              {contactError && (
+                <div
+                  className="admin-error"
+                  role="alert"
+                >
+                  {contactError}
+                </div>
+              )}
+
+              {contactStatus && (
+                <div
+                  className="admin-success"
+                  role="status"
+                >
+                  {contactStatus}
+                </div>
+              )}
 
               <button
                 className="btn primary"
                 type="submit"
+                disabled={
+                  sendingMessage
+                }
               >
                 <MessageCircle
                   size={18}
                 />
-                Send Message
+
+                {sendingMessage
+                  ? "Sending..."
+                  : "Send Message"}
               </button>
 
             </form>
