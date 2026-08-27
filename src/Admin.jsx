@@ -23,7 +23,10 @@ import {
   UserRound,
   BriefcaseBusiness,
   Settings2,
-  ExternalLink as ExternalLinkIcon,
+  Inbox,
+  RefreshCw,
+  Check,
+  Clock,
 } from "lucide-react";
 
 import { supabase } from "./supabase";
@@ -89,11 +92,7 @@ const emptyContent = {
     education: "",
   },
 
-  experience: [
-    {
-      ...emptyExperience,
-    },
-  ],
+  experience: [{ ...emptyExperience }],
 
   skills: [],
 
@@ -125,17 +124,14 @@ function normalizeAchievement(item) {
       typeof item?.title === "string"
         ? item.title
         : "",
-
     description:
       typeof item?.description === "string"
         ? item.description
         : "",
-
     year:
       typeof item?.year === "string"
         ? item.year
         : "",
-
     organization:
       typeof item?.organization === "string"
         ? item.organization
@@ -153,9 +149,7 @@ function mergeContent(saved) {
       projects: [],
       skills: [],
       achievements: [],
-      stats: defaultStats.map((item) => ({
-        ...item,
-      })),
+      stats: defaultStats.map((item) => ({ ...item })),
     };
   }
 
@@ -181,17 +175,14 @@ function mergeContent(saved) {
               typeof item?.role === "string"
                 ? item.role
                 : "",
-
             company:
               typeof item?.company === "string"
                 ? item.company
                 : "",
-
             period:
               typeof item?.period === "string"
                 ? item.period
                 : "",
-
             description:
               typeof item?.description === "string"
                 ? item.description
@@ -209,17 +200,14 @@ function mergeContent(saved) {
             typeof project?.title === "string"
               ? project.title
               : "",
-
           description:
             typeof project?.description === "string"
               ? project.description
               : "",
-
           tag:
             typeof project?.tag === "string"
               ? project.tag
               : "",
-
           url:
             typeof project?.url === "string"
               ? project.url
@@ -239,15 +227,12 @@ function mergeContent(saved) {
               typeof stat?.value === "string"
                 ? stat.value
                 : "",
-
             label:
               typeof stat?.label === "string"
                 ? stat.label
                 : "",
           }))
-        : defaultStats.map((item) => ({
-            ...item,
-          })),
+        : defaultStats.map((item) => ({ ...item })),
 
     resume:
       typeof saved.resume === "string"
@@ -257,6 +242,16 @@ function mergeContent(saved) {
     photo:
       typeof saved.photo === "string"
         ? saved.photo
+        : "",
+
+    intro:
+      typeof saved.intro === "string"
+        ? saved.intro
+        : "",
+
+    about:
+      typeof saved.about === "string"
+        ? saved.about
         : "",
   };
 }
@@ -298,6 +293,152 @@ export default function Admin() {
   const [activeSection, setActiveSection] =
     useState("overview");
 
+  /* CONTACT INBOX */
+
+  const [contactMessages, setContactMessages] =
+    useState([]);
+
+  const [loadingMessages, setLoadingMessages] =
+    useState(false);
+
+  const [messageActionId, setMessageActionId] =
+    useState(null);
+
+  async function loadContactMessages() {
+    try {
+      setLoadingMessages(true);
+
+      const result = await supabase
+        .from("contact_messages")
+        .select(
+          "id, name, email, message, status, created_at"
+        )
+        .order("created_at", {
+          ascending: false,
+        });
+
+      if (result.error) {
+        throw result.error;
+      }
+
+      setContactMessages(
+        Array.isArray(result.data)
+          ? result.data
+          : []
+      );
+    } catch (err) {
+      console.error(
+        "Load contact messages failed:",
+        err
+      );
+
+      setError(
+        "Unable to load contact messages: " +
+          (err?.message || "Unknown error")
+      );
+    } finally {
+      setLoadingMessages(false);
+    }
+  }
+
+  async function markMessageRead(id) {
+    try {
+      setMessageActionId(id);
+      setError("");
+
+      const result = await supabase
+        .from("contact_messages")
+        .update({
+          status: "read",
+        })
+        .eq("id", id);
+
+      if (result.error) {
+        throw result.error;
+      }
+
+      setContactMessages((current) =>
+        current.map((item) =>
+          item.id === id
+            ? { ...item, status: "read" }
+            : item
+        )
+      );
+    } catch (err) {
+      console.error(
+        "Mark message read failed:",
+        err
+      );
+
+      setError(
+        "Unable to mark message as read: " +
+          (err?.message || "Unknown error")
+      );
+    } finally {
+      setMessageActionId(null);
+    }
+  }
+
+  async function deleteContactMessage(id) {
+    const confirmed = window.confirm(
+      "Delete this contact message permanently?"
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setMessageActionId(id);
+      setError("");
+
+      const result = await supabase
+        .from("contact_messages")
+        .delete()
+        .eq("id", id);
+
+      if (result.error) {
+        throw result.error;
+      }
+
+      setContactMessages((current) =>
+        current.filter((item) => item.id !== id)
+      );
+
+      setMessage(
+        "Contact message deleted."
+      );
+    } catch (err) {
+      console.error(
+        "Delete contact message failed:",
+        err
+      );
+
+      setError(
+        "Unable to delete contact message: " +
+          (err?.message || "Unknown error")
+      );
+    } finally {
+      setMessageActionId(null);
+    }
+  }
+
+  function formatMessageDate(value) {
+    if (!value) return "";
+
+    try {
+      return new Date(value).toLocaleString(
+        undefined,
+        {
+          dateStyle: "medium",
+          timeStyle: "short",
+        }
+      );
+    } catch {
+      return value;
+    }
+  }
+
+  /* SESSION */
+
   useEffect(() => {
     let mounted = true;
 
@@ -321,6 +462,7 @@ export default function Admin() {
 
         if (currentSession) {
           await loadContent();
+          await loadContactMessages();
         }
       } catch (err) {
         console.error(
@@ -352,10 +494,13 @@ export default function Admin() {
 
           if (newSession) {
             setTimeout(() => {
-              if (mounted) {
-                loadContent();
-              }
+              if (!mounted) return;
+
+              loadContent();
+              loadContactMessages();
             }, 0);
+          } else {
+            setContactMessages([]);
           }
         }
       );
@@ -432,7 +577,9 @@ export default function Admin() {
       }
 
       setSession(result.data.session);
+
       await loadContent();
+      await loadContactMessages();
     } catch (err) {
       console.error(
         "Login failed:",
@@ -461,6 +608,7 @@ export default function Admin() {
 
       setSession(null);
       setPassword("");
+      setContactMessages([]);
     } catch (err) {
       console.error(
         "Logout failed:",
@@ -472,6 +620,8 @@ export default function Admin() {
       );
     }
   }
+
+  /* GENERAL CONTENT */
 
   function updateField(field, value) {
     setContent((current) => ({
@@ -974,7 +1124,8 @@ export default function Admin() {
   function scrollToSection(sectionId) {
     setActiveSection(sectionId);
 
-    const element = document.getElementById(sectionId);
+    const element =
+      document.getElementById(sectionId);
 
     if (element) {
       element.scrollIntoView({
@@ -984,7 +1135,7 @@ export default function Admin() {
     }
   }
 
-  /* SAVE */
+  /* SAVE WEBSITE CONTENT */
 
   async function saveChanges() {
     try {
@@ -1038,7 +1189,7 @@ export default function Admin() {
 
         about:
           typeof content.about === "string"
-            ? content.about
+            ? content.about.trim()
             : "",
 
         personal: {
@@ -1421,6 +1572,11 @@ export default function Admin() {
         )
       : [];
 
+  const unreadMessages =
+    contactMessages.filter(
+      (item) => item.status !== "read"
+    ).length;
+
   return (
     <div className="editor-page">
       <header className="editor-header">
@@ -1431,7 +1587,8 @@ export default function Admin() {
                 src={content.photo}
                 alt="Profile"
                 onError={(event) => {
-                  event.currentTarget.style.display = "none";
+                  event.currentTarget.style.display =
+                    "none";
                 }}
               />
             ) : (
@@ -1440,20 +1597,42 @@ export default function Admin() {
           </div>
 
           <div>
-            <div className="editor-label">ADMIN PANEL</div>
-            <h1>Website Control Center</h1>
-            <p>{session.user?.email}</p>
+            <div className="editor-label">
+              ADMIN PANEL
+            </div>
+
+            <h1>
+              Website Control Center
+            </h1>
+
+            <p>
+              {session.user?.email}
+            </p>
           </div>
         </div>
 
-        <div className="editor-header-actions">
+        <div
+          className="editor-header-actions"
+          style={{
+            display: "flex",
+            gap: "10px",
+            alignItems: "center",
+            flexWrap: "wrap",
+          }}
+        >
           <a
             className="admin-preview-btn"
             href="/"
             target="_blank"
             rel="noreferrer"
+            style={{
+              textDecoration: "none",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "7px",
+            }}
           >
-            <ExternalLinkIcon size={16} />
+            <ExternalLink size={16} />
             Preview Website
           </a>
 
@@ -1471,53 +1650,166 @@ export default function Admin() {
         <aside className="admin-sidebar">
           <div className="sidebar-title">
             <span>CONTENT</span>
-            <small>Manage your portfolio</small>
+            <small>
+              Manage your portfolio
+            </small>
           </div>
 
           <nav className="admin-nav">
             {[
-              ["overview", LayoutDashboard, "Overview"],
-              ["profile", UserRound, "Profile"],
-              ["resume", FileText, "Resume / CV"],
-              ["personal", User, "Personal Info"],
-              ["contact", Mail, "Contact"],
-              ["experience", BriefcaseBusiness, "Experience"],
-              ["stats", BarChart3, "Professional Stats"],
-              ["skills", Code, "Skills"],
-              ["projects", FolderKanban, "Projects"],
-              ["achievements", Award, "Achievements"],
-            ].map(([id, Icon, label]) => (
-              <button
-                key={id}
-                type="button"
-                className={
-                  "admin-nav-item " +
-                  (activeSection === id ? "active" : "")
-                }
-                onClick={() => scrollToSection(id)}
-              >
-                <Icon size={17} />
-                <span>{label}</span>
-              </button>
-            ))}
+              [
+                "overview",
+                LayoutDashboard,
+                "Overview",
+              ],
+              [
+                "profile",
+                UserRound,
+                "Profile",
+              ],
+              [
+                "resume",
+                FileText,
+                "Resume / CV",
+              ],
+              [
+                "personal",
+                User,
+                "Personal Info",
+              ],
+              [
+                "contact",
+                Mail,
+                "Contact",
+              ],
+              [
+                "experience",
+                BriefcaseBusiness,
+                "Experience",
+              ],
+              [
+                "stats",
+                BarChart3,
+                "Professional Stats",
+              ],
+              [
+                "skills",
+                Code,
+                "Skills",
+              ],
+              [
+                "projects",
+                FolderKanban,
+                "Projects",
+              ],
+              [
+                "achievements",
+                Award,
+                "Achievements",
+              ],
+              [
+                "messages",
+                Inbox,
+                "Contact Messages",
+              ],
+            ].map(
+              ([
+                id,
+                Icon,
+                label,
+              ]) => (
+                <button
+                  key={id}
+                  type="button"
+                  className={
+                    "admin-nav-item " +
+                    (activeSection === id
+                      ? "active"
+                      : "")
+                  }
+                  onClick={() =>
+                    scrollToSection(id)
+                  }
+                  style={{
+                    position:
+                      "relative",
+                  }}
+                >
+                  <Icon size={17} />
+
+                  <span>{label}</span>
+
+                  {id ===
+                    "messages" &&
+                    unreadMessages > 0 && (
+                      <span
+                        style={{
+                          marginLeft:
+                            "auto",
+                          minWidth:
+                            "22px",
+                          height:
+                            "22px",
+                          borderRadius:
+                            "999px",
+                          display:
+                            "inline-flex",
+                          alignItems:
+                            "center",
+                          justifyContent:
+                            "center",
+                          fontSize:
+                            "11px",
+                          fontWeight:
+                            700,
+                          background:
+                            "#ef4444",
+                          color:
+                            "#fff",
+                        }}
+                      >
+                        {unreadMessages}
+                      </span>
+                    )}
+                </button>
+              )
+            )}
           </nav>
 
           <div className="sidebar-tip">
             <Settings2 size={16} />
+
             <div>
-              <strong>Quick tip</strong>
-              <p>Save your changes after editing any section.</p>
+              <strong>
+                Quick tip
+              </strong>
+
+              <p>
+                Save your changes after
+                editing any section.
+              </p>
             </div>
           </div>
         </aside>
 
         <main className="editor-container">
-          <section id="overview" className="admin-overview-card">
+          <section
+            id="overview"
+            className="admin-overview-card"
+          >
             <div className="overview-copy">
-              <div className="editor-label">WELCOME BACK</div>
-              <h2>Keep your portfolio up to date.</h2>
+              <div className="editor-label">
+                WELCOME BACK
+              </div>
+
+              <h2>
+                Keep your portfolio up to date.
+              </h2>
+
               <p>
-                Manage your profile, experience, projects and achievements from one place.
+                Manage your profile, experience,
+                projects, achievements and
+                contact messages from one place.
               </p>
             </div>
 
@@ -1534,7 +1826,10 @@ export default function Admin() {
                 }
               >
                 <Save size={17} />
-                {saving ? "Saving..." : "Save Changes"}
+
+                {saving
+                  ? "Saving..."
+                  : "Save Changes"}
               </button>
             </div>
           </section>
@@ -1542,830 +1837,248 @@ export default function Admin() {
           <div className="admin-summary-grid">
             <div className="admin-summary-card">
               <span>Projects</span>
-              <strong>{(content.projects || []).length}</strong>
-              <small>Published portfolio projects</small>
+              <strong>
+                {(content.projects || [])
+                  .length}
+              </strong>
+              <small>
+                Published portfolio projects
+              </small>
             </div>
+
             <div className="admin-summary-card">
               <span>Experience</span>
-              <strong>{experiences.length}</strong>
-              <small>Career entries</small>
+              <strong>
+                {experiences.length}
+              </strong>
+              <small>
+                Career entries
+              </small>
             </div>
+
             <div className="admin-summary-card">
               <span>Achievements</span>
-              <strong>{achievements.length}</strong>
-              <small>Key achievements</small>
+              <strong>
+                {achievements.length}
+              </strong>
+              <small>
+                Key achievements
+              </small>
             </div>
+
             <div className="admin-summary-card">
-              <span>Skills</span>
-              <strong>{(content.skills || []).length}</strong>
-              <small>Skills listed</small>
+              <span>Messages</span>
+              <strong>
+                {unreadMessages}
+              </strong>
+              <small>
+                Unread contact messages
+              </small>
             </div>
           </div>
-        {loadingContent && (
-          <div className="admin-info">
-            Loading your website content...
-          </div>
-        )}
 
-        {error && (
-          <div className="admin-error">
-            {error}
-          </div>
-        )}
-
-        {message && (
-          <div className="admin-success">
-            {message}
-          </div>
-        )}
-
-        {/* PROFILE */}
-
-        <section id="profile" className="editor-card">
-          <div className="editor-card-title">
-            <User size={20} />
-            <h2>Profile</h2>
-          </div>
-
-          <div className="profile-preview">
-            {content.photo ? (
-              <img
-                src={content.photo}
-                alt="Profile"
-              />
-            ) : (
-              <div className="profile-placeholder">
-                MB
-              </div>
-            )}
-          </div>
-
-          <label>
-            <Camera size={14} />
-            Upload Profile Photo
-          </label>
-
-          <input
-            type="file"
-            accept="image/jpeg,image/png,image/webp,image/gif"
-            onChange={handlePhotoUpload}
-            disabled={
-              uploadingPhoto ||
-              saving ||
-              uploadingResume
-            }
-          />
-
-          {uploadingPhoto && (
-            <p className="field-help">
-              Uploading photo to Supabase Storage...
-            </p>
+          {loadingContent && (
+            <div className="admin-info">
+              Loading your website content...
+            </div>
           )}
 
-          {content.photo && (
-            <button
-              type="button"
-              className="back-home"
-              onClick={removePhoto}
+          {error && (
+            <div className="admin-error">
+              {error}
+            </div>
+          )}
+
+          {message && (
+            <div className="admin-success">
+              {message}
+            </div>
+          )}
+
+          {/* PROFILE */}
+
+          <section
+            id="profile"
+            className="editor-card"
+          >
+            <div className="editor-card-title">
+              <User size={20} />
+              <h2>Profile</h2>
+            </div>
+
+            <div className="profile-preview">
+              {content.photo ? (
+                <img
+                  src={content.photo}
+                  alt="Profile"
+                />
+              ) : (
+                <div className="profile-placeholder">
+                  MB
+                </div>
+              )}
+            </div>
+
+            <label>
+              <Camera size={14} />
+              Upload Profile Photo
+            </label>
+
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              onChange={handlePhotoUpload}
               disabled={
                 uploadingPhoto ||
                 saving ||
                 uploadingResume
               }
-            >
-              Remove Photo
-            </button>
-          )}
+            />
 
-          <p className="field-help">
-            JPG, PNG, WEBP or GIF. Maximum
-            size: 5 MB.
-          </p>
-
-          <label>Full Name</label>
-
-          <input
-            value={content.name || ""}
-            onChange={(event) =>
-              updateField(
-                "name",
-                event.target.value
-              )
-            }
-          />
-
-          <label>Professional Title</label>
-
-          <input
-            value={content.title || ""}
-            onChange={(event) =>
-              updateField(
-                "title",
-                event.target.value
-              )
-            }
-          />
-
-          <label>Professional Introduction</label>
-
-          <p className="field-help">
-            Add a short 1–2 line introduction. This appears below your name on the homepage.
-          </p>
-
-          <textarea
-            rows="3"
-            placeholder="Example: People-first Data Annotation Supervisor with 5+ years of experience leading high-volume annotation and quality-review teams."
-            value={content.intro || ""}
-            onChange={(event) =>
-              updateField(
-                "intro",
-                event.target.value
-              )
-            }
-          />
-
-          <label>About Me</label>
-
-          <p className="field-help">
-            Add your detailed professional background. This appears in the separate About Me section.
-          </p>
-
-          <textarea
-            rows="7"
-            value={content.about || ""}
-            onChange={(event) =>
-              updateField(
-                "about",
-                event.target.value
-              )
-            }
-          />
-        </section>
-
-        {/* RESUME */}
-
-        <section id="resume" className="editor-card">
-          <div className="editor-card-title">
-            <FileText size={20} />
-            <h2>Resume / CV</h2>
-          </div>
-
-          <label>
-            <FileText size={14} />
-            Upload Resume PDF
-          </label>
-
-          <input
-            type="file"
-            accept="application/pdf,.pdf"
-            onChange={handleResumeUpload}
-            disabled={
-              uploadingResume ||
-              saving ||
-              uploadingPhoto
-            }
-          />
-
-          {uploadingResume && (
-            <p className="field-help">
-              Uploading resume to Supabase Storage...
-            </p>
-          )}
-
-          {content.resume &&
-            !uploadingResume && (
-              <div
-                style={{
-                  display: "flex",
-                  gap: "10px",
-                  flexWrap: "wrap",
-                  marginTop: "12px",
-                }}
-              >
-                <a
-                  href={content.resume}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="back-home"
-                  style={{
-                    textDecoration: "none",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "6px",
-                  }}
-                >
-                  <ExternalLink size={16} />
-                  View Current Resume
-                </a>
-
-                <button
-                  type="button"
-                  className="back-home"
-                  onClick={removeResume}
-                  disabled={
-                    uploadingResume ||
-                    saving ||
-                    uploadingPhoto
-                  }
-                >
-                  Remove Resume
-                </button>
-              </div>
-            )}
-
-          <p className="field-help">
-            Upload your resume as a PDF.
-            Maximum size: 10 MB.
-          </p>
-
-          {!content.resume && (
-            <p className="field-help">
-              No resume uploaded yet.
-            </p>
-          )}
-        </section>
-
-        {/* PERSONAL */}
-
-        <section id="personal" className="editor-card">
-          <div className="editor-card-title">
-            <User size={20} />
-            <h2>Personal Information</h2>
-          </div>
-
-          <label>
-            <MapPin size={14} />
-            Location
-          </label>
-
-          <input
-            placeholder="Example: Bengaluru, India"
-            value={
-              content.personal?.location ||
-              ""
-            }
-            onChange={(event) =>
-              updatePersonal(
-                "location",
-                event.target.value
-              )
-            }
-          />
-
-          <label>
-            <GraduationCap size={14} />
-            Education
-          </label>
-
-          <input
-            placeholder="Example: Diploma in Civil"
-            value={
-              content.personal?.education ||
-              ""
-            }
-            onChange={(event) =>
-              updatePersonal(
-                "education",
-                event.target.value
-              )
-            }
-          />
-        </section>
-
-        {/* CONTACT */}
-
-        <section id="contact" className="editor-card">
-          <div className="editor-card-title">
-            <Mail size={20} />
-            <h2>Contact Information</h2>
-          </div>
-
-          <label>
-            <Mail size={14} />
-            Email
-          </label>
-
-          <input
-            type="email"
-            placeholder="your@email.com"
-            value={
-              content.contact?.email ||
-              ""
-            }
-            onChange={(event) =>
-              updateContact(
-                "email",
-                event.target.value
-              )
-            }
-          />
-
-          <label>
-            <Phone size={14} />
-            Phone
-          </label>
-
-          <input
-            type="text"
-            placeholder="Your phone number"
-            value={
-              content.contact?.phone ||
-              ""
-            }
-            onChange={(event) =>
-              updateContact(
-                "phone",
-                event.target.value
-              )
-            }
-          />
-
-          <label>
-            <Linkedin size={14} />
-            LinkedIn URL
-          </label>
-
-          <input
-            type="url"
-            placeholder="https://www.linkedin.com/in/..."
-            value={
-              content.contact?.linkedin ||
-              ""
-            }
-            onChange={(event) =>
-              updateContact(
-                "linkedin",
-                event.target.value
-              )
-            }
-          />
-        </section>
-
-        {/* EXPERIENCE */}
-
-        <section id="experience" className="editor-card">
-          <div className="editor-card-title">
-            <Briefcase size={20} />
-            <h2>Experience</h2>
-          </div>
-
-          <p className="field-help">
-            Add and manage all your
-            professional experiences. The
-            order here is the order shown
-            on your website.
-          </p>
-
-          {experiences.map(
-            (experience, index) => (
-              <div
-                key={index}
-                style={{
-                  border:
-                    "1px solid rgba(127, 127, 127, 0.25)",
-                  borderRadius: "14px",
-                  padding: "18px",
-                  marginTop: "18px",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent:
-                      "space-between",
-                    alignItems: "center",
-                    gap: "12px",
-                    marginBottom: "16px",
-                  }}
-                >
-                  <div>
-                    <h3 style={{ margin: 0 }}>
-                      Experience {index + 1}
-                    </h3>
-
-                    {experience.role && (
-                      <p
-                        className="field-help"
-                        style={{
-                          marginTop: "5px",
-                        }}
-                      >
-                        {experience.role}
-                        {experience.company
-                          ? ` • ${experience.company}`
-                          : ""}
-                      </p>
-                    )}
-                  </div>
-
-                  <button
-                    type="button"
-                    className="back-home"
-                    onClick={() =>
-                      deleteExperience(index)
-                    }
-                    disabled={saving}
-                    style={{
-                      display:
-                        "inline-flex",
-                      alignItems:
-                        "center",
-                      gap: "6px",
-                    }}
-                  >
-                    <Trash2 size={16} />
-                    Delete
-                  </button>
-                </div>
-
-                <label>Job Role</label>
-
-                <input
-                  type="text"
-                  placeholder="Example: Data Annotation Team Lead"
-                  value={
-                    experience.role || ""
-                  }
-                  onChange={(event) =>
-                    updateExperience(
-                      index,
-                      "role",
-                      event.target.value
-                    )
-                  }
-                />
-
-                <label>Company</label>
-
-                <input
-                  type="text"
-                  placeholder="Example: ABC Company"
-                  value={
-                    experience.company ||
-                    ""
-                  }
-                  onChange={(event) =>
-                    updateExperience(
-                      index,
-                      "company",
-                      event.target.value
-                    )
-                  }
-                />
-
-                <label>Period</label>
-
-                <input
-                  type="text"
-                  placeholder="Example: 2023 - Present"
-                  value={
-                    experience.period || ""
-                  }
-                  onChange={(event) =>
-                    updateExperience(
-                      index,
-                      "period",
-                      event.target.value
-                    )
-                  }
-                />
-
-                <label>Description</label>
-
-                <p className="field-help">
-                  Add one responsibility or
-                  achievement per line.
-                </p>
-
-                <textarea
-                  rows="8"
-                  placeholder={
-                    "Led annotation teams across multiple projects.\nManaged daily targets and deadlines.\nEnsured high-quality annotations."
-                  }
-                  value={
-                    experience.description ||
-                    ""
-                  }
-                  onChange={(event) =>
-                    updateExperience(
-                      index,
-                      "description",
-                      event.target.value
-                    )
-                  }
-                />
-              </div>
-            )
-          )}
-
-          <button
-            type="button"
-            className="save-btn"
-            onClick={addExperience}
-            disabled={saving}
-            style={{
-              marginTop: "18px",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "8px",
-            }}
-          >
-            <Plus size={18} />
-            Add Experience
-          </button>
-        </section>
-
-        {/* PROFESSIONAL STATS */}
-
-        <section id="stats" className="editor-card">
-          <div className="editor-card-title">
-            <BarChart3 size={20} />
-            <h2>Professional Stats</h2>
-          </div>
-
-          <p className="field-help">
-            These statistics are displayed in
-            the Experience section of your
-            website. Edit the value and
-            description whenever you need.
-          </p>
-
-          {stats.map((stat, index) => (
-            <div
-              key={index}
-              style={{
-                border:
-                  "1px solid rgba(127, 127, 127, 0.25)",
-                borderRadius: "14px",
-                padding: "18px",
-                marginTop: "16px",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent:
-                    "space-between",
-                  alignItems: "center",
-                  gap: "12px",
-                  marginBottom: "16px",
-                }}
-              >
-                <h3 style={{ margin: 0 }}>
-                  Stat {index + 1}
-                </h3>
-
-                <button
-                  type="button"
-                  className="back-home"
-                  onClick={() =>
-                    deleteStat(index)
-                  }
-                  disabled={saving}
-                  style={{
-                    display:
-                      "inline-flex",
-                    alignItems:
-                      "center",
-                    gap: "6px",
-                  }}
-                >
-                  <Trash2 size={16} />
-                  Delete
-                </button>
-              </div>
-
-              <label>Stat Value</label>
-
-              <input
-                type="text"
-                placeholder="Example: 18+"
-                value={stat.value || ""}
-                onChange={(event) =>
-                  updateStat(
-                    index,
-                    "value",
-                    event.target.value
-                  )
-                }
-              />
-
-              <label>
-                Stat Description
-              </label>
-
-              <input
-                type="text"
-                placeholder="Example: Projects handled concurrently"
-                value={stat.label || ""}
-                onChange={(event) =>
-                  updateStat(
-                    index,
-                    "label",
-                    event.target.value
-                  )
-                }
-              />
-            </div>
-          ))}
-
-          {stats.length === 0 && (
-            <div
-              style={{
-                padding: "24px",
-                marginTop: "16px",
-                borderRadius: "12px",
-                textAlign: "center",
-                border:
-                  "1px dashed rgba(127, 127, 127, 0.4)",
-              }}
-            >
+            {uploadingPhoto && (
               <p className="field-help">
-                No professional stats added.
+                Uploading photo to Supabase
+                Storage...
               </p>
-            </div>
-          )}
-
-          <button
-            type="button"
-            className="save-btn"
-            onClick={addStat}
-            disabled={saving}
-            style={{
-              marginTop: "18px",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "8px",
-            }}
-          >
-            <Plus size={18} />
-            Add Stat
-          </button>
-        </section>
-
-        {/* SKILLS */}
-
-        <section id="skills" className="editor-card">
-          <div className="editor-card-title">
-            <Code size={20} />
-            <h2>Skills</h2>
-          </div>
-
-          <label>Skills</label>
-
-          <textarea
-            rows="5"
-            placeholder="Data Annotation, QA, Team Management, Segmentation..."
-            value={(content.skills || []).join(
-              ", "
             )}
-            onChange={(event) =>
-              updateSkills(
-                event.target.value
-              )
-            }
-          />
-        </section>
 
-        {/* PROJECTS */}
-
-        <section id="projects" className="editor-card">
-          <div className="editor-card-title">
-            <FolderKanban size={20} />
-            <h2>Projects</h2>
-          </div>
-
-          <p className="field-help">
-            Add your professional projects.
-          </p>
-
-          {(content.projects || []).map(
-            (project, index) => (
-              <div
-                key={index}
-                style={{
-                  border:
-                    "1px solid rgba(127, 127, 127, 0.25)",
-                  borderRadius: "14px",
-                  padding: "18px",
-                  marginTop: "16px",
-                }}
+            {content.photo && (
+              <button
+                type="button"
+                className="back-home"
+                onClick={removePhoto}
+                disabled={
+                  uploadingPhoto ||
+                  saving ||
+                  uploadingResume
+                }
               >
+                Remove Photo
+              </button>
+            )}
+
+            <p className="field-help">
+              JPG, PNG, WEBP or GIF. Maximum
+              size: 5 MB.
+            </p>
+
+            <label>Full Name</label>
+
+            <input
+              value={content.name || ""}
+              onChange={(event) =>
+                updateField(
+                  "name",
+                  event.target.value
+                )
+              }
+            />
+
+            <label>
+              Professional Title
+            </label>
+
+            <input
+              value={content.title || ""}
+              onChange={(event) =>
+                updateField(
+                  "title",
+                  event.target.value
+                )
+              }
+            />
+
+            <label>
+              Professional Introduction
+            </label>
+
+            <p className="field-help">
+              Add a short 1–2 line introduction.
+              This appears below your name on
+              the homepage.
+            </p>
+
+            <textarea
+              rows="3"
+              placeholder="Example: People-first Data Annotation Supervisor with 5+ years of experience leading high-volume annotation and quality-review teams."
+              value={content.intro || ""}
+              onChange={(event) =>
+                updateField(
+                  "intro",
+                  event.target.value
+                )
+              }
+            />
+
+            <label>About Me</label>
+
+            <p className="field-help">
+              Add your detailed professional
+              background.
+            </p>
+
+            <textarea
+              rows="7"
+              value={content.about || ""}
+              onChange={(event) =>
+                updateField(
+                  "about",
+                  event.target.value
+                )
+              }
+            />
+          </section>
+
+          {/* RESUME */}
+
+          <section
+            id="resume"
+            className="editor-card"
+          >
+            <div className="editor-card-title">
+              <FileText size={20} />
+              <h2>Resume / CV</h2>
+            </div>
+
+            <label>
+              <FileText size={14} />
+              Upload Resume PDF
+            </label>
+
+            <input
+              type="file"
+              accept="application/pdf,.pdf"
+              onChange={handleResumeUpload}
+              disabled={
+                uploadingResume ||
+                saving ||
+                uploadingPhoto
+              }
+            />
+
+            {uploadingResume && (
+              <p className="field-help">
+                Uploading resume to Supabase
+                Storage...
+              </p>
+            )}
+
+            {content.resume &&
+              !uploadingResume && (
                 <div
                   style={{
                     display: "flex",
-                    justifyContent:
-                      "space-between",
-                    alignItems: "center",
-                    gap: "12px",
-                    marginBottom: "16px",
+                    gap: "10px",
+                    flexWrap: "wrap",
+                    marginTop: "12px",
                   }}
                 >
-                  <h3 style={{ margin: 0 }}>
-                    Project {index + 1}
-                  </h3>
-
-                  <button
-                    type="button"
-                    className="back-home"
-                    onClick={() =>
-                      deleteProject(index)
-                    }
-                    disabled={saving}
-                    style={{
-                      display:
-                        "inline-flex",
-                      alignItems:
-                        "center",
-                      gap: "6px",
-                    }}
-                  >
-                    <Trash2 size={16} />
-                    Delete
-                  </button>
-                </div>
-
-                <label>
-                  Project Title
-                </label>
-
-                <input
-                  type="text"
-                  placeholder="Example: AnnotatePro Team Dashboard"
-                  value={
-                    project.title || ""
-                  }
-                  onChange={(event) =>
-                    updateProject(
-                      index,
-                      "title",
-                      event.target.value
-                    )
-                  }
-                />
-
-                <label>
-                  Description
-                </label>
-
-                <textarea
-                  rows="5"
-                  placeholder="Describe what you built, what problem it solves and your role."
-                  value={
-                    project.description ||
-                    ""
-                  }
-                  onChange={(event) =>
-                    updateProject(
-                      index,
-                      "description",
-                      event.target.value
-                    )
-                  }
-                />
-
-                <label>
-                  Technology / Tag
-                </label>
-
-                <input
-                  type="text"
-                  placeholder="Example: React, Vite, Supabase"
-                  value={project.tag || ""}
-                  onChange={(event) =>
-                    updateProject(
-                      index,
-                      "tag",
-                      event.target.value
-                    )
-                  }
-                />
-
-                <label>
-                  Project URL
-                </label>
-
-                <input
-                  type="url"
-                  placeholder="https://your-project.vercel.app"
-                  value={project.url || ""}
-                  onChange={(event) =>
-                    updateProject(
-                      index,
-                      "url",
-                      event.target.value
-                    )
-                  }
-                />
-
-                {project.url && (
                   <a
-                    href={project.url}
+                    href={content.resume}
                     target="_blank"
                     rel="noreferrer"
                     className="back-home"
                     style={{
-                      marginTop: "10px",
                       textDecoration:
                         "none",
                       display:
@@ -2376,65 +2089,373 @@ export default function Admin() {
                     }}
                   >
                     <ExternalLink size={16} />
-                    Test Project Link
+                    View Current Resume
                   </a>
-                )}
-              </div>
-            )
-          )}
 
-          {content.projects?.length === 0 && (
-            <div
+                  <button
+                    type="button"
+                    className="back-home"
+                    onClick={removeResume}
+                    disabled={
+                      uploadingResume ||
+                      saving ||
+                      uploadingPhoto
+                    }
+                  >
+                    Remove Resume
+                  </button>
+                </div>
+              )}
+
+            <p className="field-help">
+              Upload your resume as a PDF.
+              Maximum size: 10 MB.
+            </p>
+
+            {!content.resume && (
+              <p className="field-help">
+                No resume uploaded yet.
+              </p>
+            )}
+          </section>
+
+          {/* PERSONAL */}
+
+          <section
+            id="personal"
+            className="editor-card"
+          >
+            <div className="editor-card-title">
+              <User size={20} />
+              <h2>
+                Personal Information
+              </h2>
+            </div>
+
+            <label>
+              <MapPin size={14} />
+              Location
+            </label>
+
+            <input
+              placeholder="Example: Bengaluru, India"
+              value={
+                content.personal?.location ||
+                ""
+              }
+              onChange={(event) =>
+                updatePersonal(
+                  "location",
+                  event.target.value
+                )
+              }
+            />
+
+            <label>
+              <GraduationCap size={14} />
+              Education
+            </label>
+
+            <input
+              placeholder="Example: Diploma in Civil"
+              value={
+                content.personal?.education ||
+                ""
+              }
+              onChange={(event) =>
+                updatePersonal(
+                  "education",
+                  event.target.value
+                )
+              }
+            />
+          </section>
+
+          {/* CONTACT */}
+
+          <section
+            id="contact"
+            className="editor-card"
+          >
+            <div className="editor-card-title">
+              <Mail size={20} />
+              <h2>
+                Contact Information
+              </h2>
+            </div>
+
+            <label>
+              <Mail size={14} />
+              Email
+            </label>
+
+            <input
+              type="email"
+              placeholder="your@email.com"
+              value={
+                content.contact?.email ||
+                ""
+              }
+              onChange={(event) =>
+                updateContact(
+                  "email",
+                  event.target.value
+                )
+              }
+            />
+
+            <label>
+              <Phone size={14} />
+              Phone
+            </label>
+
+            <input
+              type="text"
+              placeholder="Your phone number"
+              value={
+                content.contact?.phone ||
+                ""
+              }
+              onChange={(event) =>
+                updateContact(
+                  "phone",
+                  event.target.value
+                )
+              }
+            />
+
+            <label>
+              <Linkedin size={14} />
+              LinkedIn URL
+            </label>
+
+            <input
+              type="url"
+              placeholder="https://www.linkedin.com/in/..."
+              value={
+                content.contact?.linkedin ||
+                ""
+              }
+              onChange={(event) =>
+                updateContact(
+                  "linkedin",
+                  event.target.value
+                )
+              }
+            />
+          </section>
+
+          {/* EXPERIENCE */}
+
+          <section
+            id="experience"
+            className="editor-card"
+          >
+            <div className="editor-card-title">
+              <Briefcase size={20} />
+              <h2>Experience</h2>
+            </div>
+
+            <p className="field-help">
+              Add and manage all your
+              professional experiences. The
+              order here is the order shown
+              on your website.
+            </p>
+
+            {experiences.map(
+              (experience, index) => (
+                <div
+                  key={index}
+                  style={{
+                    border:
+                      "1px solid rgba(127, 127, 127, 0.25)",
+                    borderRadius: "14px",
+                    padding: "18px",
+                    marginTop: "18px",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent:
+                        "space-between",
+                      alignItems: "center",
+                      gap: "12px",
+                      marginBottom: "16px",
+                    }}
+                  >
+                    <div>
+                      <h3
+                        style={{
+                          margin: 0,
+                        }}
+                      >
+                        Experience{" "}
+                        {index + 1}
+                      </h3>
+
+                      {experience.role && (
+                        <p
+                          className="field-help"
+                          style={{
+                            marginTop:
+                              "5px",
+                          }}
+                        >
+                          {
+                            experience.role
+                          }
+                          {experience.company
+                            ? ` • ${experience.company}`
+                            : ""}
+                        </p>
+                      )}
+                    </div>
+
+                    <button
+                      type="button"
+                      className="back-home"
+                      onClick={() =>
+                        deleteExperience(
+                          index
+                        )
+                      }
+                      disabled={saving}
+                      style={{
+                        display:
+                          "inline-flex",
+                        alignItems:
+                          "center",
+                        gap: "6px",
+                      }}
+                    >
+                      <Trash2 size={16} />
+                      Delete
+                    </button>
+                  </div>
+
+                  <label>Job Role</label>
+
+                  <input
+                    type="text"
+                    placeholder="Example: Data Annotation Team Lead"
+                    value={
+                      experience.role ||
+                      ""
+                    }
+                    onChange={(event) =>
+                      updateExperience(
+                        index,
+                        "role",
+                        event.target.value
+                      )
+                    }
+                  />
+
+                  <label>Company</label>
+
+                  <input
+                    type="text"
+                    placeholder="Example: ABC Company"
+                    value={
+                      experience.company ||
+                      ""
+                    }
+                    onChange={(event) =>
+                      updateExperience(
+                        index,
+                        "company",
+                        event.target.value
+                      )
+                    }
+                  />
+
+                  <label>Period</label>
+
+                  <input
+                    type="text"
+                    placeholder="Example: 2023 - Present"
+                    value={
+                      experience.period ||
+                      ""
+                    }
+                    onChange={(event) =>
+                      updateExperience(
+                        index,
+                        "period",
+                        event.target.value
+                      )
+                    }
+                  />
+
+                  <label>
+                    Description
+                  </label>
+
+                  <p className="field-help">
+                    Add one responsibility or
+                    achievement per line.
+                  </p>
+
+                  <textarea
+                    rows="8"
+                    placeholder={
+                      "Led annotation teams across multiple projects.\nManaged daily targets and deadlines.\nEnsured high-quality annotations."
+                    }
+                    value={
+                      experience.description ||
+                      ""
+                    }
+                    onChange={(event) =>
+                      updateExperience(
+                        index,
+                        "description",
+                        event.target.value
+                      )
+                    }
+                  />
+                </div>
+              )
+            )}
+
+            <button
+              type="button"
+              className="save-btn"
+              onClick={addExperience}
+              disabled={saving}
               style={{
-                padding: "24px",
-                marginTop: "16px",
-                borderRadius: "12px",
-                textAlign: "center",
-                border:
-                  "1px dashed rgba(127, 127, 127, 0.4)",
+                marginTop: "18px",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px",
               }}
             >
-              <p className="field-help">
-                No projects added yet.
-              </p>
-            </div>
-          )}
+              <Plus size={18} />
+              Add Experience
+            </button>
+          </section>
 
-          <button
-            type="button"
-            className="save-btn"
-            onClick={addProject}
-            disabled={saving}
-            style={{
-              marginTop: "18px",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "8px",
-            }}
+          {/* PROFESSIONAL STATS */}
+
+          <section
+            id="stats"
+            className="editor-card"
           >
-            <Plus size={18} />
-            Add Project
-          </button>
-        </section>
+            <div className="editor-card-title">
+              <BarChart3 size={20} />
+              <h2>
+                Professional Stats
+              </h2>
+            </div>
 
-        {/* ACHIEVEMENTS */}
+            <p className="field-help">
+              These statistics are displayed in
+              the Experience section of your
+              website.
+            </p>
 
-        <section id="achievements" className="editor-card">
-          <div className="editor-card-title">
-            <Award size={20} />
-            <h2>Achievements</h2>
-          </div>
-
-          <p className="field-help">
-            Manage your professional achievements.
-            Each achievement can have a title,
-            description, year and organization.
-            Existing achievements saved as simple
-            text are automatically supported.
-          </p>
-
-          {achievements.map(
-            (achievement, index) => (
+            {stats.map((stat, index) => (
               <div
                 key={index}
                 style={{
@@ -2455,28 +2476,19 @@ export default function Admin() {
                     marginBottom: "16px",
                   }}
                 >
-                  <div>
-                    <h3 style={{ margin: 0 }}>
-                      Achievement {index + 1}
-                    </h3>
-
-                    {achievement.title && (
-                      <p
-                        className="field-help"
-                        style={{
-                          marginTop: "5px",
-                        }}
-                      >
-                        {achievement.title}
-                      </p>
-                    )}
-                  </div>
+                  <h3
+                    style={{
+                      margin: 0,
+                    }}
+                  >
+                    Stat {index + 1}
+                  </h3>
 
                   <button
                     type="button"
                     className="back-home"
                     onClick={() =>
-                      deleteAchievement(index)
+                      deleteStat(index)
                     }
                     disabled={saving}
                     style={{
@@ -2493,142 +2505,958 @@ export default function Admin() {
                 </div>
 
                 <label>
-                  Achievement Title
+                  Stat Value
                 </label>
 
                 <input
                   type="text"
-                  placeholder="Example: Best Performer"
-                  value={
-                    achievement.title || ""
-                  }
+                  placeholder="Example: 18+"
+                  value={stat.value || ""}
                   onChange={(event) =>
-                    updateAchievement(
+                    updateStat(
                       index,
-                      "title",
+                      "value",
                       event.target.value
                     )
                   }
                 />
 
                 <label>
-                  Description
-                </label>
-
-                <textarea
-                  rows="5"
-                  placeholder="Describe the achievement, recognition or result."
-                  value={
-                    achievement.description ||
-                    ""
-                  }
-                  onChange={(event) =>
-                    updateAchievement(
-                      index,
-                      "description",
-                      event.target.value
-                    )
-                  }
-                />
-
-                <label>
-                  Year
+                  Stat Description
                 </label>
 
                 <input
                   type="text"
-                  placeholder="Example: 2026"
-                  value={
-                    achievement.year || ""
-                  }
+                  placeholder="Example: Projects handled concurrently"
+                  value={stat.label || ""}
                   onChange={(event) =>
-                    updateAchievement(
+                    updateStat(
                       index,
-                      "year",
-                      event.target.value
-                    )
-                  }
-                />
-
-                <label>
-                  Organization / Context
-                </label>
-
-                <input
-                  type="text"
-                  placeholder="Example: Data Annotation Team"
-                  value={
-                    achievement.organization ||
-                    ""
-                  }
-                  onChange={(event) =>
-                    updateAchievement(
-                      index,
-                      "organization",
+                      "label",
                       event.target.value
                     )
                   }
                 />
               </div>
-            )
-          )}
+            ))}
 
-          {achievements.length === 0 && (
-            <div
+            {stats.length === 0 && (
+              <div
+                style={{
+                  padding: "24px",
+                  marginTop: "16px",
+                  borderRadius: "12px",
+                  textAlign: "center",
+                  border:
+                    "1px dashed rgba(127, 127, 127, 0.4)",
+                }}
+              >
+                <p className="field-help">
+                  No professional stats added.
+                </p>
+              </div>
+            )}
+
+            <button
+              type="button"
+              className="save-btn"
+              onClick={addStat}
+              disabled={saving}
               style={{
-                padding: "24px",
-                marginTop: "16px",
-                borderRadius: "12px",
-                textAlign: "center",
-                border:
-                  "1px dashed rgba(127, 127, 127, 0.4)",
+                marginTop: "18px",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px",
               }}
             >
-              <p className="field-help">
-                No achievements added yet.
-              </p>
+              <Plus size={18} />
+              Add Stat
+            </button>
+          </section>
+
+          {/* SKILLS */}
+
+          <section
+            id="skills"
+            className="editor-card"
+          >
+            <div className="editor-card-title">
+              <Code size={20} />
+              <h2>Skills</h2>
             </div>
-          )}
 
-          <button
-            type="button"
-            className="save-btn"
-            onClick={addAchievement}
-            disabled={saving}
-            style={{
-              marginTop: "18px",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "8px",
-            }}
+            <label>Skills</label>
+
+            <textarea
+              rows="5"
+              placeholder="Data Annotation, QA, Team Management, Segmentation..."
+              value={(content.skills || []).join(
+                ", "
+              )}
+              onChange={(event) =>
+                updateSkills(
+                  event.target.value
+                )
+              }
+            />
+          </section>
+
+          {/* PROJECTS */}
+
+          <section
+            id="projects"
+            className="editor-card"
           >
-            <Plus size={18} />
-            Add Achievement
-          </button>
-        </section>
+            <div className="editor-card-title">
+              <FolderKanban size={20} />
+              <h2>Projects</h2>
+            </div>
 
-        {/* SAVE */}
+            <p className="field-help">
+              Add your professional projects.
+            </p>
 
-        <div className="save-area">
-          <button
-            className="save-btn"
-            onClick={saveChanges}
-            disabled={
-              saving ||
-              loadingContent ||
-              uploadingPhoto ||
-              uploadingResume
-            }
+            {(content.projects || []).map(
+              (project, index) => (
+                <div
+                  key={index}
+                  style={{
+                    border:
+                      "1px solid rgba(127, 127, 127, 0.25)",
+                    borderRadius: "14px",
+                    padding: "18px",
+                    marginTop: "16px",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent:
+                        "space-between",
+                      alignItems: "center",
+                      gap: "12px",
+                      marginBottom: "16px",
+                    }}
+                  >
+                    <h3
+                      style={{
+                        margin: 0,
+                      }}
+                    >
+                      Project {index + 1}
+                    </h3>
+
+                    <button
+                      type="button"
+                      className="back-home"
+                      onClick={() =>
+                        deleteProject(index)
+                      }
+                      disabled={saving}
+                      style={{
+                        display:
+                          "inline-flex",
+                        alignItems:
+                          "center",
+                        gap: "6px",
+                      }}
+                    >
+                      <Trash2 size={16} />
+                      Delete
+                    </button>
+                  </div>
+
+                  <label>
+                    Project Title
+                  </label>
+
+                  <input
+                    type="text"
+                    placeholder="Example: AnnotatePro Team Dashboard"
+                    value={
+                      project.title || ""
+                    }
+                    onChange={(event) =>
+                      updateProject(
+                        index,
+                        "title",
+                        event.target.value
+                      )
+                    }
+                  />
+
+                  <label>
+                    Description
+                  </label>
+
+                  <textarea
+                    rows="5"
+                    placeholder="Describe what you built, what problem it solves and your role."
+                    value={
+                      project.description ||
+                      ""
+                    }
+                    onChange={(event) =>
+                      updateProject(
+                        index,
+                        "description",
+                        event.target.value
+                      )
+                    }
+                  />
+
+                  <label>
+                    Technology / Tag
+                  </label>
+
+                  <input
+                    type="text"
+                    placeholder="Example: React, Vite, Supabase"
+                    value={
+                      project.tag || ""
+                    }
+                    onChange={(event) =>
+                      updateProject(
+                        index,
+                        "tag",
+                        event.target.value
+                      )
+                    }
+                  />
+
+                  <label>
+                    Project URL
+                  </label>
+
+                  <input
+                    type="url"
+                    placeholder="https://your-project.vercel.app"
+                    value={
+                      project.url || ""
+                    }
+                    onChange={(event) =>
+                      updateProject(
+                        index,
+                        "url",
+                        event.target.value
+                      )
+                    }
+                  />
+
+                  {project.url && (
+                    <a
+                      href={project.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="back-home"
+                      style={{
+                        marginTop: "10px",
+                        textDecoration:
+                          "none",
+                        display:
+                          "inline-flex",
+                        alignItems:
+                          "center",
+                        gap: "6px",
+                      }}
+                    >
+                      <ExternalLink
+                        size={16}
+                      />
+                      Test Project Link
+                    </a>
+                  )}
+                </div>
+              )
+            )}
+
+            {content.projects?.length ===
+              0 && (
+              <div
+                style={{
+                  padding: "24px",
+                  marginTop: "16px",
+                  borderRadius: "12px",
+                  textAlign: "center",
+                  border:
+                    "1px dashed rgba(127, 127, 127, 0.4)",
+                }}
+              >
+                <p className="field-help">
+                  No projects added yet.
+                </p>
+              </div>
+            )}
+
+            <button
+              type="button"
+              className="save-btn"
+              onClick={addProject}
+              disabled={saving}
+              style={{
+                marginTop: "18px",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px",
+              }}
+            >
+              <Plus size={18} />
+              Add Project
+            </button>
+          </section>
+
+          {/* ACHIEVEMENTS */}
+
+          <section
+            id="achievements"
+            className="editor-card"
           >
-            <Save size={20} />
+            <div className="editor-card-title">
+              <Award size={20} />
+              <h2>Achievements</h2>
+            </div>
 
-            {saving
-              ? "Saving..."
-              : "Save Changes"}
-          </button>
-        </div>
-      </main>
+            <p className="field-help">
+              Manage your professional achievements.
+              Each achievement can have a title,
+              description, year and organization.
+            </p>
+
+            {achievements.map(
+              (achievement, index) => (
+                <div
+                  key={index}
+                  style={{
+                    border:
+                      "1px solid rgba(127, 127, 127, 0.25)",
+                    borderRadius: "14px",
+                    padding: "18px",
+                    marginTop: "16px",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent:
+                        "space-between",
+                      alignItems: "center",
+                      gap: "12px",
+                      marginBottom: "16px",
+                    }}
+                  >
+                    <div>
+                      <h3
+                        style={{
+                          margin: 0,
+                        }}
+                      >
+                        Achievement{" "}
+                        {index + 1}
+                      </h3>
+
+                      {achievement.title && (
+                        <p
+                          className="field-help"
+                          style={{
+                            marginTop:
+                              "5px",
+                          }}
+                        >
+                          {
+                            achievement.title
+                          }
+                        </p>
+                      )}
+                    </div>
+
+                    <button
+                      type="button"
+                      className="back-home"
+                      onClick={() =>
+                        deleteAchievement(
+                          index
+                        )
+                      }
+                      disabled={saving}
+                      style={{
+                        display:
+                          "inline-flex",
+                        alignItems:
+                          "center",
+                        gap: "6px",
+                      }}
+                    >
+                      <Trash2 size={16} />
+                      Delete
+                    </button>
+                  </div>
+
+                  <label>
+                    Achievement Title
+                  </label>
+
+                  <input
+                    type="text"
+                    placeholder="Example: Best Performer"
+                    value={
+                      achievement.title ||
+                      ""
+                    }
+                    onChange={(event) =>
+                      updateAchievement(
+                        index,
+                        "title",
+                        event.target.value
+                      )
+                    }
+                  />
+
+                  <label>
+                    Description
+                  </label>
+
+                  <textarea
+                    rows="5"
+                    placeholder="Describe the achievement, recognition or result."
+                    value={
+                      achievement.description ||
+                      ""
+                    }
+                    onChange={(event) =>
+                      updateAchievement(
+                        index,
+                        "description",
+                        event.target.value
+                      )
+                    }
+                  />
+
+                  <label>
+                    Year
+                  </label>
+
+                  <input
+                    type="text"
+                    placeholder="Example: 2026"
+                    value={
+                      achievement.year ||
+                      ""
+                    }
+                    onChange={(event) =>
+                      updateAchievement(
+                        index,
+                        "year",
+                        event.target.value
+                      )
+                    }
+                  />
+
+                  <label>
+                    Organization / Context
+                  </label>
+
+                  <input
+                    type="text"
+                    placeholder="Example: Data Annotation Team"
+                    value={
+                      achievement.organization ||
+                      ""
+                    }
+                    onChange={(event) =>
+                      updateAchievement(
+                        index,
+                        "organization",
+                        event.target.value
+                      )
+                    }
+                  />
+                </div>
+              )
+            )}
+
+            {achievements.length === 0 && (
+              <div
+                style={{
+                  padding: "24px",
+                  marginTop: "16px",
+                  borderRadius: "12px",
+                  textAlign: "center",
+                  border:
+                    "1px dashed rgba(127, 127, 127, 0.4)",
+                }}
+              >
+                <p className="field-help">
+                  No achievements added yet.
+                </p>
+              </div>
+            )}
+
+            <button
+              type="button"
+              className="save-btn"
+              onClick={addAchievement}
+              disabled={saving}
+              style={{
+                marginTop: "18px",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px",
+              }}
+            >
+              <Plus size={18} />
+              Add Achievement
+            </button>
+          </section>
+
+          {/* CONTACT MESSAGES / INBOX */}
+
+          <section
+            id="messages"
+            className="editor-card"
+          >
+            <div
+              className="editor-card-title"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent:
+                  "space-between",
+                gap: "12px",
+                flexWrap: "wrap",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                }}
+              >
+                <Inbox size={20} />
+
+                <h2
+                  style={{
+                    margin: 0,
+                  }}
+                >
+                  Contact Messages
+                </h2>
+
+                {unreadMessages > 0 && (
+                  <span
+                    style={{
+                      padding:
+                        "4px 9px",
+                      borderRadius:
+                        "999px",
+                      fontSize:
+                        "12px",
+                      fontWeight:
+                        700,
+                      background:
+                        "#ef4444",
+                      color:
+                        "#fff",
+                    }}
+                  >
+                    {unreadMessages} new
+                  </span>
+                )}
+              </div>
+
+              <button
+                type="button"
+                className="save-btn"
+                onClick={
+                  loadContactMessages
+                }
+                disabled={
+                  loadingMessages
+                }
+                style={{
+                  display:
+                    "inline-flex",
+                  alignItems:
+                    "center",
+                  gap: "7px",
+                }}
+              >
+                <RefreshCw
+                  size={16}
+                  style={{
+                    animation:
+                      loadingMessages
+                        ? "spin 1s linear infinite"
+                        : "none",
+                  }}
+                />
+
+                {loadingMessages
+                  ? "Refreshing..."
+                  : "Refresh"}
+              </button>
+            </div>
+
+            <p className="field-help">
+              Messages submitted through the
+              public Contact form appear here.
+            </p>
+
+            {loadingMessages &&
+              contactMessages.length ===
+                0 && (
+                <div className="admin-info">
+                  Loading contact messages...
+                </div>
+              )}
+
+            {!loadingMessages &&
+              contactMessages.length ===
+                0 && (
+                <div
+                  style={{
+                    padding: "35px 20px",
+                    marginTop: "18px",
+                    borderRadius:
+                      "14px",
+                    textAlign:
+                      "center",
+                    border:
+                      "1px dashed rgba(127, 127, 127, 0.4)",
+                  }}
+                >
+                  <Inbox
+                    size={34}
+                    style={{
+                      opacity:
+                        0.5,
+                      marginBottom:
+                        "10px",
+                    }}
+                  />
+
+                  <h3
+                    style={{
+                      margin:
+                        "0 0 7px",
+                    }}
+                  >
+                    No messages yet
+                  </h3>
+
+                  <p className="field-help">
+                    Contact form submissions
+                    will appear here.
+                  </p>
+                </div>
+              )}
+
+            <div
+              style={{
+                display: "grid",
+                gap: "16px",
+                marginTop: "18px",
+              }}
+            >
+              {contactMessages.map(
+                (item) => {
+                  const isUnread =
+                    item.status !==
+                    "read";
+
+                  return (
+                    <article
+                      key={item.id}
+                      style={{
+                        border:
+                          "1px solid rgba(127, 127, 127, 0.25)",
+                        borderRadius:
+                          "14px",
+                        padding:
+                          "18px",
+                        background:
+                          isUnread
+                            ? "rgba(127, 127, 127, 0.06)"
+                            : "transparent",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display:
+                            "flex",
+                          justifyContent:
+                            "space-between",
+                          alignItems:
+                            "flex-start",
+                          gap: "15px",
+                          flexWrap:
+                            "wrap",
+                        }}
+                      >
+                        <div>
+                          <div
+                            style={{
+                              display:
+                                "flex",
+                              alignItems:
+                                "center",
+                              gap: "9px",
+                              flexWrap:
+                                "wrap",
+                            }}
+                          >
+                            <h3
+                              style={{
+                                margin: 0,
+                              }}
+                            >
+                              {item.name}
+                            </h3>
+
+                            {isUnread && (
+                              <span
+                                style={{
+                                  display:
+                                    "inline-flex",
+                                  alignItems:
+                                    "center",
+                                  gap: "4px",
+                                  padding:
+                                    "4px 8px",
+                                  borderRadius:
+                                    "999px",
+                                  background:
+                                    "#fef3c7",
+                                  color:
+                                    "#92400e",
+                                  fontSize:
+                                    "11px",
+                                  fontWeight:
+                                    700,
+                                }}
+                              >
+                                <Clock
+                                  size={
+                                    12
+                                  }
+                                />
+                                NEW
+                              </span>
+                            )}
+
+                            {!isUnread && (
+                              <span
+                                style={{
+                                  display:
+                                    "inline-flex",
+                                  alignItems:
+                                    "center",
+                                  gap: "4px",
+                                  padding:
+                                    "4px 8px",
+                                  borderRadius:
+                                    "999px",
+                                  background:
+                                    "#dcfce7",
+                                  color:
+                                    "#166534",
+                                  fontSize:
+                                    "11px",
+                                  fontWeight:
+                                    700,
+                                }}
+                              >
+                                <Check
+                                  size={
+                                    12
+                                  }
+                                />
+                                READ
+                              </span>
+                            )}
+                          </div>
+
+                          <a
+                            href={`mailto:${item.email}`}
+                            style={{
+                              display:
+                                "inline-block",
+                              marginTop:
+                                "6px",
+                            }}
+                          >
+                            {item.email}
+                          </a>
+                        </div>
+
+                        <small
+                          className="field-help"
+                          style={{
+                            margin:
+                              0,
+                          }}
+                        >
+                          {formatMessageDate(
+                            item.created_at
+                          )}
+                        </small>
+                      </div>
+
+                      <div
+                        style={{
+                          marginTop:
+                            "16px",
+                          padding:
+                            "14px",
+                          borderRadius:
+                            "10px",
+                          background:
+                            "rgba(127, 127, 127, 0.08)",
+                          whiteSpace:
+                            "pre-wrap",
+                          lineHeight:
+                            1.65,
+                        }}
+                      >
+                        {item.message}
+                      </div>
+
+                      <div
+                        style={{
+                          display:
+                            "flex",
+                          gap: "9px",
+                          flexWrap:
+                            "wrap",
+                          marginTop:
+                            "14px",
+                        }}
+                      >
+                        {isUnread && (
+                          <button
+                            type="button"
+                            className="back-home"
+                            onClick={() =>
+                              markMessageRead(
+                                item.id
+                              )
+                            }
+                            disabled={
+                              messageActionId ===
+                              item.id
+                            }
+                            style={{
+                              display:
+                                "inline-flex",
+                              alignItems:
+                                "center",
+                              gap: "6px",
+                            }}
+                          >
+                            <Check
+                              size={
+                                15
+                              }
+                            />
+
+                            {messageActionId ===
+                            item.id
+                              ? "Updating..."
+                              : "Mark as Read"}
+                          </button>
+                        )}
+
+                        <a
+                          href={`mailto:${item.email}?subject=Re: Contact message`}
+                          className="back-home"
+                          style={{
+                            textDecoration:
+                              "none",
+                            display:
+                              "inline-flex",
+                            alignItems:
+                              "center",
+                            gap: "6px",
+                          }}
+                        >
+                          <Mail
+                            size={
+                              15
+                            }
+                          />
+                          Reply by Email
+                        </a>
+
+                        <button
+                          type="button"
+                          className="back-home"
+                          onClick={() =>
+                            deleteContactMessage(
+                              item.id
+                            )
+                          }
+                          disabled={
+                            messageActionId ===
+                            item.id
+                          }
+                          style={{
+                            display:
+                              "inline-flex",
+                            alignItems:
+                              "center",
+                            gap: "6px",
+                          }}
+                        >
+                          <Trash2
+                            size={
+                              15
+                            }
+                          />
+
+                          Delete
+                        </button>
+                      </div>
+                    </article>
+                  );
+                }
+              )}
+            </div>
+          </section>
+
+          {/* SAVE */}
+
+          <div className="save-area">
+            <button
+              className="save-btn"
+              onClick={saveChanges}
+              disabled={
+                saving ||
+                loadingContent ||
+                uploadingPhoto ||
+                uploadingResume
+              }
+            >
+              <Save size={20} />
+
+              {saving
+                ? "Saving..."
+                : "Save Changes"}
+            </button>
+          </div>
+        </main>
       </div>
+
+      <style>{`
+        @keyframes spin {
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
+        }
+      `}</style>
     </div>
   );
 }
+
